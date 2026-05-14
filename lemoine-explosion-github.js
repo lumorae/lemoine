@@ -47,13 +47,25 @@ function initLemoineExplosion() {
   ];
 
   const sacredPalette = [
-    [0.80, 0.21, 0.40],
-    [0.92, 0.63, 0.18],
-    [0.953, 0.937, 0.882],
-    [0.949, 0.812, 0.784],
-    [0.30, 0.55, 0.50],
-    [0.22, 0.56, 0.78]
+    { c: [0.80, 0.21, 0.40], w: 5 },  // Lemoine coral #CC3565
+    { c: [0.92, 0.63, 0.18], w: 4 },  // warm gold
+    { c: BRAND_CREAM, w: 2 },          // cream, never pure white
+    { c: PALE_PINK, w: 2 },
+    { c: [0.30, 0.55, 0.50], w: 2 },
+    { c: [0.22, 0.56, 0.78], w: 2 },
+    { c: [0.48, 0.36, 0.78], w: 1 }
   ];
+
+  const sacredTotalW = sacredPalette.reduce((sum, item) => sum + item.w, 0);
+
+  function pickSacredColor() {
+    let r = Math.random() * sacredTotalW;
+    for (const p of sacredPalette) {
+      r -= p.w;
+      if (r <= 0) return p.c;
+    }
+    return sacredPalette[0].c;
+  }
 
   const totalW = digitalPalette.reduce((sum, item) => sum + item.w, 0);
 
@@ -471,7 +483,7 @@ function initLemoineExplosion() {
 
   for (let i = 0; i < LEMON_ICON_COUNT; i++) lemonIcon.life[i] = 0;
 
-  const ORG_COUNT = 2400;
+  const ORG_COUNT = 3400;
   const org = {
     positions: new Float32Array(ORG_COUNT * 3),
     colors: new Float32Array(ORG_COUNT * 3),
@@ -912,29 +924,30 @@ function initLemoineExplosion() {
 
   function spawnSacred(idx, ox, oy, leftStrength) {
     const anchor = pickSacredAnchor(ox, oy, leftStrength);
-    const angle = Math.PI + (Math.random() - 0.5) * Math.PI * 1.3;
-    const speed = 0.08 + Math.random() * 0.38;
-    const c = sacredPalette[Math.floor(Math.random() * sacredPalette.length)];
+    const angle = Math.PI + (Math.random() - 0.5) * Math.PI * 1.45;
+    const speed = 0.1 + Math.random() * 0.5;
+    const c = pickSacredColor();
     const mesh = sacred.meshes[idx];
 
     sacred.positions[idx * 3] = anchor.x;
     sacred.positions[idx * 3 + 1] = anchor.y;
-    sacred.positions[idx * 3 + 2] = 0.22 + Math.random() * 0.14;
+    sacred.positions[idx * 3 + 2] = 0.22 + Math.random() * 0.16;
 
     sacred.velocities[idx * 3] = Math.cos(angle) * speed * (0.5 + leftStrength);
     sacred.velocities[idx * 3 + 1] = Math.sin(angle) * speed;
     sacred.velocities[idx * 3 + 2] = 0;
 
-    sacred.rotations[idx * 3] = 0;
-    sacred.rotations[idx * 3 + 1] = 0;
+    sacred.rotations[idx * 3] = (Math.random() - 0.5) * 0.28;
+    sacred.rotations[idx * 3 + 1] = (Math.random() - 0.5) * 0.28;
     sacred.rotations[idx * 3 + 2] = Math.random() * Math.PI * 2;
 
-    sacred.rotationSpeeds[idx * 3] = (Math.random() - 0.5) * 0.24;
-    sacred.rotationSpeeds[idx * 3 + 1] = (Math.random() - 0.5) * 0.24;
-    sacred.rotationSpeeds[idx * 3 + 2] = (Math.random() - 0.5) * 0.72;
+    // More visible movement: slow 3D tilt plus a stronger spinning drift.
+    sacred.rotationSpeeds[idx * 3] = (Math.random() - 0.5) * 0.58;
+    sacred.rotationSpeeds[idx * 3 + 1] = (Math.random() - 0.5) * 0.58;
+    sacred.rotationSpeeds[idx * 3 + 2] = (Math.random() - 0.5) * 1.55;
 
-    sacred.sizes[idx] = 0.22 + Math.random() * 0.36;
-    sacred.maxLife[idx] = 3.4 + Math.random() * 2.8;
+    sacred.sizes[idx] = 0.24 + Math.random() * 0.42;
+    sacred.maxLife[idx] = 3.6 + Math.random() * 3.1;
     sacred.life[idx] = sacred.maxLife[idx];
     sacred.dance[idx] = Math.random() * 100;
 
@@ -976,46 +989,55 @@ function initLemoineExplosion() {
     let speed;
     let lifeMul;
     let sizeMul;
+    let opacityBoost = 1;
 
-    if (tier < 0.35) {
-      speed = 0.12 + Math.random() * 0.45;
-      lifeMul = 1.7;
-      sizeMul = 1.3;
-    } else if (tier < 0.88) {
-      speed = 0.6 + Math.random() * 1.6;
+    // The right side is the paint / atmosphere side.
+    // It now has more splatter variety: soft clouds, mid flecks, fast paint specks, and occasional larger drops.
+    if (tier < 0.18) {
+      speed = 0.05 + Math.random() * 0.28;
+      lifeMul = 1.85;
+      sizeMul = 2.2;
+      opacityBoost = 1.05;
+    } else if (tier < 0.42) {
+      speed = 0.16 + Math.random() * 0.55;
+      lifeMul = 1.55;
+      sizeMul = 1.45;
+    } else if (tier < 0.83) {
+      speed = 0.75 + Math.random() * 1.95;
       lifeMul = 1.0;
       sizeMul = 1.0;
     } else {
-      speed = 2.2 + Math.random() * 2.0;
-      lifeMul = 0.5;
-      sizeMul = 0.7;
+      speed = 2.8 + Math.random() * 2.8;
+      lifeMul = 0.58;
+      sizeMul = 0.62;
+      opacityBoost = 1.15;
     }
 
     const angle = Math.random() * Math.PI * 2;
-    const jr = Math.pow(Math.random(), 1.6) * 0.08;
+    const jr = Math.pow(Math.random(), 1.6) * 0.1;
     const ja = Math.random() * Math.PI * 2;
 
     org.positions[idx * 3] = ox + Math.cos(ja) * jr;
     org.positions[idx * 3 + 1] = oy + Math.sin(ja) * jr;
-    org.positions[idx * 3 + 2] = (Math.random() - 0.5) * 0.3;
+    org.positions[idx * 3 + 2] = (Math.random() - 0.5) * 0.34;
 
     org.velocities[idx * 3] = Math.cos(angle) * speed;
     org.velocities[idx * 3 + 1] = Math.sin(angle) * speed;
-    org.velocities[idx * 3 + 2] = (Math.random() - 0.5) * 0.3;
+    org.velocities[idx * 3 + 2] = (Math.random() - 0.5) * 0.38;
 
     const c = organicPalette[Math.floor(Math.random() * organicPalette.length)];
-    const cj = 0.04;
+    const cj = 0.045;
 
     org.colors[idx * 3] = Math.max(0, Math.min(1, c[0] + (Math.random() - 0.5) * cj));
     org.colors[idx * 3 + 1] = Math.max(0, Math.min(1, c[1] + (Math.random() - 0.5) * cj));
     org.colors[idx * 3 + 2] = Math.max(0, Math.min(1, c[2] + (Math.random() - 0.5) * cj));
 
-    const sr = Math.pow(Math.random(), 1.7);
-    org.sizes[idx] = (2.5 + sr * 11) * sizeMul;
-    org.maxLife[idx] = (2.4 + Math.random() * 3.0) * lifeMul;
+    const sr = Math.pow(Math.random(), 1.55);
+    org.sizes[idx] = (3.0 + sr * 15.5) * sizeMul;
+    org.maxLife[idx] = (2.5 + Math.random() * 3.4) * lifeMul;
     org.life[idx] = org.maxLife[idx];
     org.alphas[idx] = 0;
-    org.seeds[idx] = Math.random() * 100;
+    org.seeds[idx] = Math.random() * 100 * opacityBoost;
   }
 
   function emitInto(state, spawnFn, count, ox, oy) {
@@ -1041,6 +1063,7 @@ function initLemoineExplosion() {
       if (Math.random() < probOrganic) organicN++;
     }
 
+    const rightStrength = probOrganic;
     const digitalTotal = count - organicN;
     let cubeN = 0;
 
@@ -1052,6 +1075,13 @@ function initLemoineExplosion() {
     if (flatN > 0) emitInto(flat, spawnFlat, flatN, ox, oy);
     if (cubeN > 0) emitInto(cube, spawnCube, cubeN, ox, oy);
     if (organicN > 0) emitInto(org, spawnOrganic, organicN, ox, oy);
+
+    // Give the right paint side extra life so it can compete with the left pixel side.
+    // These are additional splattery atmosphere particles, not a color reset.
+    if (rightStrength > 0.48 && count > 70) {
+      const extraSplatter = Math.floor(count * rightStrength * (0.22 + Math.random() * 0.34));
+      if (extraSplatter > 0) emitInto(org, spawnOrganic, extraSplatter, ox, oy);
+    }
 
     const leftStrength = 1 - probOrganic;
     if (leftStrength > 0.34 && count > 80 && Math.random() < 0.82) {
@@ -1421,9 +1451,9 @@ function initLemoineExplosion() {
         continue;
       }
 
-      sacred.velocities[i * 3] *= 0.985;
-      sacred.velocities[i * 3 + 1] *= 0.985;
-      sacred.velocities[i * 3 + 2] *= 0.985;
+      sacred.velocities[i * 3] *= 0.988;
+      sacred.velocities[i * 3 + 1] *= 0.988;
+      sacred.velocities[i * 3 + 2] *= 0.988;
 
       sacred.positions[i * 3] += sacred.velocities[i * 3] * dt;
       sacred.positions[i * 3 + 1] += sacred.velocities[i * 3 + 1] * dt;
@@ -1437,22 +1467,25 @@ function initLemoineExplosion() {
       const fadeIn = Math.min(1, (1 - r) * 4.8);
       const fadeOut = Math.min(1, r * 2.1);
       const dance = sacred.dance[i];
-      const pulse = 1 + Math.sin(t * 1.7 + dance) * 0.045 + Math.sin(t * 4.2 + dance) * 0.018;
+
+      const driftX = Math.sin(t * 1.05 + dance) * 0.045 + Math.sin(t * 2.4 + dance * 0.7) * 0.018;
+      const driftY = Math.cos(t * 0.9 + dance) * 0.045 + Math.cos(t * 2.1 + dance * 0.9) * 0.018;
+      const pulse = 1 + Math.sin(t * 2.2 + dance) * 0.075 + Math.sin(t * 5.3 + dance) * 0.028;
 
       mesh.position.set(
-        sacred.positions[i * 3],
-        sacred.positions[i * 3 + 1],
+        sacred.positions[i * 3] + driftX,
+        sacred.positions[i * 3 + 1] + driftY,
         sacred.positions[i * 3 + 2]
       );
 
       mesh.rotation.set(
-        sacred.rotations[i * 3] + Math.sin(t * 0.55 + dance) * 0.06,
-        sacred.rotations[i * 3 + 1] + Math.cos(t * 0.48 + dance) * 0.06,
-        sacred.rotations[i * 3 + 2]
+        sacred.rotations[i * 3] + Math.sin(t * 0.95 + dance) * 0.16,
+        sacred.rotations[i * 3 + 1] + Math.cos(t * 0.82 + dance) * 0.16,
+        sacred.rotations[i * 3 + 2] + Math.sin(t * 0.65 + dance) * 0.12
       );
 
       mesh.scale.setScalar(sacred.sizes[i] * pulse);
-      mesh.material.opacity = Math.min(fadeIn, fadeOut) * 0.58;
+      mesh.material.opacity = Math.min(fadeIn, fadeOut) * 0.66;
       mesh.visible = true;
     }
   }
@@ -1460,7 +1493,39 @@ function initLemoineExplosion() {
   const clock = new THREE.Clock();
 
   let dragEmitAccumulator = 0;
+  let autoBurstTimer = 0;
+  let nextAutoBurst = 24 + Math.random() * 14;
   let raf;
+
+  function emitAmbientBurst() {
+    // Small autonomous activation every so often, so the mark feels alive without user input.
+    const side = Math.random();
+    let x;
+    let probOrganic;
+
+    if (side < 0.34) {
+      x = -halfWidthWorld * (0.42 + Math.random() * 0.42);
+      probOrganic = 0.1 + Math.random() * 0.22;
+    } else if (side < 0.68) {
+      x = halfWidthWorld * (0.28 + Math.random() * 0.58);
+      probOrganic = 0.72 + Math.random() * 0.24;
+    } else {
+      x = (Math.random() - 0.5) * halfWidthWorld * 0.7;
+      probOrganic = 0.35 + Math.random() * 0.35;
+    }
+
+    const y = (Math.random() - 0.5) * 0.86;
+    const count = 120 + Math.floor(Math.random() * 120);
+    emit(x, y, count, probOrganic);
+
+    if (probOrganic < 0.45 && Math.random() < 0.75) {
+      emitSacred(x, y, 1 + Math.floor(Math.random() * 2), 1 - probOrganic);
+    }
+
+    if (probOrganic > 0.6) {
+      emitInto(org, spawnOrganic, 90 + Math.floor(Math.random() * 130), x, y);
+    }
+  }
 
   function tick() {
     const dt = Math.min(clock.getDelta(), 0.05);
@@ -1498,6 +1563,15 @@ function initLemoineExplosion() {
     } else {
       dragEmitAccumulator = 0;
       sacredDragTimer = 0;
+    }
+
+    if (!isPressing) {
+      autoBurstTimer += dt;
+      if (autoBurstTimer >= nextAutoBurst) {
+        autoBurstTimer = 0;
+        nextAutoBurst = 24 + Math.random() * 16;
+        emitAmbientBurst();
+      }
     }
 
     updateOrganic(dt, t);
