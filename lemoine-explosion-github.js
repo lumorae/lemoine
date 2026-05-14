@@ -125,6 +125,118 @@ function initLemoineExplosion() {
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   mount.appendChild(renderer.domElement);
 
+  const hazeMat = new THREE.ShaderMaterial({
+    uniforms: {
+      uTime: { value: 0 },
+      uOpacity: { value: 0.095 },
+      uAspect: { value: width / height },
+    },
+    vertexShader: `
+      varying vec2 vUv;
+
+      void main() {
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float uTime;
+      uniform float uOpacity;
+      uniform float uAspect;
+      varying vec2 vUv;
+
+      float hash(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+      }
+
+      float noise(vec2 p) {
+        vec2 i = floor(p);
+        vec2 f = fract(p);
+
+        float a = hash(i);
+        float b = hash(i + vec2(1.0, 0.0));
+        float c = hash(i + vec2(0.0, 1.0));
+        float d = hash(i + vec2(1.0, 1.0));
+
+        vec2 u = f * f * (3.0 - 2.0 * f);
+
+        return mix(a, b, u.x) +
+          (c - a) * u.y * (1.0 - u.x) +
+          (d - b) * u.x * u.y;
+      }
+
+      float fbm(vec2 p) {
+        float value = 0.0;
+        float amp = 0.5;
+
+        for (int i = 0; i < 5; i++) {
+          value += amp * noise(p);
+          p *= 2.0;
+          amp *= 0.5;
+        }
+
+        return value;
+      }
+
+      float glow(vec2 p, vec2 center, float size) {
+        vec2 d = p - center;
+        return exp(-dot(d, d) * size);
+      }
+
+      void main() {
+        vec2 uv = vUv * 2.0 - 1.0;
+        uv.x *= uAspect;
+
+        vec2 drift = vec2(
+          sin(uTime * 0.055) * 0.18,
+          cos(uTime * 0.041) * 0.12
+        );
+
+        float cloudA = fbm(uv * 1.15 + drift + vec2(uTime * 0.025, -uTime * 0.018));
+        float cloudB = fbm(uv * 1.85 - drift + vec2(-uTime * 0.015, uTime * 0.02));
+
+        float smoke = smoothstep(0.42, 0.86, cloudA) * 0.42;
+        smoke += smoothstep(0.48, 0.92, cloudB) * 0.28;
+
+        float coral = glow(uv, vec2(sin(uTime * 0.09) * 0.55, cos(uTime * 0.07) * 0.34), 2.7);
+        float gold = glow(uv, vec2(cos(uTime * 0.06) * 0.72, sin(uTime * 0.08) * 0.42), 3.4);
+        float teal = glow(uv, vec2(sin(uTime * 0.045 + 2.1) * 0.68, cos(uTime * 0.052 + 1.4) * 0.38), 3.1);
+        float violet = glow(uv, vec2(cos(uTime * 0.05 + 4.0) * 0.62, sin(uTime * 0.044 + 3.1) * 0.36), 3.8);
+
+        vec3 color = vec3(0.0);
+        color += vec3(0.80, 0.21, 0.40) * coral;
+        color += vec3(0.90, 0.68, 0.22) * gold;
+        color += vec3(0.30, 0.55, 0.50) * teal;
+        color += vec3(0.48, 0.36, 0.78) * violet;
+        color += vec3(0.953, 0.937, 0.882) * smoke * 0.22;
+
+        float alpha = (smoke * 0.18 + coral * 0.11 + gold * 0.08 + teal * 0.08 + violet * 0.07) * uOpacity;
+
+        gl_FragColor = vec4(color, alpha);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    depthWrite: false,
+    depthTest: false,
+  });
+
+  const hazeMesh = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), hazeMat);
+  hazeMesh.position.z = -1.2;
+  hazeMesh.renderOrder = -10;
+  scene.add(hazeMesh);
+
+  function resizeHaze() {
+    const distance = camera.position.z - hazeMesh.position.z;
+    const visibleHeight =
+      2 * Math.tan(THREE.MathUtils.degToRad(camera.fov * 0.5)) * distance;
+    const visibleWidth = visibleHeight * camera.aspect;
+
+    hazeMesh.scale.set(visibleWidth * 0.8, visibleHeight * 0.8, 1);
+  }
+
+  resizeHaze();
+
   const fillRes = 6;
   const fillCanvas = document.createElement("canvas");
   fillCanvas.width = Math.ceil(VIEW_W * fillRes);
@@ -1574,6 +1686,7 @@ function initLemoineExplosion() {
     updateLemonIcons(dt);
     updateSacred(dt, t);
 
+    hazeMat.uniforms.uTime.value = t;
     grainMat.uniforms.uTime.value = t;
 
     const target = isPressing && pressOnLemon ? 1 : 0;
@@ -1593,6 +1706,9 @@ function initLemoineExplosion() {
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height);
+
+    hazeMat.uniforms.uAspect.value = width / height;
+    resizeHaze();
   };
 
   window.addEventListener("resize", onResize);
