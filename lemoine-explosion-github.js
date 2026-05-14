@@ -80,11 +80,19 @@
     let logoCenterX = 0;
     let logoCenterY = 0;
     let logoWorldHalf = 1;
+
     let pressing = false;
     let pressOnLogo = false;
     let pointerX = 0;
     let pointerY = 0;
     let pressVisual = 0;
+    let pressStart = 0;
+    let charge = 0;
+    let chargeRelease = 0;
+    let portal = 0;
+    let portalSnap = 0;
+    let logoDissolve = 0;
+
     let lastTime = performance.now();
     let autoTimer = 0;
     let nextAuto = 24 + Math.random() * 16;
@@ -92,8 +100,11 @@
 
     const particles = [];
     const sacred = [];
-    const maxParticles = 4300;
-    const maxSacred = 46;
+    const reformDots = [];
+
+    const maxParticles = 5200;
+    const maxSacred = 52;
+    const maxReformDots = 720;
 
     function resize() {
       const rect = root.getBoundingClientRect();
@@ -137,6 +148,13 @@
       };
     }
 
+    function localToScreen(x, y) {
+      return {
+        x: logoX + x * logoScale,
+        y: logoY + y * logoScale
+      };
+    }
+
     function isInsideLogo(x, y) {
       const p = toLocal(x, y);
       try {
@@ -160,6 +178,7 @@
       const angle = rand(0, Math.PI * 2);
       const speed = rand(65, 420) * strength;
       const chunky = Math.random() < 0.18;
+
       addParticle({
         type: Math.random() < 0.15 ? "cube" : "pixel",
         x: x + rand(-8, 8),
@@ -176,13 +195,39 @@
         seed: rand(0, 1000),
         dissolve: chunky && Math.random() < 0.55
       });
+
+      particles[particles.length - 1].maxLife = particles[particles.length - 1].life;
+    }
+
+    function emitLogoShard(x, y, strength = 1) {
+      const angle = Math.atan2(y - logoCenterY, x - logoCenterX) + rand(-0.9, 0.9);
+      const speed = rand(160, 620) * strength;
+
+      addParticle({
+        type: Math.random() < 0.72 ? "logoShard" : "pixel",
+        x: x + rand(-6, 6),
+        y: y + rand(-6, 6),
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: rand(1.1, 2.8),
+        maxLife: 0,
+        size: rand(5, 18),
+        color: Math.random() < 0.72 ? CORAL : pick(digitalPalette),
+        alpha: 0,
+        rot: rand(0, Math.PI * 2),
+        spin: rand(-6, 6),
+        seed: rand(0, 1000),
+        dissolve: Math.random() < 0.35
+      });
+
       particles[particles.length - 1].maxLife = particles[particles.length - 1].life;
     }
 
     function emitSoftPaint(x, y, strength = 1, burst = false) {
       const angle = rand(0, Math.PI * 2);
-      const speed = rand(45, burst ? 520 : 280) * strength;
+      const speed = rand(45, burst ? 540 : 290) * strength;
       const isBloom = Math.random() < (burst ? 0.34 : 0.18);
+
       addParticle({
         type: isBloom ? "bloom" : Math.random() < 0.55 ? "splatter" : "mist",
         x: x + rand(-12, 12),
@@ -199,12 +244,14 @@
         seed: rand(0, 1000),
         lobes: 5 + Math.floor(Math.random() * 6)
       });
+
       particles[particles.length - 1].maxLife = particles[particles.length - 1].life;
     }
 
     function emitStreak(x, y, strength = 1) {
       const angle = rand(-0.75, 0.75);
       const speed = rand(180, 560) * strength;
+
       addParticle({
         type: "streak",
         x: x + rand(-12, 12),
@@ -221,7 +268,62 @@
         spin: rand(-0.4, 0.4),
         seed: rand(0, 1000)
       });
+
       particles[particles.length - 1].maxLife = particles[particles.length - 1].life;
+    }
+
+    function samplePointInsideLogo() {
+      for (let i = 0; i < 80; i++) {
+        const lx = rand(44, VIEW_W - 44);
+        const ly = rand(40, VIEW_H - 40);
+        try {
+          if (ctx.isPointInPath(logoPath, lx, ly, "evenodd") || ctx.isPointInPath(leafPath, lx, ly, "evenodd")) {
+            return localToScreen(lx, ly);
+          }
+        } catch (error) {
+          return localToScreen(lx, ly);
+        }
+      }
+      return {
+        x: logoCenterX + rand(-logoWorldHalf * 0.4, logoWorldHalf * 0.4),
+        y: logoCenterY + rand(-logoWorldHalf * 0.25, logoWorldHalf * 0.25)
+      };
+    }
+
+    function createReform(chargeAmount = 1) {
+      reformDots.length = 0;
+      const count = Math.floor(260 + chargeAmount * 360);
+
+      for (let i = 0; i < count && reformDots.length < maxReformDots; i++) {
+        const target = samplePointInsideLogo();
+        const angle = rand(0, Math.PI * 2);
+        const distance = rand(120, 480) * (0.7 + chargeAmount * 0.7);
+
+        reformDots.push({
+          x: target.x + Math.cos(angle) * distance,
+          y: target.y + Math.sin(angle) * distance,
+          tx: target.x,
+          ty: target.y,
+          vx: rand(-20, 20),
+          vy: rand(-20, 20),
+          life: rand(1.25, 2.45),
+          maxLife: 0,
+          size: rand(2.2, 7.5),
+          color: Math.random() < 0.7 ? CORAL : pick([CREAM, "#f2cfc8", "#e0a240", "#63a879", "#4c8eab"]),
+          phase: rand(0, 1000),
+          alpha: 0
+        });
+
+        reformDots[reformDots.length - 1].maxLife = reformDots[reformDots.length - 1].life;
+      }
+    }
+
+    function explodeLogo(chargeAmount) {
+      const count = Math.floor(160 + chargeAmount * 420);
+      for (let i = 0; i < count; i++) {
+        const p = samplePointInsideLogo();
+        emitLogoShard(p.x, p.y, 0.7 + chargeAmount * 1.25);
+      }
     }
 
     function sacredAnchor(x, y, leftStrength) {
@@ -254,6 +356,7 @@
         const a = sacredAnchor(x, y, leftStrength);
         const angle = Math.PI + rand(-1.2, 1.2);
         const speed = rand(8, 44) * (0.7 + leftStrength);
+
         sacred.push({
           kind: Math.floor(Math.random() * 4),
           x: a.x,
@@ -270,8 +373,10 @@
           wobble: rand(0.8, 1.6),
           line: rand(0.7, 1.45)
         });
+
         sacred[sacred.length - 1].maxLife = sacred[sacred.length - 1].life;
       }
+
       if (sacred.length > maxSacred) sacred.splice(0, sacred.length - maxSacred);
     }
 
@@ -282,6 +387,7 @@
 
       for (let i = 0; i < count; i++) {
         const r = Math.random();
+
         if (r < rightBoost) {
           if (Math.random() < 0.22 + rightBoost * 0.24) emitStreak(x, y, 0.7 + rightBoost * 0.8);
           else emitSoftPaint(x, y, 0.8 + rightBoost * 0.9, burst || rightBoost > 0.62);
@@ -321,7 +427,39 @@
       }
 
       emit(x, y, 100 + Math.floor(Math.random() * 150), organic, { burst: true });
+
+      if (Math.random() < 0.28) {
+        portal = 1;
+        portalSnap = 1;
+        logoDissolve = 0.3;
+        createReform(0.65);
+      }
+
       if (organic < 0.45 && Math.random() < 0.72) emitSacred(x, y, 1 + Math.floor(Math.random() * 2), 1 - organic);
+    }
+
+    function releaseCharge() {
+      if (charge < 0.18) return;
+
+      const organic = sideBlend(pointerX);
+      const power = clamp01(charge);
+      const count = Math.floor(220 + power * 760);
+
+      emit(pointerX, pointerY, count, organic, { burst: true });
+
+      if (power > 0.36) {
+        explodeLogo(power);
+        createReform(power);
+        logoDissolve = Math.max(logoDissolve, 0.45 + power * 0.46);
+      }
+
+      if (power > 0.56) {
+        portal = 1;
+        portalSnap = 1;
+        emitSacred(pointerX, pointerY, 3 + Math.floor(power * 4), 1 - organic);
+      }
+
+      chargeRelease = power;
     }
 
     function pointerPos(event) {
@@ -334,16 +472,22 @@
 
     canvas.addEventListener("pointerdown", (event) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
+
       const p = pointerPos(event);
       pointerX = p.x;
       pointerY = p.y;
+
       if (!isInsideLogo(pointerX, pointerY)) return;
 
       pressing = true;
       pressOnLogo = true;
+      pressStart = performance.now();
+      charge = 0;
+      chargeRelease = 0;
       canvas.setPointerCapture?.(event.pointerId);
+
       const organic = sideBlend(pointerX);
-      emit(pointerX, pointerY, 280, organic, { burst: true });
+      emit(pointerX, pointerY, 220, organic, { burst: true });
       if (Math.random() < 0.35) emitSacred(pointerX, pointerY, 1, 1 - organic);
     });
 
@@ -351,12 +495,14 @@
       const p = pointerPos(event);
       pointerX = p.x;
       pointerY = p.y;
+
       const inside = isInsideLogo(pointerX, pointerY);
       canvas.style.cursor = inside ? "pointer" : "default";
       if (pressing) pressOnLogo = inside;
     });
 
     window.addEventListener("pointerup", () => {
+      if (pressing && pressOnLogo) releaseCharge();
       pressing = false;
       pressOnLogo = false;
       dragAccumulator = 0;
@@ -368,23 +514,125 @@
       dragAccumulator = 0;
     });
 
+    function drawChargeField(time) {
+      if (charge <= 0.02 && portal <= 0.01) return;
+
+      const power = Math.max(charge, portal * 0.9);
+      const rings = 3 + Math.floor(power * 4);
+
+      ctx.save();
+      ctx.translate(logoCenterX, logoCenterY);
+
+      for (let i = 0; i < rings; i++) {
+        const t = (time * 0.0015 + i * 0.7) % 1;
+        const radius = logoWorldHalf * (0.42 + i * 0.12 + t * 0.22) * (0.82 + power * 0.32);
+        const alpha = (1 - t) * 0.12 * power;
+
+        ctx.globalAlpha = alpha;
+        ctx.strokeStyle = i % 2 === 0 ? CORAL : CREAM;
+        ctx.lineWidth = 1.2 + power * 1.8;
+        ctx.beginPath();
+        ctx.arc(0, 0, radius, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      ctx.globalAlpha = 0.22 * power;
+      const gradient = ctx.createRadialGradient(0, 0, logoWorldHalf * 0.08, 0, 0, logoWorldHalf * 0.92);
+      gradient.addColorStop(0, CORAL);
+      gradient.addColorStop(0.32, "#7760b6");
+      gradient.addColorStop(0.68, "#4c8eab");
+      gradient.addColorStop(1, "rgba(25,25,25,0)");
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.arc(0, 0, logoWorldHalf * (0.5 + power * 0.46), 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.restore();
+    }
+
+    function drawPortalInsideLogo(time, alpha) {
+      if (alpha <= 0.01) return;
+
+      const phase = time * 0.0022;
+
+      ctx.save();
+      ctx.translate(logoX, logoY);
+      ctx.scale(logoScale, logoScale);
+      ctx.clip(logoPath, "evenodd");
+      ctx.clip(leafPath, "evenodd");
+
+      const cx = VIEW_W * 0.5;
+      const cy = VIEW_H * 0.5;
+      const maxR = Math.max(VIEW_W, VIEW_H) * 0.7;
+
+      ctx.translate(cx, cy);
+      ctx.rotate(phase * 0.7);
+
+      const g = ctx.createRadialGradient(0, 0, 4, 0, 0, maxR);
+      g.addColorStop(0, "#191919");
+      g.addColorStop(0.18, "#7760b6");
+      g.addColorStop(0.34, "#4c8eab");
+      g.addColorStop(0.52, CORAL);
+      g.addColorStop(0.78, "#e0a240");
+      g.addColorStop(1, CREAM);
+
+      ctx.globalAlpha = alpha * 0.78;
+      ctx.fillStyle = g;
+      ctx.fillRect(-maxR, -maxR, maxR * 2, maxR * 2);
+
+      ctx.globalAlpha = alpha * 0.52;
+      ctx.strokeStyle = CREAM;
+      ctx.lineWidth = 1.2 / logoScale;
+
+      for (let i = 0; i < 18; i++) {
+        ctx.beginPath();
+        const start = phase + i * 0.45;
+        const end = start + Math.PI * (0.8 + Math.sin(phase + i) * 0.3);
+        const r = 12 + i * 9.5;
+        ctx.arc(0, 0, r, start, end);
+        ctx.stroke();
+      }
+
+      ctx.restore();
+    }
+
     function drawLogo(time) {
       const target = pressing && pressOnLogo ? 1 : 0;
       pressVisual += (target - pressVisual) * 0.18;
-      const pulse = 1 - pressVisual * 0.018;
+
+      const chargeShake = charge * charge * 2.4;
+      const snapShake = portalSnap * 7;
+      const shakeX = pressing ? Math.sin(time * 0.047) * chargeShake : Math.sin(time * 0.12) * snapShake;
+      const shakeY = pressing ? Math.cos(time * 0.052) * chargeShake : Math.cos(time * 0.11) * snapShake;
+
+      const pulse = 1 - pressVisual * 0.018 + charge * 0.018 + portal * 0.05;
       const breathe = 1 + Math.sin(time * 0.0007) * 0.0025;
       const s = logoScale * pulse * breathe;
-      const x = logoCenterX - (VIEW_W * s) / 2;
-      const y = logoCenterY - (VIEW_H * s) / 2;
+      const x = logoCenterX - (VIEW_W * s) / 2 + shakeX;
+      const y = logoCenterY - (VIEW_H * s) / 2 + shakeY;
+
+      drawPortalInsideLogo(time, portal * 0.96);
+
+      const alpha = clamp01(1 - logoDissolve * 0.88);
 
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(s, s);
+      ctx.globalAlpha = alpha;
       ctx.fillStyle = CORAL;
       ctx.shadowColor = "rgba(204, 53, 101, 0.34)";
-      ctx.shadowBlur = 24 * pressVisual;
+      ctx.shadowBlur = 20 * pressVisual + 36 * charge + 28 * portal;
       ctx.fill(logoPath, "evenodd");
       ctx.fill(leafPath, "evenodd");
+
+      if (portal > 0.02) {
+        ctx.globalAlpha = portal * 0.68;
+        ctx.strokeStyle = CREAM;
+        ctx.lineWidth = 4 / s;
+        ctx.stroke(logoPath);
+        ctx.stroke(leafPath);
+      }
+
       ctx.restore();
     }
 
@@ -429,7 +677,7 @@
       ctx.translate(p.x, p.y);
       ctx.rotate(p.rot);
 
-      if (p.type === "pixel") {
+      if (p.type === "pixel" || p.type === "logoShard") {
         const dissolve = p.dissolve && p.life / p.maxLife < 0.62;
         ctx.fillStyle = p.color;
         const cells = dissolve ? 3 : 1;
@@ -499,6 +747,43 @@
       ctx.restore();
     }
 
+    function updateReformDots(dt, time) {
+      for (let i = reformDots.length - 1; i >= 0; i--) {
+        const d = reformDots[i];
+        d.life -= dt;
+
+        if (d.life <= 0) {
+          reformDots.splice(i, 1);
+          continue;
+        }
+
+        const pull = 8.2;
+        d.vx += (d.tx - d.x) * pull * dt;
+        d.vy += (d.ty - d.y) * pull * dt;
+        d.vx *= 0.88;
+        d.vy *= 0.88;
+        d.x += d.vx * dt * 60;
+        d.y += d.vy * dt * 60;
+
+        const age = 1 - d.life / d.maxLife;
+        const fadeIn = Math.min(1, age * 8);
+        const fadeOut = Math.min(1, d.life / d.maxLife * 2);
+        d.alpha = Math.min(fadeIn, fadeOut);
+      }
+    }
+
+    function drawReformDots(time) {
+      for (const d of reformDots) {
+        ctx.save();
+        ctx.globalAlpha = d.alpha * 0.9;
+        ctx.fillStyle = d.color;
+        ctx.translate(d.x + Math.sin(time * 0.004 + d.phase) * 1.6, d.y + Math.cos(time * 0.004 + d.phase) * 1.6);
+        ctx.rotate(time * 0.003 + d.phase);
+        ctx.fillRect(-d.size / 2, -d.size / 2, d.size, d.size);
+        ctx.restore();
+      }
+    }
+
     function drawCircle(cx, cy, r, segments = 72) {
       ctx.beginPath();
       for (let i = 0; i <= segments; i++) {
@@ -515,6 +800,7 @@
       ctx.beginPath();
       const turns = 4.35;
       const steps = 180;
+
       for (let i = 0; i <= steps; i++) {
         const t = (i / steps) * Math.PI * 2 * turns;
         const r = 0.018 * Math.pow(1.618, t / (Math.PI / 2));
@@ -523,6 +809,7 @@
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
+
       ctx.stroke();
       drawCircle(0, 0, 0.82, 96);
       drawCircle(0, 0, 0.42, 96);
@@ -531,9 +818,11 @@
     function drawFlowerOfLife() {
       const r = 0.28;
       const centers = [{ x: 0, y: 0 }];
+
       for (let i = 0; i < 6; i++) centers.push({ x: Math.cos((Math.PI * 2 * i) / 6) * r, y: Math.sin((Math.PI * 2 * i) / 6) * r });
       for (let i = 0; i < 6; i++) centers.push({ x: Math.cos((Math.PI * 2 * i) / 6) * r * 2, y: Math.sin((Math.PI * 2 * i) / 6) * r * 2 });
       for (let i = 0; i < 6; i++) centers.push({ x: Math.cos((Math.PI * 2 * i) / 6 + Math.PI / 6) * r * 1.72, y: Math.sin((Math.PI * 2 * i) / 6 + Math.PI / 6) * r * 1.72 });
+
       centers.forEach((c) => drawCircle(c.x, c.y, r, 72));
       drawCircle(0, 0, r * 3, 108);
     }
@@ -541,26 +830,33 @@
     function drawMetatron() {
       const nodes = [{ x: 0, y: 0 }];
       const r = 0.46;
+
       for (let i = 0; i < 6; i++) nodes.push({ x: Math.cos((Math.PI * 2 * i) / 6) * r, y: Math.sin((Math.PI * 2 * i) / 6) * r });
       for (let i = 0; i < 6; i++) nodes.push({ x: Math.cos((Math.PI * 2 * i) / 6 + Math.PI / 6) * r * 1.78, y: Math.sin((Math.PI * 2 * i) / 6 + Math.PI / 6) * r * 1.78 });
+
       nodes.forEach((n) => drawCircle(n.x, n.y, 0.14, 44));
+
       ctx.beginPath();
+
       for (let i = 1; i < nodes.length; i++) {
         ctx.moveTo(0, 0);
         ctx.lineTo(nodes[i].x, nodes[i].y);
       }
+
       for (let i = 1; i <= 6; i++) {
         const n = nodes[i];
         const next = nodes[i === 6 ? 1 : i + 1];
         ctx.moveTo(n.x, n.y);
         ctx.lineTo(next.x, next.y);
       }
+
       for (let i = 7; i < nodes.length; i++) {
         const n = nodes[i];
         const next = nodes[i === nodes.length - 1 ? 7 : i + 1];
         ctx.moveTo(n.x, n.y);
         ctx.lineTo(next.x, next.y);
       }
+
       ctx.stroke();
     }
 
@@ -568,6 +864,7 @@
       for (let j = 0; j < 18; j++) {
         const ph = (j / 18) * Math.PI * 2 + Math.sin(time * 0.001 + phase) * 0.12;
         ctx.beginPath();
+
         for (let i = 0; i <= 86; i++) {
           const t = (i / 86) * Math.PI * 2;
           const warp = Math.sin(t * 2 + ph) * 0.12;
@@ -575,11 +872,14 @@
           const ry = 0.45 + Math.cos(ph) * 0.08;
           const x = Math.cos(t + ph * 0.1) * rx;
           const y = Math.sin(t) * ry;
+
           if (i === 0) ctx.moveTo(x, y);
           else ctx.lineTo(x, y);
         }
+
         ctx.stroke();
       }
+
       drawCircle(0, 0, 0.9, 108);
       drawCircle(0, 0, 0.46, 108);
     }
@@ -587,6 +887,7 @@
     function updateSacredShape(s, dt) {
       s.life -= dt;
       if (s.life <= 0) return false;
+
       s.vx *= 0.988;
       s.vy *= 0.988;
       s.x += s.vx * dt;
@@ -627,9 +928,11 @@
       ctx.globalAlpha = 0.035;
       ctx.fillStyle = CREAM;
       const count = Math.floor((w * h) / 26000);
+
       for (let i = 0; i < count; i++) {
         ctx.fillRect(Math.random() * w, Math.random() * h, 1, 1);
       }
+
       ctx.restore();
     }
 
@@ -642,11 +945,22 @@
       ctx.fillRect(0, 0, w, h);
 
       if (pressing && pressOnLogo) {
+        const held = (performance.now() - pressStart) / 1000;
+        charge = clamp01(held / 1.45);
         const organic = sideBlend(pointerX);
-        dragAccumulator += dt * 720;
+
+        dragAccumulator += dt * (360 + charge * 560);
         const amount = Math.floor(dragAccumulator);
         dragAccumulator -= amount;
-        if (amount > 0) emit(pointerX, pointerY, amount, organic, { burst: organic > 0.55 });
+
+        if (amount > 0) emit(pointerX, pointerY, amount, organic, { burst: organic > 0.55 || charge > 0.55 });
+
+        if (charge > 0.42 && Math.random() < 0.08) {
+          const p = samplePointInsideLogo();
+          emitLogoShard(p.x, p.y, 0.5 + charge);
+        }
+      } else {
+        charge *= 0.9;
       }
 
       if (!pressing) {
@@ -658,6 +972,13 @@
         }
       }
 
+      portal *= Math.pow(0.055, dt);
+      portalSnap *= Math.pow(0.025, dt);
+      logoDissolve *= Math.pow(0.065, dt);
+      chargeRelease *= Math.pow(0.08, dt);
+
+      drawChargeField(time);
+
       for (let i = particles.length - 1; i >= 0; i--) {
         if (!updateParticle(particles[i], dt, time)) particles.splice(i, 1);
       }
@@ -666,8 +987,11 @@
         if (!updateSacredShape(sacred[i], dt)) sacred.splice(i, 1);
       }
 
+      updateReformDots(dt, time);
+
       for (const p of particles) drawParticle(p);
       for (const s of sacred) drawSacredShape(s, time);
+      drawReformDots(time);
       drawLogo(time);
       drawGrain();
 
