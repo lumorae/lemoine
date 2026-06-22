@@ -1,58 +1,57 @@
-# High Spirits Issue — DRAFT v2
+# High Spirits Issue — DRAFT v3 (the "I was a fan first" cut)
 
-> Goal: open well, and actually get clicked (your personal-only sends open ~59%
-> but under-click; your project showcases are your best clickers ever at ~11%).
-> Voice rules honored: no dashes, no this-not-that, warm, specific, a few loose lines.
-> Send Friday afternoon (your entire send history is Friday; 44% of opens land in the afternoon).
+> Angle: Johnny was a customer and player before he was their designer. He bought
+> their double drone flute for his birthday last year and reached out as a fan.
+> That alignment is the hook. Voice: no dashes, warm, loose, not a case study.
+> Send Friday afternoon. Link sits on the feeling ("turn your sound on").
 
-**Subject line (test these two):**
-- A: I drove out to the desert for this one
-- B: How a piece of wood learns to sing
+**Subject (test both):**
+- A: I bought their flute before I ever pitched them
+- B: I drove out to the desert for this one
 
-**Preview text:** The story behind the High Spirits site, and a flute I want you to hear.
+**Preview text:** I was a customer before I was their designer.
 
 ---
 
-A few months ago I loaded up the car in San Diego and drove east to Patagonia, Arizona. I wanted to stand in the shop where High Spirits flutes are made before I drew a single line of the new site.
+Last year for my birthday I bought myself a double drone flute from High Spirits. I had wanted one for a long time. I play most days, and that one is the flute I keep coming back to.
 
-I needed to see how it actually happens. How they choose the wood. How a plain piece of it ends up holding a note you feel in your chest. I wanted to know who these people are when nobody is talking about branding.
+So when I finally reached out to them, I was not a branding guy chasing a project. I was a fan. Someone who already loved the thing they make and played it in his own house at night.
 
-Odell has been making these flutes by hand for decades, one at a time. He can pick up a blank of wood and pretty much tell you what it wants to be. [His daughter] runs things now, and early on she said something that stuck with me for months. That the craft was the whole point. Then, almost in passing, how much she loved old hand-painted signs, the kind you hardly see anymore.
+That changed everything about how I worked.
 
-I stayed a few days and drove home with a notebook full of scribbles and a feeling I could not shake. A company that has been alive this long, every instrument made by hand, deserved a website built with the same care. So that became the work.
+A few months ago I drove from San Diego out to Patagonia, Arizona to see where the flutes are actually made. I could not design a single thing for them until I stood in that room and watched it happen.
 
-It started with strategy. Who this brand really is, how it should sound on its own site, how that shifts when it is a quick post on Instagram, what it cares about and the lines it will not cross. I brought it all back a few weeks later and we shaped it together until it sounded like them.
+Odell has been carving them by hand for decades. He picks up a piece of wood and already seems to know the note living inside it. I mostly just watched and listened. Raw wood at one end of the bench, something that sings at the other.
 
-Then the big one. The catalog is huge. Hundreds of flutes, plus drums, music, and accessories, and a person on the other end who might be buying their first flute, or healing with sound, or playing for thirty years. So we built the whole site around one question. Help me find the flute that is right for me. You can wander in by the key you play in, by voice from high to low, by the wood you are drawn to, by where you are as a player. Different people, different doors, the same catalog underneath.
+I drove home with a full notebook and a feeling I could not shake. A company that has made every instrument by hand for this long should have a site built with that same patience. So I gave it everything I had.
 
-From there I designed the identity, brought a couple of directions, and built the site from a blank canvas. Hundreds of small illustrations and patterns. Textures so it has a little dirt under its fingernails instead of looking like everything else online. It is wired into their Shopify so the entire shop lives in one clean place, and you can sort the flutes until you land on the one that fits your hands.
+It went live this week. Hundreds of little illustrations. A typeface I hand-lettered from scratch, a nod to the old painted signs the family loves. You meet it the second the page loads.
 
-And I drew them a typeface. Remember those hand-painted signs. I made a font by hand to carry that feeling across the site, every letter drawn from scratch. You meet it the second the homepage loads, in the words made in Patagonia, Arizona.
+But I do not want to describe it to you. I want you to feel it, the way I did long before any of this was a job.
 
-Here is what I would love from you. Go walk around it for a few minutes. Turn the sound on. Play a flute or two. There is a whole library of music tucked in there that is worth your time.
+Go to highspirits.com. Turn your sound on. Play a flute or two. Odell has been quietly stacking up music in there for years, and it is the kind of thing that slows your whole day down.
 
-**→ Visit High Spirits — highspirits.com**
+**→ highspirits.com**
 
-This is one of the few projects where I disappeared into the work completely. If you are building something you care about that much, you know where to find me.
-
-And if someone came to mind while you were reading, a musician, a maker, anyone chasing a calmer kind of creative life, send this their way. That is how the good things travel.
+And if a certain someone came to mind while you read this, a player, or somebody who has always wanted to be one, send it their way. If you have ever thought about picking up a flute, take this as your sign. It did something to me I did not expect.
 
 Go make some noise,
 Johnny
 
-*Lemoine*
-[ web version ]  ·  [ not subscribed? join here ]  ·  [ unsubscribe ]
-
 ---
 
-### Confirm before you send (I refused to invent these)
-1. **The relationship.** I bracketed `[His daughter]`. Confirm it is in fact his daughter, or change to "the family."
-2. **"For decades."** I kept it vague on purpose. If you want a real number ("since 1990," "thirty-some years"), drop it in.
-3. **The typeface tribute.** Your v1 named it *Accomplished Renegade* after her father. It is a beautiful detail, but it rests on the founder/father facts. If you can stand behind it, add it back right after "drawn from scratch." If not, leave it out.
+### Confirm before sending
+1. **"the family"** — kept vague. Name the daughter / relationship if you want.
+2. **"went live this week"** — you said it launched; keep only if true at send time.
+3. **"for decades"** — add the real number if you want it.
 
-### What changed from v1, and why (data-backed)
-- **Surfaced the one link.** Your most personal newsletter (Feb '26) opened 59% but clicked 2.2%, your worst ever, because the ask was buried. Your best clicker ever (11%) was a project showcase with a clear link. This is a showcase, so the button now sits where the energy peaks, with a concrete reason to tap: turn the sound on.
-- **Added a forward + subscribe line.** This is the only thing in the draft that serves your actual goal of growing the list. The issue goes to 275 people, so forwarding is how it reaches the 276th.
-- **Kept it loose and dash-free.** No em dashes anywhere, no this-not-that, no template phrasing.
-- **Added real substance.** The "find the right flute" idea, browsing by key, voice, wood, and skill, the custom Shopify build. It shows the strategy instead of claiming it.
-- **Cut the positioning line** I flagged last time ("the best work I've ever made comes out of a real conversation...").
+### Why this version
+- **Leads with the truest thing:** you were the customer and the fan first. It earns
+  trust no positioning line could, and it makes "I gave it everything" believable.
+- **Almost no process talk.** The build (illustrations, typeface) is one quick beat,
+  not the point. This is the "person, not case study" cut you asked for.
+- **One CTA, planted on the feeling.** Your data: personal sends open ~59% but
+  under-click when the ask is buried; showcases with a clear link are your best
+  clickers (~11%). The link sits on "turn your sound on."
+- **Growth built in:** the forward line plus the "your sign to play" nudge give it
+  a reason to travel beyond your 275.
