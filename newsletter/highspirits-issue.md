@@ -6,14 +6,14 @@
 > Send Friday afternoon. Link sits on the feeling ("turn your sound on").
 
 **Subject (test both):**
-- A: I bought their flute before I ever pitched them
-- B: I drove out to the desert for this one
+- A: A year ago I bought myself a flute
+- B: I bought their flute before I ever pitched them
 
-**Preview text:** I was a customer before I was their designer.
+**Preview text:** A birthday, a flute, and a year I did not see coming.
 
 ---
 
-Last year for my birthday I bought myself a double drone flute from High Spirits. I had wanted one for a long time. I play most days, and that one is the flute I keep coming back to.
+A year ago, for my birthday, I bought myself a double drone flute from High Spirits. I had wanted one for a long time. I play most days now, and that is still the flute I keep coming back to.
 
 So when I finally reached out to them, I was not a branding guy chasing a project. I was a fan. Someone who already loved the thing they make and played it in his own house at night.
 
@@ -27,7 +27,9 @@ I drove home with a full notebook and a feeling I could not shake. A company tha
 
 It went live this week. Hundreds of little illustrations. A typeface I hand-lettered from scratch, a nod to the old painted signs the family loves. You meet it the second the page loads.
 
-But I do not want to describe it to you. I want you to feel it, the way I did long before any of this was a job.
+Another birthday is rolling around as I write this, which is a strange thing to sit with. A year ago this was just a flute I wanted. Now there is a whole brand and a website that did not exist before, built for the people who made the thing that started it. A year holds more than you think.
+
+But I do not want to describe the site to you. I want you to feel it, the way I did long before any of this was a job.
 
 Go to highspirits.com. Turn your sound on. Play a flute or two. Odell has been quietly stacking up music in there for years, and it is the kind of thing that slows your whole day down.
 
