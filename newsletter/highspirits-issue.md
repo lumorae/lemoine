@@ -1,12 +1,4 @@
-# High Spirits Issue — DRAFT v6 (home run)
-
-> Angle: Johnny was a player and grateful customer long before he was their designer.
-> Bought the flute on a birthday Arizona road trip he couldn't quite afford, as an
-> investment in his own peace. A year and ~15 flutes later, he reached out with
-> gratitude (not a pitch) and it became a partnership. The personal story carries it;
-> the hand-lettered typeface gets room as the proof of care; one human line lets the
-> strategy show without a lecture. Voice: contractions, no dashes, warm, loose, a
-> person not a case study. Send Friday afternoon (Jun 26), birthday kept undated.
+# High Spirits Issue — FINAL (Johnny's cut)
 
 **Subject (test both):**
 - A: I couldn't afford the flute. I bought it anyway.
@@ -16,65 +8,119 @@
 
 ---
 
-A year ago, for my birthday, my partner and I were driving through Flagstaff, the Grand Canyon, all across Arizona. Somewhere on that trip I bought myself a double drone flute from High Spirits. Honestly, I couldn't really afford it. I bought it anyway, as an investment in my own peace of mind.
+A year ago, for my birthday, Marisa and I were driving through Flagstaff, the Grand Canyon, and all across Arizona.
 
-I played it once and needed no convincing. That trip became one of the most memorable of my life.
+Somewhere on that trip, I bought myself a double drone flute from High Spirits.
 
-A year later I've got about fifteen flutes now, with a pile of other instruments around them. I'm a little obsessed with the sound. I play most days, and it's brought me more peace than almost anything else I've tried.
+I could barely afford it.
 
-So when I finally reached out to High Spirits, it wasn't a pitch. I just wanted to thank them, and tell them how much I loved playing their flute. I shared who I was and what I do, and said that if it ever felt right, I'd love to build something together.
+I bought it anyway.
+
+It felt like an investment in my own peace.
+
+I played it once and that was it. I understood.
+
+That trip became one of the most memorable of my life.
+
+A year later, I have about fifteen flutes and a pile of other instruments gathering around them like some kind of tiny sound temple in my house. I'm obsessed with the sound. I play most days. Sometimes for five minutes. Sometimes longer. It has brought me more peace than almost anything else I've tried.
+
+So when I reached out to High Spirits, I wasn't pitching them.
+
+I just wanted to say thank you.
+
+I told them how much their flute meant to me. I told them who I was, what I do, and said that if it ever felt right, I would love to build something together.
 
 That's how all of this started.
 
-A few months ago I drove back out to Arizona, this time to Patagonia, to see where the flutes are actually made. I couldn't design a single thing for them until I stood in that room and watched it happen.
+The older I get, the less interested I am in working with companies I don't genuinely connect with. The best projects seem to happen when admiration comes first.
 
-Odell's been carving them by hand for decades. He picks up a piece of wood and already seems to know the note living inside it. I mostly just watched and listened. Raw wood at one end of the bench, something that sings at the other.
+That's what happened here.
 
-I drove home with a full notebook and one idea I couldn't shake. A company that's made every instrument by hand for this long should have a website built with the same patience. So I gave it everything I had.
+I loved the product long before there was ever a project attached to it.
 
-Before I drew a single thing, I sat with one question. What should someone feel the second the page opens, and what should they carry once they close it.
+And I think that changed the work. I wasn't trying to make High Spirits look like something. I was trying to listen closely enough to help the website carry what was already there.
+
+A few months ago, I drove back out to Arizona. This time to Patagonia, to see where the flutes are made.
+
+I knew I couldn't design anything real for them from a distance. I needed to stand in the room. I needed to see the wood, the tools, the hands, the process, and the feeling of the place.
+
+Odell has been making these flutes by hand for decades. Watching him work was unreal. He picks up a piece of wood and somehow seems to know what is waiting inside it.
+
+I mostly just watched and listened.
+
+Raw wood at one end of the bench.
+
+A flute at the other.
+
+Something that can hold grief, joy, prayer, breath, memory, and whatever else you're carrying that day.
+
+I drove home with a full notebook and one thought I couldn't shake.
+
+A company that has made every instrument by hand for this long deserved a website that felt made by hand too.
+
+So I gave it everything I had.
+
+Before I drew a single thing, I sat with one question.
+
+What should someone feel when the page opens?
 
 Then I got to work.
 
-It went live this week. Hundreds of little illustrations, every one of them drawn by hand. The words you read are set in a typeface I lettered myself, one letter at a time, after falling down a hole studying the old hand-painted signs the family has loved for years. I wanted the writing to feel made by a person, not picked from a menu. You meet all of it the second the page loads.
+The new High Spirits website went live this week.
 
-It's almost my birthday again as I write this. A year ago this was a flute I could barely afford. Now there's a whole brand and a website that didn't exist before, built for the people who made the thing that started it all. A year holds more than you'd think.
+Hundreds of small illustrations, all drawn by hand.
 
-But I don't want to describe the site to you. I want you to feel it, the way I did that first day in the car.
+A custom typeface I lettered myself, one letter at a time, after studying the old hand painted signs their family has loved for years.
 
-Go to highspirits.com. Turn your sound on. Play a flute or two. Odell's been quietly stacking up music in there for years, and it's the kind of thing that slows your whole day down.
+A full world built around the feeling of the instruments.
 
-**→ highspirits.com**
+Wood. Breath. Song. Hands. Time.
 
-And if someone came to mind while you read this, a player, or someone who's always wanted to be, send this their way. If that someone is you, take it as your sign. Picking up that first flute did something to me I didn't expect.
+It's almost my birthday again as I write this.
 
-Go make some noise,
+A year ago, this was a flute I could barely afford.
+
+Now there is a whole brand and website built for the people who made the thing that started it all.
+
+A year can hold so much more than you think.
+
+It's a good reminder that the things we're drawn to have a strange way of finding their way back into our lives.
+
+Sometimes as a hobby.
+
+Sometimes as a friendship.
+
+Sometimes as a project you never saw coming.
+
+I don't really want to describe the site to you.
+
+I want you to feel it.
+
+Go to highspirits.com.
+
+Turn your sound on.
+
+Play a flute or two.
+
+Odell has been quietly filling that place with music for years, and you can feel it the second you arrive.
+
+And if someone came to mind while you read this, a player, a musician, or someone who has always wanted to pick one up, send this their way.
+
+If that someone is you, take it as your sign.
+
+Maybe one is waiting for you too.
+
 Johnny
 
 ---
 
 ### Confirm before sending
-1. **"the family"** — kept vague. Name the daughter / relationship if you want.
-2. **"went live this week"** — keep only if true at send time.
-3. **"for decades"** — drop in the real number if you want it.
-4. **"about fifteen"** — adjust to the real count.
+1. **"went live this week"** — keep only if true at send time.
+2. **"for decades"** — drop in the real number if you want it.
+3. **"about fifteen"** — adjust to the real count.
+4. **"highspirits.com"** — confirm the link/CTA destination is right.
 
-### Why this version
-- **Story still carries it.** The emotional arc (couldn't afford it → obsessed → built
-  their brand → birthday again) stays the spine. We deepened, we didn't broaden.
-- **The typeface finally gets its moment.** It's the most "only Johnny" detail and the
-  proof of every claim about care the email makes. Told as a small obsession, not a
-  process breakdown ("one letter at a time", "made by a person, not picked from a menu").
-- **One quiet strategy line, in your voice.** "What should someone feel the second the
-  page opens, and what should they carry once they close it." Shows the thinking without
-  a single piece of jargon. Strategy/identity in full belong in a follow-up or a site
-  case study, not here.
-- **Tighter forward + nudge.** "If that someone is you, take it as your sign" makes the
-  growth ask personal and ties it back to your own first flute.
-- **One CTA, on the feeling** ("turn your sound on"). Personal sends are your big openers;
-  the single clear link is your strongest clicker. This protects both.
-
-### Suggested follow-up (so the craft still gets a stage)
-A second issue or a lemoine.studio case study: "How High Spirits got made." That's where
-the full strategy, identity system, type, and web flow live, for the founders who want the
-thinking. Keeps this issue a pure, personal home run.
+### Suggested follow-up
+A second issue or a lemoine case study: "How High Spirits got made" — the full strategy,
+identity, type, and web flow, for the founders who want the thinking. Keeps this issue a
+pure, personal story.
