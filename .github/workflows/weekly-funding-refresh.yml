@@ -1,0 +1,36 @@
+name: Weekly funding refresh
+
+# Refreshes the "Funding Stage" / "Funding Detail" columns in the Leads base.
+# NOTE: scheduled (cron) runs only fire when this workflow lives on the
+# repository's DEFAULT branch. Until this is merged to main it can still be
+# run manually via the "Run workflow" button (workflow_dispatch).
+
+on:
+  schedule:
+    - cron: "0 13 * * 1" # every Monday 13:00 UTC (~6am PT)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Research only, do not write to Airtable"
+        type: boolean
+        default: false
+      only_empty:
+        description: "Only refresh rows with an empty Funding Stage"
+        type: boolean
+        default: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Refresh funding
+        env:
+          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+          ONLY_EMPTY: ${{ inputs.only_empty && '1' || '' }}
+        run: node scripts/refresh-funding.mjs
