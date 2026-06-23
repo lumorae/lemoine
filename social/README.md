@@ -26,15 +26,28 @@ No phone, no Instagram app.
 ## Status / build order
 
 - [x] Data model (`supabase/migrations/0001_social_schema.sql`)
-- [ ] **You:** Meta app + Instagram credentials (see below)
-- [ ] **You:** LinkedIn app + Community Management API access (see below)
-- [ ] Airtable "Content" base + Posts table
-- [ ] Publish functions (Instagram, LinkedIn)
-- [ ] Analytics sync (scheduled)
+- [x] **Meta app + Instagram credentials** — DONE, token verified live
+- [x] Instagram **read + insights** — working (proved against the real account)
+- [x] Real data snapshot + audit (`data/`, `scripts/analyze.py`)
+- [x] Automation written (`functions/instagram-sync`, `migrations/0002_automation.sql`)
+- [ ] **Deploy to Supabase** — blocked: Supabase MCP access errored in the web
+      session. Apply 0001 + 0002, deposit the token in Vault, deploy the function.
+- [ ] Confirm Instagram **publishing** (first real post)
+- [ ] **You:** LinkedIn Community Management API approval (pending)
+- [ ] Airtable "Content" cockpit
 - [ ] Growth analysis loop
 
-Publishing/analytics code is built **after** credentials exist, so every piece
-is tested against the real APIs rather than shipped as untested stubs.
+### Connected Instagram account (non-secret)
+- Username: **@lemoinedesign**  ·  Type: **BUSINESS**
+- IG user id (for publishing): **17841401720504053**
+- Secrets (token, app secret) are held outside the repo — to be deposited in
+  Supabase Vault as `ig_lemoinedesign_token`. **Never commit them.**
+
+### Finish-line deploy (when Supabase access is restored)
+1. `apply_migration` 0001 then 0002.
+2. `select vault.create_secret('<IGA token>', 'ig_lemoinedesign_token', ...);`
+3. Deploy `functions/instagram-sync`; enable the daily cron in 0002.
+4. The token is reusable — **the Meta/Instagram setup never needs redoing.**
 
 ---
 
