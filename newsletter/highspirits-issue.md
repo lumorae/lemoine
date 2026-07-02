@@ -66,8 +66,6 @@ What should someone feel when the page opens?
 
 Then I got to work.
 
-The new High Spirits website went live this week.
-
 Hundreds of small illustrations, all drawn by hand.
 
 A custom typeface I lettered myself, one letter at a time, after studying the old hand painted signs their family has loved for years.
@@ -76,11 +74,19 @@ A full world built around the feeling of the instruments.
 
 Wood. Breath. Song. Hands. Time.
 
-It's almost my birthday again as I write this.
+After five months, I finally pushed the button and took the whole thing live.
+
+Then I celebrated the only way I really wanted to.
+
+I'd just had a birthday, so I headed north.
+
+I biked the Oregon coast with friends. I camped on my own. I sat a meditation retreat. I spent long afternoons in the redwoods, playing the flute and writing a book I've been working on for the past year.
+
+Ten days of decompressing and investing in my own peace again. Getting ready for whatever comes next.
 
 A year ago, this was a flute I could barely afford.
 
-Now there is a whole brand and website built for the people who made the thing that started it all.
+Now there's a whole brand and website built for the people who made the thing that started it all.
 
 A year can hold so much more than you think.
 
@@ -104,6 +110,8 @@ Play a flute or two.
 
 Odell has been quietly filling that place with music for years, and you can feel it the second you arrive.
 
+**Listen at highspirits.com**
+
 And if someone came to mind while you read this, a player, a musician, or someone who has always wanted to pick one up, send this their way.
 
 If that someone is you, take it as your sign.
@@ -115,10 +123,15 @@ Johnny
 ---
 
 ### Confirm before sending
-1. **"went live this week"** — keep only if true at send time.
-2. **"for decades"** — drop in the real number if you want it.
-3. **"about fifteen"** — adjust to the real count.
-4. **"highspirits.com"** — confirm the link/CTA destination is right.
+1. **"for decades"** — drop in the real number if you want it.
+2. **"about fifteen"** — adjust to the real count.
+3. **"highspirits.com"** — confirm the link/CTA destination is right.
+4. **Make "Listen at highspirits.com" an actual button block in Flodesk**, linked to the
+   site. Your top-clicking sends (the "Projects" newsletter at ~11%, your promos) all had
+   one clear action — a real button is your best lever on click rate, which is your weak spot.
+5. **Timing note:** "took it live / just had a birthday" is accurate as of early July, so
+   send this week while it's still true. Opens are stable whenever you send (~54–61%), so
+   don't wait for a particular day.
 
 ### Suggested follow-up
 A second issue or a lemoine case study: "How High Spirits got made" — the full strategy,
