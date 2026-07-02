@@ -8,23 +8,19 @@
 
 ---
 
-A year ago, for my birthday, Marisa and I were driving through Flagstaff, the Grand Canyon, and all across Arizona.
+Exactly one year ago, for my birthday, I bought my first Native American flute at a sound healing shop on a road trip through Arizona.
 
-Somewhere on that trip, I bought myself a double drone flute from High Spirits.
+It was one of the most beautiful instruments I'd ever seen. In my bones, I knew I had to have it. And even though I couldn't really afford it, it still felt like an investment in my own peace.
 
-I could barely afford it.
-
-I bought it anyway.
-
-It felt like an investment in my own peace.
-
-I played it once and that was it. I understood.
+I played it once, and that was it. I understood.
 
 That trip became one of the most memorable of my life.
 
-A year later, I have about fifteen flutes and a pile of other instruments gathering around them like some kind of tiny sound temple in my house. I'm obsessed with the sound. I play most days. Sometimes for five minutes. Sometimes longer. It has brought me more peace than almost anything else I've tried.
+Ever since, I've played that flute, along with fourteen others, nearly every day. They've gathered into a little pile around the house, like some kind of tiny sound temple. I'm a little obsessed with the sound, and it's brought me more peace than almost anything else I've tried.
 
-So when I reached out to High Spirits, I wasn't pitching them.
+That first flute was made by a small company called High Spirits.
+
+So when I finally reached out to them, I wasn't pitching them.
 
 I just wanted to say thank you.
 
@@ -123,9 +119,11 @@ Johnny
 ---
 
 ### Confirm before sending
-1. **"for decades"** — drop in the real number if you want it.
-2. **"about fifteen"** — adjust to the real count.
-3. **"highspirits.com"** — confirm the link/CTA destination is right.
+1. **"I understood."** — you'd written "I understood the mission." Left it as plain
+   "I understood." for the mystery; restore "the mission" if you meant your own calling.
+2. **"for decades"** — drop in the real number if you want it.
+3. **"fourteen others" (15 total)** — confirm the count is still right.
+4. **"highspirits.com"** — confirm the link/CTA destination is right.
 4. **Make "Listen at highspirits.com" an actual button block in Flodesk**, linked to the
    site. Your top-clicking sends (the "Projects" newsletter at ~11%, your promos) all had
    one clear action — a real button is your best lever on click rate, which is your weak spot.
