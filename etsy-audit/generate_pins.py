@@ -10,8 +10,9 @@ import json
 import re
 from pathlib import Path
 
-SRC = Path("/home/user/lemoine/etsy-audit/listings.json")
-OUT = Path("/home/user/lemoine/etsy-audit/pins.md")
+SRC = Path(__file__).parent / "listings.json"
+OUT = Path(__file__).parent / "pins.md"
+OUT_JSON = Path(__file__).parent / "pins.json"
 
 with SRC.open() as f:
     data = json.load(f)
@@ -129,6 +130,8 @@ lines = [
 # Sort by views desc so highest-impact pins are at the top of the file
 sorted_listings = sorted(listings, key=lambda l: -l["views"])
 
+pins_json = []  # machine-readable output for post_pins.py
+
 for listing in sorted_listings:
     title = listing["title"]
     short = short_title(title)
@@ -137,6 +140,8 @@ for listing in sorted_listings:
     favs = listing["num_favorers"]
     price = listing["price"]["amount"] / listing["price"]["divisor"]
     category = categorize(title)
+    images = listing.get("images") or []
+    primary_image = images[0].get("url_fullxfull") if images else None
 
     lines.append(f"## {short}")
     lines.append("")
@@ -155,8 +160,24 @@ for listing in sorted_listings:
         lines.append(f"- **Board:** {board}")
         lines.append("")
 
+        pins_json.append({
+            "pin_id": f"{listing['listing_id']}-{i}",
+            "listing_id": listing["listing_id"],
+            "listing_title": title,
+            "listing_url": url,
+            "listing_views": views,
+            "category": category,
+            "angle_label": label,
+            "pin_title": pin_title,
+            "pin_description": pin_desc,
+            "board_name": board,
+            "image_url": primary_image,
+        })
+
     lines.append("---")
     lines.append("")
 
 OUT.write_text("\n".join(lines))
+OUT_JSON.write_text(json.dumps(pins_json, indent=2))
 print(f"Wrote {OUT} — {len(sorted_listings) * 3} pins for {len(sorted_listings)} listings")
+print(f"Wrote {OUT_JSON} — machine-readable pin data for post_pins.py")

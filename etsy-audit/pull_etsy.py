@@ -34,7 +34,12 @@ if not shop.get("results"):
     sys.exit(f"Shop {SHOP_NAME} not found.")
 shop_id = shop["results"][0]["shop_id"]
 
-listings = etsy_get(f"/shops/{shop_id}/listings/active?limit=100&includes=Images")
-OUT.write_text(json.dumps(listings, indent=2))
+listings = etsy_get(f"/shops/{shop_id}/listings/active?limit=100")
 
-print(f"Pulled {listings['count']} listings from shop {shop_id} → {OUT}")
+# Fetch images per listing (Etsy v3's `includes=Images` param is unreliable).
+for l in listings["results"]:
+    imgs = etsy_get(f"/listings/{l['listing_id']}/images")
+    l["images"] = imgs.get("results", [])
+
+OUT.write_text(json.dumps(listings, indent=2))
+print(f"Pulled {listings['count']} listings + images from shop {shop_id} → {OUT}")
