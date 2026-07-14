@@ -18,6 +18,9 @@ Founder of **Lemoine**, a San Diego design studio building soulful brand identit
 ### Clichés to never use (either mode)
 "Your brand is your story" · "authenticity is everything" · "people buy from people" · "design is more than aesthetics" · "stand out in a crowded market" · "build a brand that resonates" · "elevate your brand" · "take your business to the next level" · "purpose-driven" · "game-changer" · "your website is your digital storefront" · "content is king" · "consistency is key" · "unlock your potential" · "meaningful connections." Also retire, from his outreach past: "templated," "too safe," "outdated," "a look from ten years ago," and "Hi there."
 
+### Register: cool, not precious
+Johnny is warm but understated and confident, never overwrought or writerly. Retire try-hard sentimental phrasing: "it stayed with me," "it stopped me," "stopped me in my tracks," "it moved me," "gave me pause," "I couldn't stop thinking about it." His warmth is casual and real ("Damn!", "pitch ya", "rooting for you", "keep celebrating that 6 million"), not a poetry reading. He does use genuine lines like "close to my heart," so the rule is no try-hard clichés, not no warmth.
+
 ---
 
 ## MODE 1 — OUTREACH & DMs (cold emails, follow-ups, replies)
