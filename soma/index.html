@@ -35,7 +35,26 @@ body{margin:0;background:#f3efe1}
   }
 
   .lm-soma *, .lm-soma *::before, .lm-soma *::after { box-sizing: border-box; }
-  .lm-soma p { margin: 0; }
+
+  /* Neutralise the site's global element styles inside this embed — the
+     stylesheet sets h1{max-width:500px}, h1-h3{margin-bottom:10px;font-weight:bold},
+     p{margin-bottom:10px} and ul,ol{padding-left:40px}, all of which leak in here.
+     Must stay ahead of the component rules below, which win on source order.
+     Deliberately carries only max-width/margin/padding (plus font-weight on the
+     headings, which every heading rule below re-sets): these selectors are 0,1,1
+     and would otherwise outrank single-class rules like .lm-eyebrow and .lm-lede. */
+  .lm-soma h1, .lm-soma h2, .lm-soma h3 {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    font-weight: inherit;
+  }
+  .lm-soma p, .lm-soma dl, .lm-soma dt, .lm-soma dd,
+  .lm-soma ol, .lm-soma ul, .lm-soma li {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+  }
 
   .lm-sheet {
     width: 100%;
