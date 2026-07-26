@@ -500,3 +500,54 @@
   [].slice.call(document.querySelectorAll('.pdoc-viz')).forEach(viz);
 })();
 </script>
+
+<script>
+/* Reporting. The site already loads GA4 (G-4M46HYGW89) sitewide, so this only
+   adds events; it no-ops entirely if gtag is absent or blocked. Because this
+   URL is unique to one recipient, no visitor identification is needed or used
+   -- a view of this page is already attributable on its own. */
+(function () {
+  if (typeof window.gtag !== 'function') return;
+  var root = document.querySelector('.pdoc');
+  if (!root) return;
+  var PAGE = 'soma';
+
+  /* which links they follow, and to where */
+  [].slice.call(root.querySelectorAll('a')).forEach(function (a) {
+    a.addEventListener('click', function () {
+      window.gtag('event', 'prospect_link_click', {
+        prospect_page: PAGE,
+        link_text: (a.textContent || '').trim().slice(0, 60),
+        link_url: a.href
+      });
+    });
+  });
+
+  /* how far down they actually read, reported once per milestone */
+  var marks = [25, 50, 75, 100], hit = {}, ticking = false;
+  function depth() {
+    ticking = false;
+    var h = document.documentElement;
+    var max = (h.scrollHeight - h.clientHeight) || 1;
+    var pct = Math.min(100, Math.round((h.scrollTop || window.pageYOffset) / max * 100));
+    marks.forEach(function (m) {
+      if (pct >= m && !hit[m]) {
+        hit[m] = true;
+        window.gtag('event', 'prospect_read_depth', { prospect_page: PAGE, percent: m });
+      }
+    });
+  }
+  window.addEventListener('scroll', function () {
+    if (!ticking) { ticking = true; requestAnimationFrame(depth); }
+  }, { passive: true });
+  depth();
+
+  /* time actually spent, sent once as the page is left */
+  var opened = Date.now();
+  window.addEventListener('pagehide', function () {
+    var secs = Math.round((Date.now() - opened) / 1000);
+    if (secs < 3) return;
+    window.gtag('event', 'prospect_time_on_page', { prospect_page: PAGE, seconds: secs });
+  });
+})();
+</script>
