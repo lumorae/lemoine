@@ -83,47 +83,19 @@
   .pdoc-dateline b { color: var(--ink); font-weight: 600; }
 
   /* ---- signals ----
-     Same system as the music player on /shop: thin coral bars, transform-origin
-     bottom, scaleY .3 to 1 on an ease-in-out loop, staggered so the movement
-     reads as sound rather than decoration. Bars are injected by the script at
-     the foot of this embed; each strip declares its own count and rhythm. */
-  .pdoc-eq {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    width: 100%;
-    border-bottom: 1px solid var(--hair);   /* fallback rule until bars exist */
-  }
-  .pdoc-eq.is-live { border-bottom: 0; }
-  .pdoc-eq i {
+     The viz() canvas from the music player on /shop, unchanged in its maths:
+     nine layered sine strands, lineWidth 1.15, the same vertical coral
+     gradient, and the same energy value that eases up while a track plays.
+     Here the pointer is what plays it. */
+  .pdoc-viz {
     display: block;
-    width: 2.5px;
-    height: 100%;
-    background: var(--coral);
-    border-radius: 2px;
-    transform-origin: bottom;
-    transform: scaleY(.32);
-    animation: pdoc-eq var(--dur, 2s) ease-in-out infinite;
-    /* negative step: every bar starts part-way through its cycle, so the
-       row is in motion from the first frame instead of filling in */
-    animation-delay: calc(var(--i) * var(--step, -.05s));
+    width: 100%;
+    border-bottom: 1px solid var(--hair);   /* fallback rule until it draws */
   }
-  @keyframes pdoc-eq {
-    0%, 100% { transform: scaleY(.3); }
-    50%      { transform: scaleY(1); }
-  }
-  /* a little irregularity so it breathes instead of marching */
-  .pdoc-eq i:nth-child(3n)   { animation-duration: calc(var(--dur, 2s) * 1.18); }
-  .pdoc-eq i:nth-child(5n+2) { animation-duration: calc(var(--dur, 2s) * .88); }
-
-  .pdoc-eq--hero { height: 34px; margin: .25rem 0 .15rem; }
-  .pdoc-eq--rule { flex: 1; height: 14px; }
-  .pdoc-eq--coda { height: 20px; }
-  .pdoc-eq--rule i, .pdoc-eq--coda i { width: 2px; }
-
-  @media (prefers-reduced-motion: reduce) {
-    .pdoc-eq i { animation: none; transform: scaleY(.32); opacity: .55; }
-  }
+  .pdoc-viz.is-live { border-bottom: 0; }
+  .pdoc-viz--hero { height: 64px; margin: .1rem 0; }
+  .pdoc-viz--rule { flex: 1; height: 26px; min-width: 120px; }
+  .pdoc-viz--coda { height: 46px; }
 
   /* ---- the mark ---- */
   .pdoc-mark { display: block; width: 44px; height: auto; margin-bottom: .4rem; }
@@ -297,7 +269,7 @@
 
   @media print {
     .pdoc { padding: 0; font-size: 11pt; background: #fff; }
-    .pdoc-num::before, .pdoc-num::after, .pdoc-eq i { animation: none; }
+    .pdoc-num::before, .pdoc-num::after { animation: none; }
     .pdoc-stage, .pdoc-feature, .pdoc-list li { break-inside: avoid; }
     .pdoc-stage, .pdoc-feature { border: 1px solid var(--hair); }
   }
@@ -309,7 +281,7 @@
     <header class="pdoc-head">
       <img class="pdoc-mark" src="https://cdn.prod.website-files.com/6513bd99b96029192a819b49/6830a821117d4748e3e4ea47_lemoine-logo-cherry-lemon-256.png" width="44" height="44" alt="Lemoine" />
       <h1>how i work<span class="pdoc-dot">.</span></h1>
-      <div class="pdoc-eq pdoc-eq--hero" data-bars="84" data-dur="2.1s" data-step="-.045s" aria-hidden="true"></div>
+      <canvas class="pdoc-viz pdoc-viz--hero" aria-hidden="true"></canvas>
       <!-- EDIT 1 of 4: who this is for -->
       <p class="pdoc-dateline">Written for <b>SOMA Laboratory</b> &middot; July 2026</p>
     </header>
@@ -382,7 +354,7 @@
     <section class="pdoc-section">
       <div class="pdoc-rule pdoc-rule--wave">
         <p class="pdoc-eyebrow">Where my range becomes useful</p>
-        <div class="pdoc-eq pdoc-eq--rule" data-bars="30" data-dur="1.5s" data-step="-.07s" aria-hidden="true"></div>
+        <canvas class="pdoc-viz pdoc-viz--rule" data-speed="1.15" aria-hidden="true"></canvas>
       </div>
       <div class="pdoc-feature">
         <span class="pdoc-project"><a href="https://www.johnnylemoine.com/projects/high-spirits-flutes">High Spirits Flutes</a></span>
@@ -401,7 +373,7 @@
     <section class="pdoc-section">
       <div class="pdoc-rule pdoc-rule--wave">
         <p class="pdoc-eyebrow">Where I'd start with SOMA</p>
-        <div class="pdoc-eq pdoc-eq--rule" data-bars="30" data-dur="2.4s" data-step="-.02s" aria-hidden="true"></div>
+        <canvas class="pdoc-viz pdoc-viz--rule" data-speed="0.72" aria-hidden="true"></canvas>
       </div>
       <ul class="pdoc-list">
         <li><span>If SOMA were a person, how would you describe them to a close friend? What do they sound like, and how do they make you feel after hanging out with them?</span></li>
@@ -414,7 +386,7 @@
     </section>
 
     <div class="pdoc-coda">
-      <div class="pdoc-eq pdoc-eq--coda" data-bars="64" data-dur="1.9s" data-step="-.03s" aria-hidden="true"></div>
+      <canvas class="pdoc-viz pdoc-viz--coda" data-speed="0.9" aria-hidden="true"></canvas>
     </div>
 
     <div class="pdoc-colophon">
@@ -432,52 +404,99 @@
 </div>
 
 <script>
+/* Lifted from the viz() in the /shop music player: same shape(), same env(),
+   same nine layers and gradient. The only change is what drives energy --
+   there it is whether the track is playing, here it is the pointer. */
 (function () {
-  var strips = [].slice.call(document.querySelectorAll('.pdoc-eq'));
-  if (!strips.length) return;
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  strips.forEach(function (el) {
-    var n = parseInt(el.getAttribute('data-bars'), 10) || 32, i, bar;
-    el.style.setProperty('--dur', el.getAttribute('data-dur') || '2s');
-    el.style.setProperty('--step', el.getAttribute('data-step') || '.05s');
-    var frag = document.createDocumentFragment();
-    for (i = 0; i < n; i++) {
-      bar = document.createElement('i');
-      bar.style.setProperty('--i', i);
-      frag.appendChild(bar);
+  function viz(canvas) {
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    var W = 0, H = 0, dpr = Math.min(2, window.devicePixelRatio || 1), grad = null;
+    var LAYERS = 9, t = Math.random() * 40, energy = 0.72, raf = null, vis = true;
+    var speed = parseFloat(canvas.getAttribute('data-speed')) || 1;
+    var warm = 0;   /* pointer influence, 0..1 */
+
+    function resize() {
+      var r = canvas.getBoundingClientRect();
+      W = r.width; H = r.height;
+      if (!W || !H) return;
+      canvas.width = Math.round(W * dpr);
+      canvas.height = Math.round(H * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      grad = ctx.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, 'rgb(240,96,140)');
+      grad.addColorStop(0.5, 'rgb(204,53,101)');
+      grad.addColorStop(1, 'rgb(150,38,82)');
     }
-    el.appendChild(frag);
-    el.classList.add('is-live');
-    el.__bars = [].slice.call(el.children);
-  });
+    resize();
+    window.addEventListener('resize', resize);
+    canvas.classList.add('is-live');
 
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    function shape(x, tt) {
+      var p = x * 6.2832;
+      return Math.sin(p * 1.05 + tt) + 0.5 * Math.sin(p * 1.9 - tt * 0.72 + 1)
+           + 0.22 * Math.sin(p * 3.1 + tt * 0.5 + 2);
+    }
+    function env(x) { return 0.42 + 0.58 * Math.pow(Math.sin(x * 3.14159), 0.5); }
 
-  /* Passing a pointer over a strip lifts the bars nearest it, so the row
-     answers to touch. The lift animates height while the keyframes drive
-     scaleY, so the two compose instead of fighting. */
-  strips.forEach(function (el) {
-    var raf = null, px = -1;
-    el.style.cursor = 'crosshair';
-    el.__bars.forEach(function (b) { b.style.transition = 'height .25s ease-out'; });
+    function pass(mult) {
+      ctx.save();
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.15;
+      ctx.lineJoin = 'round';
+      var step = Math.max(2, W / 240), k, x, xn, y, amp, ph, a;
+      for (k = 0; k < LAYERS; k++) {
+        amp = (0.26 + 0.74 * (k / (LAYERS - 1))) * (H * 0.5) * energy;
+        ph = k * 0.26;
+        ctx.beginPath();
+        for (x = 0; x <= W; x += step) {
+          xn = x / W;
+          y = H / 2 + amp * env(xn) * shape(xn, t + ph) * 0.5;
+          if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+        }
+        a = (0.10 + 0.15 * (k / (LAYERS - 1))) * mult;
+        ctx.globalAlpha = a > 1 ? 1 : a;
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+      ctx.restore();
+    }
 
-    function paint() {
-      raf = null;
-      var r = el.getBoundingClientRect(), reach = r.width * 0.14, n = el.__bars.length;
-      el.__bars.forEach(function (b, i) {
-        var bx = (i + 0.5) / n * r.width;
-        var lift = px < 0 ? 0 : Math.exp(-Math.pow((bx - px) / reach, 2));
-        b.style.height = (100 + lift * 55) + '%';
+    function draw() {
+      if (!W || !H) { resize(); if (!W) return; }
+      ctx.clearRect(0, 0, W, H);
+      pass(1.75 + warm * 0.85);
+    }
+
+    function frame() {
+      /* the player rests at 0.32 because silence should look quiet; a page has
+         no silent state, so it rests open and the pointer pushes it further */
+      var target = 0.72 + warm * 0.3;
+      energy += (target - energy) * 0.05;
+      t += 0.026 * (0.5 + energy) * speed;
+      draw();
+      raf = requestAnimationFrame(frame);
+    }
+    function start() { if (!raf && vis && !reduce) raf = requestAnimationFrame(frame); }
+    function stop() { if (raf) { cancelAnimationFrame(raf); raf = null; } }
+
+    canvas.style.cursor = 'crosshair';
+    canvas.addEventListener('pointerenter', function () { warm = 1; });
+    canvas.addEventListener('pointerleave', function () { warm = 0; });
+
+    if (reduce) { energy = 0.78; draw(); return; }
+    try {
+      var io = new IntersectionObserver(function (e) {
+        vis = e[0].isIntersecting;
+        if (vis) start(); else stop();
       });
-    }
-    el.addEventListener('pointermove', function (e) {
-      px = e.clientX - el.getBoundingClientRect().left;
-      if (!raf) raf = requestAnimationFrame(paint);
-    });
-    el.addEventListener('pointerleave', function () {
-      px = -1;
-      if (!raf) raf = requestAnimationFrame(paint);
-    });
-  });
+      io.observe(canvas);
+    } catch (e) {}
+    start();
+  }
+
+  [].slice.call(document.querySelectorAll('.pdoc-viz')).forEach(viz);
 })();
 </script>
