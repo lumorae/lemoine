@@ -3,8 +3,14 @@
 **Reply-all to:** somalabpr@gmail.com, somasynthsRU@gmail.com
 **Subject:** Re: A world for SOMA
 
-Before sending: publish the page at johnnylemoine.com/soma (paste `soma/webflow-embed.html` into a Webflow Embed element) and
-replace `[ LINK ]` below with that URL.
+The page is already built in Webflow at /soma (page id 6a6584b0805a022c8ed59e29), currently
+a draft with the embed in place. Before sending:
+
+1. Pages panel → gear on "SOMA Laboratory — how i work" → SEO Settings → turn **Sitemap
+   Indexing OFF** (adds noindex, drops it from the sitemap). Do this first — it cannot be
+   set through the API.
+2. Same panel → uncheck **Draft**.
+3. Publish, then replace `[ LINK ]` below with https://www.johnnylemoine.com/soma
 
 ---
 
