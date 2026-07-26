@@ -1,0 +1,251 @@
+<!-- Lemoine — "How I work", written for SOMA Laboratory.
+     Paste into a Webflow Embed element on a blank /soma page.
+     Fonts (Outfit, Doublebubble) and tokens already load site-wide. -->
+
+<style>
+  .lm-soma {
+    --lace:   #f3efe1;
+    --light:  #fffdf5;
+    --ink:    #191919;
+    --muted:  #797875;
+    --coral:  #cc3565;
+    --hair:   #e4ddca;
+
+    background: var(--lace);
+    color: var(--ink);
+    font-family: Outfit, sans-serif;
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1.62;
+    letter-spacing: -.2px;
+    padding: clamp(2.5rem, 7vw, 5.5rem) clamp(1.25rem, 5vw, 3rem) 4.5rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .lm-soma *, .lm-soma *::before, .lm-soma *::after { box-sizing: border-box; }
+  .lm-soma p { margin: 0; }
+
+  .lm-sheet {
+    width: 100%;
+    max-width: 44rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2.75rem;
+  }
+
+  .lm-eyebrow {
+    font-family: Outfit, sans-serif;
+    font-size: .72rem;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--coral);
+  }
+
+  /* ---- masthead ---- */
+  .lm-head { display: flex; flex-direction: column; gap: .9rem; }
+
+  .lm-head h1 {
+    font-family: Doublebubble, Outfit, Arial, sans-serif;
+    font-size: clamp(2.9rem, 10vw, 5rem);
+    font-weight: 400;
+    letter-spacing: -.02em;
+    line-height: .98;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .lm-dateline { font-size: .95rem; color: var(--muted); }
+  .lm-dateline b { color: var(--ink); font-weight: 600; }
+
+  /* the one flourish: a signal that wakes up, then settles */
+  .lm-signal { display: block; width: 100%; height: 24px; overflow: visible; }
+  .lm-signal path {
+    fill: none;
+    stroke: var(--coral);
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 760;
+    stroke-dashoffset: 760;
+    animation: lm-trace 1.7s cubic-bezier(.22,.61,.36,1) .2s forwards;
+  }
+  @keyframes lm-trace { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .lm-signal path { animation: none; stroke-dashoffset: 0; }
+  }
+
+  /* ---- prose ---- */
+  .lm-prose { display: flex; flex-direction: column; gap: 1.1rem; }
+  .lm-lede { font-size: 1.2rem; font-weight: 400; line-height: 1.5; letter-spacing: -.4px; }
+
+  /* ---- the chain: a real sequence, so it is numbered ---- */
+  .lm-chain { display: flex; flex-direction: column; gap: 1rem; }
+
+  .lm-stage {
+    background: var(--light);
+    border-radius: 32px;
+    padding: 2rem clamp(1.4rem, 4vw, 2.4rem);
+    display: grid;
+    grid-template-columns: 2.75rem 1fr;
+    gap: 0 .75rem;
+    align-items: start;
+  }
+  .lm-stage .lm-num {
+    font-size: .78rem;
+    font-weight: 600;
+    letter-spacing: .5px;
+    color: var(--coral);
+    font-variant-numeric: tabular-nums;
+    padding-top: .48rem;
+  }
+  .lm-stage .lm-copy { display: flex; flex-direction: column; gap: .55rem; }
+  .lm-stage h2 {
+    font-family: Outfit, sans-serif;
+    font-size: 1.32rem;
+    font-weight: 600;
+    letter-spacing: -.02em;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  /* ---- sections ---- */
+  .lm-section { display: flex; flex-direction: column; gap: 1.1rem; }
+  .lm-rule { display: flex; align-items: center; gap: 1rem; }
+  .lm-rule::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
+
+  .lm-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .95rem; }
+  .lm-list li { display: grid; grid-template-columns: 1.9rem 1fr; align-items: baseline; }
+  .lm-list li::before {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--coral);
+    font-variant-numeric: tabular-nums;
+  }
+  .lm-questions { counter-reset: lmq; }
+  .lm-questions li { counter-increment: lmq; }
+  .lm-questions li::before { content: counter(lmq); }
+  .lm-facts li::before { content: "—"; }
+
+  /* ---- colophon ---- */
+  .lm-colophon {
+    border-top: 1px solid var(--hair);
+    padding-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: .2rem;
+  }
+  .lm-colophon .lm-name { font-size: 1.05rem; font-weight: 600; letter-spacing: -.02em; }
+  .lm-colophon .lm-role { color: var(--muted); font-size: .95rem; }
+  .lm-colophon .lm-links { margin-top: .7rem; display: flex; flex-wrap: wrap; gap: .3rem 1.5rem; font-size: .95rem; }
+
+  .lm-soma a {
+    color: var(--coral);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(204, 53, 101, .3);
+    padding-bottom: 1px;
+  }
+  .lm-soma a:hover { border-bottom-color: var(--coral); }
+  .lm-soma a:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; border-radius: 3px; }
+
+  @media print {
+    .lm-soma { padding: 0; font-size: 11pt; background: #fff; }
+    .lm-signal path { animation: none; stroke-dashoffset: 0; }
+    .lm-stage { break-inside: avoid; border: 1px solid var(--hair); }
+    .lm-list li { break-inside: avoid; }
+  }
+</style>
+
+<div class="lm-soma">
+  <div class="lm-sheet">
+
+    <header class="lm-head">
+      <p class="lm-eyebrow">Lemoine — Brand &amp; Web</p>
+      <h1>How I work</h1>
+      <svg class="lm-signal" viewBox="0 0 760 24" preserveAspectRatio="none" aria-hidden="true">
+        <path d="M0 12 H210 C224 12 228 2 238 2 C248 2 252 22 262 22 C272 22 276 3 286 3 C296 3 300 21 310 21 C320 21 324 7 334 7 C344 7 348 17 358 17 C368 17 372 10 382 12 H760" />
+      </svg>
+      <p class="lm-dateline">Written for <b>SOMA Laboratory</b> · July 2026</p>
+    </header>
+
+    <div class="lm-prose">
+      <p class="lm-lede">You asked how I approach a project. This is the honest version — the same shape every time, whether it is an instrument maker in Russia or a flute workshop in Arizona.</p>
+      <p>It is worth saying first what I would not do here. SOMA already has a world: a philosophy, a vocabulary, a way of thinking about sound that almost nobody else is doing. I would not be inventing one. The work would be making sure that world survives the translation to a screen — that someone who finds you through a search result arrives somewhere as considered as the instrument they were reading about.</p>
+    </div>
+
+    <div class="lm-chain">
+
+      <div class="lm-stage">
+        <div class="lm-num">01</div>
+        <div class="lm-copy">
+          <h2>Listening, before anything is designed</h2>
+          <p>I read everything a company has already written about itself, and I talk to the people who built it. Not a survey — a conversation. The phase ends when I can explain your company back to you in your own words and you recognise it. Nothing gets drawn before that.</p>
+        </div>
+      </div>
+
+      <div class="lm-stage">
+        <div class="lm-num">02</div>
+        <div class="lm-copy">
+          <h2>One foundational idea</h2>
+          <p>Every project I take resolves into a single idea that everything afterwards has to answer to. It is the slowest part and the one that matters most. Once it exists, decisions stop being matters of taste: a choice either serves the idea or it does not, and that is a question we can both answer without arguing about colour.</p>
+        </div>
+      </div>
+
+      <div class="lm-stage">
+        <div class="lm-num">03</div>
+        <div class="lm-copy">
+          <h2>Identity — made by hand, built to move</h2>
+          <p>Marks, type, colour, motion. I draw by hand and then build in code, so the identity is not a static file you receive and then struggle to apply. It arrives as a working system, with the reasoning attached, so your team can keep using it correctly after I am gone.</p>
+        </div>
+      </div>
+
+      <div class="lm-stage">
+        <div class="lm-num">04</div>
+        <div class="lm-copy">
+          <h2>The site, designed and built as one thing</h2>
+          <p>I design the website and I build it myself. There is no handoff, so nothing is lost in it — no compromise where the developer says the animation is not possible, no drift between the drawing and the thing that ships. It also means the site is structured to grow: new instruments, new writing, new languages, without a rebuild.</p>
+        </div>
+      </div>
+
+      <div class="lm-stage">
+        <div class="lm-num">05</div>
+        <div class="lm-copy">
+          <h2>Staying past launch</h2>
+          <p>You work with me directly, from the first conversation to launch and after it. Part of what I am there to do is push back when a decision weakens the idea — including my own decisions. A brand is only worth what it is worth in five years.</p>
+        </div>
+      </div>
+
+    </div>
+
+    <section class="lm-section">
+      <div class="lm-rule"><p class="lm-eyebrow">Where I would start with SOMA</p></div>
+      <p>Not proposals — questions. These would be the first three, whenever the time is right.</p>
+      <ol class="lm-list lm-questions">
+        <li><span>Which part of SOMA's world do you feel the website currently fails to carry?</span></li>
+        <li><span>Who is the person you most want to reach and are not reaching yet — and what stops them?</span></li>
+        <li><span>What must never change, no matter who redesigns it?</span></li>
+      </ol>
+    </section>
+
+    <section class="lm-section">
+      <div class="lm-rule"><p class="lm-eyebrow">Practically</p></div>
+      <ul class="lm-list lm-facts">
+        <li><span>Fifteen years as an architect before this studio. It is where the habit of building everything from one structural idea comes from.</span></li>
+        <li><span>You work with me, not an account manager. Small studio, few projects at a time, on purpose.</span></li>
+        <li><span>Brand strategy, identity and web — I would rather do all three than one, because the idea leaks when it passes between people.</span></li>
+        <li><span>Most recently: the brand and website for <a href="https://highspirits.com">High Spirits Flutes</a>, an instrument maker with decades of craft behind them.</span></li>
+      </ul>
+    </section>
+
+    <div class="lm-colophon">
+      <p class="lm-name">Johnny Lemoine</p>
+      <p class="lm-role">Creative Director, Brand Strategist, Artist</p>
+      <p class="lm-links">
+        <a href="https://www.johnnylemoine.com/">johnnylemoine.com</a>
+        <a href="mailto:hello@johnnylemoine.com">hello@johnnylemoine.com</a>
+      </p>
+    </div>
+
+  </div>
+</div>

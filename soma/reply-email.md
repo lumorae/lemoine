@@ -3,7 +3,7 @@
 **Reply-all to:** somalabpr@gmail.com, somasynthsRU@gmail.com
 **Subject:** Re: A world for SOMA
 
-Before sending: upload `soma/index.html` to your own domain (johnnylemoine.com/soma) and
+Before sending: publish the page at johnnylemoine.com/soma (paste `soma/webflow-embed.html` into a Webflow Embed element) and
 replace `[ LINK ]` below with that URL.
 
 ---
