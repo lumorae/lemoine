@@ -1,0 +1,343 @@
+<title>How I work — Lemoine, for SOMA Laboratory</title>
+
+<style>
+  :root {
+    /* Lemoine brand ground, pulled from the studio's own palette */
+    --paper:      #F3EFE1;
+    --paper-edge: #EAE3D0;
+    --ink:        #221B1E;  /* warm black, biased plum toward the accent */
+    --ink-soft:   #6B5F62;
+    --rule:       #DCD3C0;
+    --coral:      #CC3565;
+    --blush:      #F2CFC8;
+
+    --display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --body: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+
+  /* A printed piece, deliberately single-theme: this is stationery, not an app. */
+  html { background: var(--paper); -webkit-text-size-adjust: 100%; }
+
+  body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 19px;
+    line-height: 1.62;
+    margin: 0;
+    padding: clamp(2.5rem, 7vw, 6rem) clamp(1.4rem, 6vw, 3rem) 4rem;
+    display: flex;
+    justify-content: center;
+    text-rendering: optimizeLegibility;
+  }
+
+  .sheet {
+    width: 100%;
+    max-width: 41rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+
+  /* ---- utility label ---- */
+  .label {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  /* ---- masthead ---- */
+  .masthead { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  .masthead h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.7rem, 9vw, 4.25rem);
+    letter-spacing: -0.035em;
+    line-height: 0.94;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .dateline {
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0;
+  }
+  .dateline b { color: var(--coral); font-weight: 500; }
+
+  /* ---- the one flourish: a signal that wakes up and settles ---- */
+  .signal { display: block; width: 100%; height: 26px; overflow: visible; }
+  .signal path {
+    fill: none;
+    stroke: var(--coral);
+    stroke-width: 1.25;
+    stroke-linecap: round;
+    vector-effect: non-scaling-stroke;
+    stroke-dasharray: 720;
+    stroke-dashoffset: 720;
+    animation: trace 1.6s cubic-bezier(.22,.61,.36,1) .15s forwards;
+  }
+  @keyframes trace { to { stroke-dashoffset: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .signal path { animation: none; stroke-dashoffset: 0; }
+  }
+
+  /* ---- prose ---- */
+  p { margin: 0; }
+  .lede { font-size: 1.15rem; line-height: 1.55; }
+  .prose { display: flex; flex-direction: column; gap: 1.1rem; }
+
+  /* ---- the chain: a real sequence, so it is numbered ---- */
+  .chain {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 2.1rem;
+  }
+  .chain::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 0.7rem;
+    bottom: 0.7rem;
+    width: 1px;
+    background: var(--rule);
+  }
+
+  .stage {
+    position: relative;
+    display: grid;
+    grid-template-columns: 3.1rem 1fr;
+    align-items: start;
+  }
+  .stage::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.52rem;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--coral);
+    box-shadow: 0 0 0 4px var(--paper);
+  }
+  .stage:last-child::before { background: var(--blush); border: 1px solid var(--coral); }
+
+  .stage .num {
+    grid-column: 1;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.06em;
+    color: var(--coral);
+    padding-left: 1.35rem;
+    padding-top: 0.42rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .stage .body { grid-column: 2; display: flex; flex-direction: column; gap: 0.5rem; }
+  .stage h2 {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: 1.28rem;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+    margin: 0;
+  }
+
+  /* ---- sections ---- */
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .section-head::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--rule);
+  }
+
+  ol.questions {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    counter-reset: q;
+  }
+  ol.questions li {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    align-items: baseline;
+    counter-increment: q;
+  }
+  ol.questions li::before {
+    content: counter(q);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    color: var(--coral);
+    font-variant-numeric: tabular-nums;
+  }
+
+  ul.facts {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  ul.facts li {
+    display: grid;
+    grid-template-columns: 2rem 1fr;
+    align-items: baseline;
+  }
+  ul.facts li::before {
+    content: "—";
+    color: var(--coral);
+  }
+
+  /* ---- colophon ---- */
+  .colophon {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.6rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+  .colophon .name {
+    font-family: var(--display);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    font-size: 1.05rem;
+  }
+  .colophon .role,
+  .colophon .links {
+    font-family: var(--mono);
+    font-size: 0.74rem;
+    letter-spacing: 0.06em;
+    color: var(--ink-soft);
+  }
+  .colophon .links { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.35rem 1.25rem; }
+
+  a {
+    color: var(--coral);
+    text-decoration: none;
+    border-bottom: 1px solid rgba(204, 53, 101, 0.35);
+    padding-bottom: 1px;
+  }
+  a:hover { border-bottom-color: var(--coral); }
+  a:focus-visible {
+    outline: 2px solid var(--coral);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  em { font-style: italic; }
+
+  @media print {
+    body { padding: 0; font-size: 11pt; }
+    .signal path { animation: none; stroke-dashoffset: 0; }
+    .stage, ol.questions li, ul.facts li { break-inside: avoid; }
+  }
+</style>
+
+<div class="sheet">
+
+  <header class="masthead">
+    <p class="label">Lemoine — Brand &amp; Web</p>
+    <h1>How I work</h1>
+    <svg class="signal" viewBox="0 0 720 26" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0 13 H196 C210 13 214 2 224 2 C234 2 238 24 248 24 C258 24 262 4 272 4 C282 4 286 22 296 22 C306 22 310 8 320 8 C330 8 334 18 344 18 C354 18 358 11 368 13 H720" />
+    </svg>
+    <p class="dateline">Written for <b>SOMA Laboratory</b> · July 2026</p>
+  </header>
+
+  <div class="prose">
+    <p class="lede">You asked how I approach a project. This is the honest version — the same shape every time, whether it's an instrument maker in Russia or a flute workshop in Arizona.</p>
+    <p>It is worth saying first what I would not do here. SOMA already has a world: a philosophy, a vocabulary, a way of thinking about sound that almost nobody else is doing. I would not be inventing one. The work would be making sure that world survives the translation to a screen — that someone who finds you through a search result arrives somewhere as considered as the instrument they were reading about.</p>
+  </div>
+
+  <div class="chain">
+
+    <div class="stage">
+      <div class="num">01</div>
+      <div class="body">
+        <h2>Listening, before anything is designed</h2>
+        <p>I read everything a company has already written about itself, and I talk to the people who built it. Not a survey — a conversation. The phase ends when I can explain your company back to you in your own words and you recognise it. Nothing gets drawn before that.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">02</div>
+      <div class="body">
+        <h2>One foundational idea</h2>
+        <p>Every project I take resolves into a single idea that everything afterwards has to answer to. It is the slowest part and the one that matters most. Once it exists, decisions stop being matters of taste: a choice either serves the idea or it doesn't, and that is a question we can both answer without arguing about colour.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">03</div>
+      <div class="body">
+        <h2>Identity — made by hand, built to move</h2>
+        <p>Marks, type, colour, motion. I draw by hand and then build in code, so the identity is not a static file you receive and then struggle to apply. It arrives as a working system, with the reasoning attached, so your team can keep using it correctly after I'm gone.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">04</div>
+      <div class="body">
+        <h2>The site, designed and built as one thing</h2>
+        <p>I design the website and I build it myself. There is no handoff, so nothing is lost in it — no compromise where the developer says the animation isn't possible, no drift between the drawing and the thing that ships. It also means the site is structured to grow: new instruments, new writing, new languages, without a rebuild.</p>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="num">05</div>
+      <div class="body">
+        <h2>Staying past launch</h2>
+        <p>You work with me directly from first conversation to launch and after it. Part of what I am there to do is push back when a decision weakens the idea — including my own decisions. A brand is only worth what it's worth in five years.</p>
+      </div>
+    </div>
+
+  </div>
+
+  <section>
+    <div class="section-head"><p class="label">Where I would start with SOMA</p></div>
+    <p>Not proposals — questions. These would be the first three, whenever the time is right.</p>
+    <ol class="questions">
+      <li><span>Which part of SOMA's world do you feel the website currently fails to carry?</span></li>
+      <li><span>Who is the person you most want to reach and are not reaching yet — and what stops them?</span></li>
+      <li><span>What must never change, no matter who redesigns it?</span></li>
+    </ol>
+  </section>
+
+  <section>
+    <div class="section-head"><p class="label">Practically</p></div>
+    <ul class="facts">
+      <li><span>Fifteen years as an architect before this studio. It is where the habit of building everything from one structural idea comes from.</span></li>
+      <li><span>You work with me, not an account manager. Small studio, few projects at a time, on purpose.</span></li>
+      <li><span>Brand strategy, identity, and web — I would rather do all three than one, because the idea leaks when it passes between people.</span></li>
+      <li><span>Most recently: the brand and website for <a href="https://highspirits.com">High Spirits Flutes</a>, an instrument maker with decades of craft behind them.</span></li>
+    </ul>
+  </section>
+
+  <div class="colophon">
+    <p class="name">Johnny Lemoine</p>
+    <p class="role">Creative Director, Brand Strategist, Artist</p>
+    <p class="links">
+      <a href="https://www.johnnylemoine.com/">johnnylemoine.com</a>
+      <a href="mailto:hello@johnnylemoine.com">hello@johnnylemoine.com</a>
+    </p>
+  </div>
+
+</div>
