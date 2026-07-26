@@ -1,9 +1,13 @@
-<!-- Lemoine — "How I work", written for SOMA Laboratory.
-     Paste into a Webflow Embed element on a blank /soma page.
-     Outfit already loads site-wide; no font embedding needed here. -->
+<!-- Lemoine — "how i work", a per-prospect process page. Paste into a Webflow
+     Embed element on a blank page. Outfit already loads site-wide.
+
+     TEMPLATE: to reuse, change only the four marked EDIT blocks below.
+     Class prefix is pdoc- because the site stylesheet already owns .lm-* —
+     .lm-dot and .lm-eyebrow both exist there and will silently override.
+     Before changing the prefix again, check it against the site CSS first. -->
 
 <style>
-  .lm-soma {
+  .pdoc {
     --lace:   #f3efe1;
     --light:  #fffdf5;
     --ink:    #191919;
@@ -24,37 +28,36 @@
     justify-content: center;
   }
 
-  .lm-soma *, .lm-soma *::before, .lm-soma *::after { box-sizing: border-box; }
+  .pdoc *, .pdoc *::before, .pdoc *::after { box-sizing: border-box; }
 
   /* Neutralise the site's global element styles inside this embed — the
      stylesheet sets h1{max-width:500px}, h1-h3{margin-bottom:10px;font-weight:bold},
-     p{margin-bottom:10px} and ul,ol{padding-left:40px}, all of which leak in here.
+     p{margin-bottom:10px} and ul,ol{padding-left:40px}, all of which reach in here.
      Must stay ahead of the component rules below, which win on source order.
-     Deliberately carries only max-width/margin/padding (plus font-weight on the
-     headings, which every heading rule below re-sets): these selectors are 0,1,1
-     and would otherwise outrank single-class rules like .lm-eyebrow and .lm-lede. */
-  .lm-soma h1, .lm-soma h2, .lm-soma h3 {
+     Carries only max-width/margin/padding (plus font-weight on the headings, which
+     every heading rule below re-sets): these selectors are 0,1,1 and would otherwise
+     outrank single-class rules like .pdoc-eyebrow and .pdoc-lede. */
+  .pdoc h1, .pdoc h2, .pdoc h3 {
     max-width: none;
     margin: 0;
     padding: 0;
     font-weight: inherit;
   }
-  .lm-soma p, .lm-soma dl, .lm-soma dt, .lm-soma dd,
-  .lm-soma ol, .lm-soma ul, .lm-soma li {
+  .pdoc p, .pdoc ol, .pdoc ul, .pdoc li {
     max-width: none;
     margin: 0;
     padding: 0;
   }
 
-  .lm-sheet {
+  .pdoc-sheet {
     width: 100%;
-    max-width: 44rem;
+    max-width: 42rem;
     display: flex;
     flex-direction: column;
-    gap: 3.25rem;
+    gap: 3rem;
   }
 
-  .lm-eyebrow {
+  .pdoc-eyebrow {
     font-family: var(--display);
     font-size: .72rem;
     font-weight: 600;
@@ -64,25 +67,24 @@
   }
 
   /* ---- masthead ---- */
-  .lm-head { display: flex; flex-direction: column; gap: .9rem; }
+  .pdoc-head { display: flex; flex-direction: column; gap: .9rem; }
 
-  .lm-head h1 {
+  .pdoc-head h1 {
     font-family: var(--display);
     font-size: clamp(2.9rem, 10vw, 4.75rem);
     font-weight: 800;
     letter-spacing: -.035em;
     line-height: .96;
-    margin: 0;
     text-wrap: balance;
   }
-  .lm-head h1 .lm-dot { color: var(--coral); }
+  .pdoc-head h1 .pdoc-dot { color: var(--coral); }
 
-  .lm-dateline { font-size: .95rem; color: var(--muted); }
-  .lm-dateline b { color: var(--ink); font-weight: 600; }
+  .pdoc-dateline { font-size: .95rem; color: var(--muted); }
+  .pdoc-dateline b { color: var(--ink); font-weight: 600; }
 
   /* the one flourish: a signal that wakes up, then settles */
-  .lm-signal { display: block; width: 100%; height: 24px; overflow: visible; }
-  .lm-signal path {
+  .pdoc-signal { display: block; width: 100%; height: 24px; overflow: visible; }
+  .pdoc-signal path {
     fill: none;
     stroke: var(--coral);
     stroke-width: 1.5;
@@ -90,35 +92,26 @@
     vector-effect: non-scaling-stroke;
     stroke-dasharray: 760;
     stroke-dashoffset: 760;
-    animation: lm-trace 1.7s cubic-bezier(.22,.61,.36,1) .2s forwards;
+    animation: pdoc-trace 1.7s cubic-bezier(.22,.61,.36,1) .2s forwards;
   }
-  @keyframes lm-trace { to { stroke-dashoffset: 0; } }
+  @keyframes pdoc-trace { to { stroke-dashoffset: 0; } }
   @media (prefers-reduced-motion: reduce) {
-    .lm-signal path { animation: none; stroke-dashoffset: 0; }
+    .pdoc-signal path { animation: none; stroke-dashoffset: 0; }
   }
 
   /* ---- prose ---- */
-  .lm-prose { display: flex; flex-direction: column; gap: 1.1rem; }
-  .lm-lede { font-size: 1.2rem; font-weight: 400; line-height: 1.5; letter-spacing: -.4px; }
+  .pdoc-prose { display: flex; flex-direction: column; gap: 1.1rem; }
+  .pdoc-lede { font-size: 1.2rem; font-weight: 400; line-height: 1.5; letter-spacing: -.4px; }
 
   /* ---- sections ---- */
-  .lm-section { display: flex; flex-direction: column; gap: 1.2rem; }
-  .lm-rule { display: flex; align-items: center; gap: 1rem; }
-  .lm-rule::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
+  .pdoc-section { display: flex; flex-direction: column; gap: 1.2rem; }
+  .pdoc-rule { display: flex; align-items: center; gap: 1rem; }
+  .pdoc-rule::after { content: ""; flex: 1; height: 1px; background: var(--hair); }
 
-  .lm-section h2 {
-    font-family: var(--display);
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: -.03em;
-    line-height: 1.2;
-    margin: 0;
-  }
+  /* ---- the process: a real sequence, so it is numbered ---- */
+  .pdoc-chain { display: flex; flex-direction: column; gap: 1rem; }
 
-  /* ---- the chain: a real sequence, so it is numbered ---- */
-  .lm-chain { display: flex; flex-direction: column; gap: 1rem; }
-
-  .lm-stage {
+  .pdoc-stage {
     background: var(--light);
     border-radius: 32px;
     padding: 2rem clamp(1.4rem, 4vw, 2.4rem);
@@ -127,7 +120,7 @@
     gap: 0 .75rem;
     align-items: start;
   }
-  .lm-stage .lm-num {
+  .pdoc-stage .pdoc-num {
     font-size: .78rem;
     font-weight: 600;
     letter-spacing: .5px;
@@ -135,299 +128,207 @@
     font-variant-numeric: tabular-nums;
     padding-top: .5rem;
   }
-  .lm-stage .lm-copy { display: flex; flex-direction: column; gap: .55rem; }
-  .lm-stage h3 {
+  .pdoc-stage .pdoc-copy { display: flex; flex-direction: column; gap: .55rem; }
+  .pdoc-stage h3 {
     font-family: var(--display);
     font-size: 1.3rem;
     font-weight: 700;
     letter-spacing: -.03em;
     line-height: 1.25;
-    margin: 0;
   }
 
-  /* ---- work grid ---- */
-  .lm-work {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
-    gap: .85rem;
-  }
-  .lm-card {
+  /* ---- one featured project ---- */
+  .pdoc-feature {
     background: var(--light);
-    border-radius: 25px;
-    padding: 1.5rem 1.6rem;
+    border-radius: 32px;
+    padding: 2rem clamp(1.4rem, 4vw, 2.4rem);
     display: flex;
     flex-direction: column;
-    gap: .35rem;
+    gap: .5rem;
   }
-  .lm-card .lm-project {
+  .pdoc-feature .pdoc-project {
     font-family: var(--display);
-    font-size: 1.1rem;
+    font-size: 1.35rem;
     font-weight: 700;
     letter-spacing: -.03em;
   }
-  .lm-card p { font-size: .96rem; line-height: 1.5; }
-  .lm-card .lm-tag {
-    margin-top: .35rem;
+  .pdoc-feature .pdoc-tag {
+    margin-top: .4rem;
     font-size: .7rem;
     font-weight: 600;
     letter-spacing: .8px;
     text-transform: uppercase;
     color: var(--muted);
   }
-  .lm-card.lm-feature { grid-column: 1 / -1; }
-  .lm-card.lm-feature .lm-project { font-size: 1.35rem; }
 
-  /* ---- services ---- */
-  .lm-services { display: flex; flex-direction: column; gap: .9rem; }
-  .lm-service { display: grid; grid-template-columns: 11rem 1fr; gap: .2rem 1rem; align-items: baseline; }
-  .lm-service dt {
-    font-family: var(--display);
-    font-weight: 700;
-    font-size: 1.02rem;
-    letter-spacing: -.02em;
+  /* ---- questions ---- */
+  .pdoc-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: .95rem;
+    counter-reset: pdocq;
   }
-  .lm-service dd { margin: 0; font-size: .98rem; line-height: 1.55; }
-  @media (max-width: 34rem) {
-    .lm-service { grid-template-columns: 1fr; }
+  .pdoc-list li {
+    display: grid;
+    grid-template-columns: 1.9rem 1fr;
+    align-items: baseline;
+    counter-increment: pdocq;
   }
-
-  /* ---- lists ---- */
-  .lm-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: .95rem; }
-  .lm-list li { display: grid; grid-template-columns: 1.9rem 1fr; align-items: baseline; }
-  .lm-list li::before {
+  .pdoc-list li::before {
+    content: counter(pdocq);
     font-size: .78rem;
     font-weight: 600;
     color: var(--coral);
     font-variant-numeric: tabular-nums;
   }
-  .lm-questions { counter-reset: lmq; }
-  .lm-questions li { counter-increment: lmq; }
-  .lm-questions li::before { content: counter(lmq); }
-  .lm-facts li::before { content: "—"; }
-
-  /* ---- next steps ---- */
-  .lm-next {
-    background: var(--light);
-    border-radius: 32px;
-    padding: 1.9rem clamp(1.4rem, 4vw, 2.2rem);
-    display: flex;
-    flex-direction: column;
-    gap: .1rem;
-  }
-  .lm-next-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 1rem;
-    align-items: baseline;
-    padding: .8rem 0;
-    border-bottom: 1px solid var(--hair);
-  }
-  .lm-next-row:last-child { border-bottom: 0; }
-  .lm-next-row .lm-what { font-weight: 500; }
-  .lm-next-row .lm-why { grid-column: 1 / -1; font-size: .92rem; color: var(--muted); line-height: 1.5; }
 
   /* ---- colophon ---- */
-  .lm-colophon {
+  .pdoc-colophon {
     border-top: 1px solid var(--hair);
     padding-top: 1.5rem;
     display: flex;
     flex-direction: column;
     gap: .2rem;
   }
-  .lm-colophon .lm-name { font-family: var(--display); font-size: 1.05rem; font-weight: 700; letter-spacing: -.03em; }
-  .lm-colophon .lm-role { color: var(--muted); font-size: .95rem; }
-  .lm-colophon .lm-links { margin-top: .7rem; display: flex; flex-wrap: wrap; gap: .3rem 1.5rem; font-size: .95rem; }
+  .pdoc-colophon .pdoc-name {
+    font-family: var(--display);
+    font-size: 1.05rem;
+    font-weight: 700;
+    letter-spacing: -.03em;
+  }
+  .pdoc-colophon .pdoc-role { color: var(--muted); font-size: .95rem; }
+  .pdoc-colophon .pdoc-links {
+    margin-top: .7rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: .3rem 1.5rem;
+    font-size: .95rem;
+  }
 
-  .lm-soma a {
+  .pdoc a {
     color: var(--coral);
     text-decoration: none;
     border-bottom: 1px solid rgba(204, 53, 101, .3);
     padding-bottom: 1px;
   }
-  .lm-soma a:hover { border-bottom-color: var(--coral); }
-  .lm-soma a:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; border-radius: 3px; }
+  .pdoc a:hover { border-bottom-color: var(--coral); }
+  .pdoc a:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; border-radius: 3px; }
 
   @media print {
-    .lm-soma { padding: 0; font-size: 11pt; background: #fff; }
-    .lm-signal path { animation: none; stroke-dashoffset: 0; }
-    .lm-stage, .lm-card, .lm-next, .lm-list li { break-inside: avoid; }
-    .lm-stage, .lm-card, .lm-next { border: 1px solid var(--hair); }
+    .pdoc { padding: 0; font-size: 11pt; background: #fff; }
+    .pdoc-signal path { animation: none; stroke-dashoffset: 0; }
+    .pdoc-stage, .pdoc-feature, .pdoc-list li { break-inside: avoid; }
+    .pdoc-stage, .pdoc-feature { border: 1px solid var(--hair); }
   }
 </style>
 
-<div class="lm-soma">
-  <div class="lm-sheet">
+<div class="pdoc">
+  <div class="pdoc-sheet">
 
-    <header class="lm-head">
-      <p class="lm-eyebrow">Lemoine — Brand &amp; Web</p>
-      <h1>how i work<span class="lm-dot">.</span></h1>
-      <svg class="lm-signal" viewBox="0 0 760 24" preserveAspectRatio="none" aria-hidden="true">
+    <header class="pdoc-head">
+      <p class="pdoc-eyebrow">Lemoine — Brand &amp; Web</p>
+      <h1>how i work<span class="pdoc-dot">.</span></h1>
+      <svg class="pdoc-signal" viewBox="0 0 760 24" preserveAspectRatio="none" aria-hidden="true">
         <path d="M0 12 H210 C224 12 228 2 238 2 C248 2 252 22 262 22 C272 22 276 3 286 3 C296 3 300 21 310 21 C320 21 324 7 334 7 C344 7 348 17 358 17 C368 17 372 10 382 12 H760" />
       </svg>
-      <p class="lm-dateline">Written for <b>SOMA Laboratory</b> · July 2026</p>
+      <!-- EDIT 1 of 4: who this is for -->
+      <p class="pdoc-dateline">Written for <b>SOMA Laboratory</b> · July 2026</p>
     </header>
 
-    <div class="lm-prose">
-      <p class="lm-lede">You asked how I approach a project. This is the honest version — the same shape every time, whether it is an instrument maker in Russia or a flute workshop in Arizona.</p>
-      <p>It is worth saying first what I would not do here. SOMA already has a world: a philosophy, a vocabulary, a way of thinking about sound that almost nobody else is doing. I would not be inventing one. The work would be making sure that world survives the translation to a screen — that someone who finds you through a search result arrives somewhere as considered as the instrument they were reading about.</p>
+    <!-- EDIT 2 of 4: the opening, which should name their world specifically -->
+    <div class="pdoc-prose">
+      <p class="pdoc-lede">You asked how I approach a project. Here's the honest answer. It's the same shape every time, whether it's an instrument maker in Russia or a flute workshop in Arizona.</p>
+      <p>First, what I wouldn't do. SOMA already has a world — a philosophy, a vocabulary, a way of thinking about sound that nobody else is doing. I wouldn't be inventing one. My job would be making sure that world survives the trip to a screen, so someone who finds you through a search result lands somewhere as considered as the instrument they were reading about.</p>
     </div>
 
-    <section class="lm-section">
-      <div class="lm-rule"><p class="lm-eyebrow">Who is writing this</p></div>
-      <div class="lm-prose">
-        <p>I spent fifteen years as an architect before starting this studio. That is the whole explanation for how I work: a building cannot be decorated into coherence, it has to be structured into it, and a brand is no different. You find the one organising idea, and then every later decision either serves it or gets cut.</p>
-        <p>I run <a href="https://www.johnnylemoine.com/">Lemoine</a> as a small studio and take few projects at a time, on purpose. You would be working with me — not a team you meet once at the start. I am also a working artist, which is probably why I keep ending up alongside people who make physical things: flutes, chocolate, wine, instruments. I understand the particular problem of an object that is wonderful in the hand and flattened into a photograph on a website.</p>
+    <section class="pdoc-section">
+      <div class="pdoc-rule"><p class="pdoc-eyebrow">Who's writing this</p></div>
+      <div class="pdoc-prose">
+        <p>I spent fifteen years as an architect before I started this studio, and that explains most of how I work. You can't decorate a building into coherence. You have to structure it in. A brand is no different — find the one idea holding it up, and everything after that either serves it or gets cut.</p>
+        <p>I run <a href="https://www.johnnylemoine.com/">Lemoine</a> as a small studio and take a few projects at a time, on purpose. You'd be working with me, start to finish. I'm also a working artist, which is probably why I keep ending up next to people who make physical things — flutes, chocolate, wine, instruments. I know the particular problem of an object that's wonderful in your hands and flat in a photograph.</p>
       </div>
     </section>
 
-    <section class="lm-section">
-      <div class="lm-rule"><p class="lm-eyebrow">The process, in five stages</p></div>
+    <section class="pdoc-section">
+      <div class="pdoc-rule"><p class="pdoc-eyebrow">The process</p></div>
 
-      <div class="lm-chain">
+      <div class="pdoc-chain">
 
-        <div class="lm-stage">
-          <div class="lm-num">01</div>
-          <div class="lm-copy">
-            <h3>Listening, before anything is designed</h3>
-            <p>I read everything a company has already written about itself, and I talk to the people who built it. Not a survey — a conversation. The stage ends when I can explain your company back to you in your own words and you recognise it. Nothing gets drawn before that.</p>
+        <div class="pdoc-stage">
+          <div class="pdoc-num">01</div>
+          <div class="pdoc-copy">
+            <h3>I listen first</h3>
+            <p>I read everything you've already written about yourselves, and I talk to the people who built the place. Not a survey — a conversation. This part's done when I can explain your company back to you in your own words and you recognize it. Nothing gets drawn before then.</p>
           </div>
         </div>
 
-        <div class="lm-stage">
-          <div class="lm-num">02</div>
-          <div class="lm-copy">
-            <h3>One foundational idea</h3>
-            <p>Every project I take resolves into a single idea that everything afterwards has to answer to. It is the slowest part and the one that matters most. Once it exists, decisions stop being matters of taste: a choice either serves the idea or it does not, and that is a question we can both answer without arguing about colour.</p>
+        <div class="pdoc-stage">
+          <div class="pdoc-num">02</div>
+          <div class="pdoc-copy">
+            <h3>One idea holds it up</h3>
+            <p>Every project I take comes down to a single idea that everything else answers to. It's the slowest part and it's the one that matters. Once it's there, decisions stop being about taste — a choice either serves the idea or it doesn't, and we can both see which.</p>
           </div>
         </div>
 
-        <div class="lm-stage">
-          <div class="lm-num">03</div>
-          <div class="lm-copy">
-            <h3>Identity — made by hand, built to move</h3>
-            <p>Marks, type, colour, motion. I draw by hand and then build in code, so the identity is not a static file you receive and then struggle to apply. It arrives as a working system, with the reasoning attached, so your team can keep using it correctly after I am gone.</p>
+        <div class="pdoc-stage">
+          <div class="pdoc-num">03</div>
+          <div class="pdoc-copy">
+            <h3>Identity, drawn by hand</h3>
+            <p>Marks, type, color, motion. I draw by hand and then build in code, so what you get isn't a folder of files you have to work out how to use. It's a working system with the reasoning attached, so your team keeps it right after I'm gone.</p>
           </div>
         </div>
 
-        <div class="lm-stage">
-          <div class="lm-num">04</div>
-          <div class="lm-copy">
-            <h3>The site, designed and built as one thing</h3>
-            <p>I design the website and I build it myself. There is no handoff, so nothing is lost in it — no compromise where the developer says the animation is not possible, no drift between the drawing and the thing that ships. It also means the site is structured to grow: new instruments, new writing, new languages, without a rebuild.</p>
+        <div class="pdoc-stage">
+          <div class="pdoc-num">04</div>
+          <div class="pdoc-copy">
+            <h3>The site is designed and built by one person</h3>
+            <p>Me. There's no handoff, so nothing gets lost in one — no "the developer says that animation isn't possible," no drift between the drawing and the thing that ships. It also means the site is built to grow: new instruments, new writing, new languages, without starting over.</p>
           </div>
         </div>
 
-        <div class="lm-stage">
-          <div class="lm-num">05</div>
-          <div class="lm-copy">
-            <h3>Staying past launch</h3>
-            <p>You work with me directly, from the first conversation to launch and after it. Part of what I am there to do is push back when a decision weakens the idea — including my own decisions. A brand is only worth what it is worth in five years.</p>
+        <div class="pdoc-stage">
+          <div class="pdoc-num">05</div>
+          <div class="pdoc-copy">
+            <h3>I stay past launch</h3>
+            <p>Part of what I'm there for is to push back when a decision weakens the idea — mine included. A brand is only worth what it's worth in five years.</p>
           </div>
         </div>
 
       </div>
+
+      <p>Strategy, identity, web, and packaging, usually together, because the idea leaks when it passes between people. Packaging is worth naming for you specifically: you ship physical instruments, and the box is the first thing someone touches after they've paid.</p>
     </section>
 
-    <section class="lm-section">
-      <div class="lm-rule"><p class="lm-eyebrow">Some of the work</p></div>
-      <p>The closest parallel to SOMA is first.</p>
-      <div class="lm-work">
-
-        <div class="lm-card lm-feature">
-          <span class="lm-project"><a href="https://www.johnnylemoine.com/projects/high-spirits-flutes">High Spirits Flutes</a></span>
-          <p>A woodwind workshop in Arizona that has been making Native American style flutes by hand for decades — an instrument maker with a real philosophy and a website that was not carrying it. Brand strategy, identity, and an e-commerce site built to sell handmade instruments to people who will never hold one before buying. The problem you would recognise.</p>
-          <span class="lm-tag">Brand strategy · Identity · E-commerce</span>
-        </div>
-
-        <div class="lm-card">
-          <span class="lm-project"><a href="https://www.johnnylemoine.com/projects/cacao-studio">Cacao Studio</a></span>
-          <p>An architecture studio. Website design, where the work itself had to be the loudest thing on the page.</p>
-          <span class="lm-tag">Website</span>
-        </div>
-
-        <div class="lm-card">
-          <span class="lm-project"><a href="https://www.johnnylemoine.com/projects/virtu">Virtu</a></span>
-          <p>A pastry company. Branding and packaging — an object people hold before they taste anything.</p>
-          <span class="lm-tag">Brand · Packaging</span>
-        </div>
-
-        <div class="lm-card">
-          <span class="lm-project"><a href="https://www.johnnylemoine.com/projects/enaytime">Enay</a></span>
-          <p>A non-alcoholic beverage producer entering a category with very fixed expectations, and no interest in meeting them.</p>
-          <span class="lm-tag">Brand · Packaging</span>
-        </div>
-
-        <div class="lm-card">
-          <span class="lm-project"><a href="https://www.johnnylemoine.com/projects/simone-stolzoff">Simone Stolzoff</a></span>
-          <p>An author's personal brand. One person, one point of view, nothing to hide behind.</p>
-          <span class="lm-tag">Brand</span>
-        </div>
-
+    <!-- EDIT 3 of 4: one related project — the closest parallel to their business -->
+    <section class="pdoc-section">
+      <div class="pdoc-rule"><p class="pdoc-eyebrow">The closest thing I've made to this</p></div>
+      <div class="pdoc-feature">
+        <span class="pdoc-project"><a href="https://www.johnnylemoine.com/projects/high-spirits-flutes">High Spirits Flutes</a></span>
+        <p>A workshop in Arizona that's been making flutes by hand for decades. An instrument maker with a real philosophy and a website that wasn't carrying any of it. I did the strategy, the identity, and an online store built to sell handmade instruments to people who'll never hold one before they buy. That's your problem too.</p>
+        <span class="pdoc-tag">Brand strategy · Identity · E-commerce</span>
       </div>
-      <p><a href="https://www.johnnylemoine.com/projects">All projects →</a></p>
+      <p><a href="https://www.johnnylemoine.com/projects">See all work →</a></p>
     </section>
 
-    <section class="lm-section">
-      <div class="lm-rule"><p class="lm-eyebrow">What I actually do</p></div>
-      <p>Usually together, because the idea leaks when it passes between people.</p>
-      <dl class="lm-services">
-        <div class="lm-service">
-          <dt>Brand strategy</dt>
-          <dd>Finding the foundational truth and the direction that follows from it. The part that makes every later decision cheap.</dd>
-        </div>
-        <div class="lm-service">
-          <dt>Identity</dt>
-          <dd>Marks, type, colour, motion — drawn by hand, then built as a living system your team can use.</dd>
-        </div>
-        <div class="lm-service">
-          <dt>Web</dt>
-          <dd>Designed and built by the same person. Structured to grow: new products, new writing, new languages.</dd>
-        </div>
-        <div class="lm-service">
-          <dt>Packaging</dt>
-          <dd>Worth mentioning because you ship physical instruments. The box is the first thing a person touches after paying, and it is usually the most under-designed moment a hardware company owns.</dd>
-        </div>
-      </dl>
-      <p><a href="https://www.johnnylemoine.com/services">More on services →</a></p>
-    </section>
-
-    <section class="lm-section">
-      <div class="lm-rule"><p class="lm-eyebrow">Where I would start with SOMA</p></div>
-      <p>Not proposals — questions. These would be the first three, whenever the time is right.</p>
-      <ol class="lm-list lm-questions">
-        <li><span>Which part of SOMA's world do you feel the website currently fails to carry?</span></li>
-        <li><span>Who is the person you most want to reach and are not reaching yet — and what stops them?</span></li>
-        <li><span>What must never change, no matter who redesigns it?</span></li>
+    <!-- EDIT 4 of 4: three questions you'd genuinely want to ask them -->
+    <section class="pdoc-section">
+      <div class="pdoc-rule"><p class="pdoc-eyebrow">Where I'd start with SOMA</p></div>
+      <p>Questions, not proposals. These would be my first three, whenever the time is right.</p>
+      <ol class="pdoc-list">
+        <li><span>Which part of SOMA's world does the website not carry yet?</span></li>
+        <li><span>Who do you most want to reach and aren't reaching — and what's stopping them?</span></li>
+        <li><span>What should never change, no matter who redesigns it?</span></li>
       </ol>
     </section>
 
-    <section class="lm-section">
-      <div class="lm-rule"><p class="lm-eyebrow">If you want to look further</p></div>
-      <div class="lm-next">
-        <div class="lm-next-row">
-          <span class="lm-what"><a href="https://www.johnnylemoine.com/about">About the studio</a></span>
-          <span class="lm-why">Where this all came from, and who you would be working with.</span>
-        </div>
-        <div class="lm-next-row">
-          <span class="lm-what"><a href="https://www.johnnylemoine.com/faq">Frequently asked questions</a></span>
-          <span class="lm-why">How projects are scoped, run, and priced — answered plainly, so you do not have to ask me first.</span>
-        </div>
-        <div class="lm-next-row">
-          <span class="lm-what"><a href="https://www.johnnylemoine.com/blog">Writing</a></span>
-          <span class="lm-why">How I think about this work when nobody is buying anything.</span>
-        </div>
-        <div class="lm-next-row">
-          <span class="lm-what"><a href="https://www.johnnylemoine.com/contact">Contact</a></span>
-          <span class="lm-why">Whenever the moment arrives. There is no expiry on this.</span>
-        </div>
-      </div>
-    </section>
-
-    <div class="lm-colophon">
-      <p class="lm-name">Johnny Lemoine</p>
-      <p class="lm-role">Creative Director, Brand Strategist, Artist</p>
-      <p class="lm-links">
-        <a href="https://www.johnnylemoine.com/">johnnylemoine.com</a>
+    <div class="pdoc-colophon">
+      <p class="pdoc-name">Johnny Lemoine</p>
+      <p class="pdoc-role">Creative Director, Brand Strategist, Artist</p>
+      <p class="pdoc-links">
+        <a href="https://www.johnnylemoine.com/about">About</a>
+        <a href="https://www.johnnylemoine.com/faq">FAQ</a>
+        <a href="https://www.johnnylemoine.com/contact">Contact</a>
         <a href="mailto:hello@johnnylemoine.com">hello@johnnylemoine.com</a>
       </p>
     </div>
