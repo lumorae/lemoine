@@ -88,28 +88,47 @@ body{margin:0;background:#f3efe1}
   .pdoc-dateline { font-size: .95rem; color: var(--muted); }
   .pdoc-dateline b { color: var(--ink); font-weight: 600; }
 
-  /* the one flourish: a live signal. A packet of oscillation travels the line,
-     the way a note moves through a circuit. Driven by the script at the foot of
-     this embed; falls back to a still waveform when motion is reduced. */
-  .pdoc-signal {
-    display: block;
+  /* ---- signals ----
+     Same system as the music player on /shop: thin coral bars, transform-origin
+     bottom, scaleY .3 to 1 on an ease-in-out loop, staggered so the movement
+     reads as sound rather than decoration. Bars are injected by the script at
+     the foot of this embed; each strip declares its own count and rhythm. */
+  .pdoc-eq {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
     width: 100%;
-    height: 46px;
-    overflow: visible;
-    opacity: 0;
-    animation: pdoc-fade .9s ease-out .15s forwards;
+    border-bottom: 1px solid var(--hair);   /* fallback rule until bars exist */
   }
-  .pdoc-signal path {
-    fill: none;
-    stroke: var(--coral);
-    stroke-width: 1.5;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
+  .pdoc-eq.is-live { border-bottom: 0; }
+  .pdoc-eq i {
+    display: block;
+    width: 2.5px;
+    height: 100%;
+    background: var(--coral);
+    border-radius: 2px;
+    transform-origin: bottom;
+    transform: scaleY(.32);
+    animation: pdoc-eq var(--dur, 2s) ease-in-out infinite;
+    /* negative step: every bar starts part-way through its cycle, so the
+       row is in motion from the first frame instead of filling in */
+    animation-delay: calc(var(--i) * var(--step, -.05s));
   }
-  @keyframes pdoc-fade { to { opacity: 1; } }
+  @keyframes pdoc-eq {
+    0%, 100% { transform: scaleY(.3); }
+    50%      { transform: scaleY(1); }
+  }
+  /* a little irregularity so it breathes instead of marching */
+  .pdoc-eq i:nth-child(3n)   { animation-duration: calc(var(--dur, 2s) * 1.18); }
+  .pdoc-eq i:nth-child(5n+2) { animation-duration: calc(var(--dur, 2s) * .88); }
+
+  .pdoc-eq--hero { height: 34px; margin: .25rem 0 .15rem; }
+  .pdoc-eq--rule { flex: 1; height: 14px; }
+  .pdoc-eq--coda { height: 20px; }
+  .pdoc-eq--rule i, .pdoc-eq--coda i { width: 2px; }
+
   @media (prefers-reduced-motion: reduce) {
-    .pdoc-signal { opacity: 1; animation: none; }
+    .pdoc-eq i { animation: none; transform: scaleY(.32); opacity: .55; }
   }
 
   /* ---- the mark ---- */
@@ -225,26 +244,8 @@ body{margin:0;background:#f3efe1}
     color: var(--muted);
   }
 
-  /* ---- section waves: a coral signal instead of a hairline, one per marked
-     section, each with its own character. They answer to the pointer. ---- */
   .pdoc-rule--wave::after { content: none; }
-  .pdoc-wave {
-    flex: 1;
-    height: 20px;
-    overflow: visible;
-    cursor: crosshair;
-    touch-action: pan-y;
-  }
-  .pdoc-wave path {
-    fill: none;
-    stroke: var(--coral);
-    stroke-width: 1.25;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-    vector-effect: non-scaling-stroke;
-  }
   .pdoc-coda { margin-top: .5rem; }
-  .pdoc-coda .pdoc-wave { height: 30px; width: 100%; }
 
   /* ---- questions ----
      A coral pixel, not a numeral: the process stages are a sequence and earn
@@ -302,7 +303,7 @@ body{margin:0;background:#f3efe1}
 
   @media print {
     .pdoc { padding: 0; font-size: 11pt; background: #fff; }
-    .pdoc-num::before, .pdoc-num::after { animation: none; }
+    .pdoc-num::before, .pdoc-num::after, .pdoc-eq i { animation: none; }
     .pdoc-stage, .pdoc-feature, .pdoc-list li { break-inside: avoid; }
     .pdoc-stage, .pdoc-feature { border: 1px solid var(--hair); }
   }
@@ -314,9 +315,7 @@ body{margin:0;background:#f3efe1}
     <header class="pdoc-head">
       <img class="pdoc-mark" src="data:image/png;base64,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" width="44" height="44" alt="Lemoine" />
       <h1>how i work<span class="pdoc-dot">.</span></h1>
-      <svg class="pdoc-signal" viewBox="0 0 1000 46" preserveAspectRatio="none" aria-hidden="true">
-        <path d="M0 36.9L16 31.9L31 15.0L47 7.1L62 16.6L78 29.9L94 31.3L109 22.3L125 15.5L141 17.8L156 23.8L172 26.1L188 24.2L203 22.5L219 23.4L234 25.7L250 26.9L266 26.5L281 25.3L297 24.0L312 22.8L328 21.7L344 20.7L359 20.2L375 20.3L391 20.8L406 21.5L422 22.2L438 22.7L453 23.0L469 23.1L484 23.1L500 23.2L516 23.5L531 23.9L547 24.6L562 25.2L578 25.6L594 25.6L609 25.1L625 24.1L641 22.8L656 21.5L672 20.4L688 19.8L703 19.8L719 20.3L734 21.2L750 22.3L766 23.2L781 23.9L797 24.2L812 24.2L828 24.1L844 24.0L859 24.0L875 24.2L891 24.5L906 24.8L922 24.8L938 24.5L953 23.7L969 22.7L984 21.5L1000 20.4" />
-      </svg>
+      <div class="pdoc-eq pdoc-eq--hero" data-bars="84" data-dur="2.1s" data-step="-.045s" aria-hidden="true"></div>
       <!-- EDIT 1 of 4: who this is for -->
       <p class="pdoc-dateline">Written for <b>SOMA Laboratory</b> &middot; July 2026</p>
     </header>
@@ -389,7 +388,7 @@ body{margin:0;background:#f3efe1}
     <section class="pdoc-section">
       <div class="pdoc-rule pdoc-rule--wave">
         <p class="pdoc-eyebrow">Where my range becomes useful</p>
-        <svg class="pdoc-wave" data-wave="ripple" viewBox="0 0 400 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10L400 10" /></svg>
+        <div class="pdoc-eq pdoc-eq--rule" data-bars="30" data-dur="1.5s" data-step="-.07s" aria-hidden="true"></div>
       </div>
       <div class="pdoc-feature">
         <span class="pdoc-project"><a href="https://www.johnnylemoine.com/projects/high-spirits-flutes">High Spirits Flutes</a></span>
@@ -408,7 +407,7 @@ body{margin:0;background:#f3efe1}
     <section class="pdoc-section">
       <div class="pdoc-rule pdoc-rule--wave">
         <p class="pdoc-eyebrow">Where I'd start with SOMA</p>
-        <svg class="pdoc-wave" data-wave="breathe" viewBox="0 0 400 20" preserveAspectRatio="none" aria-hidden="true"><path d="M0 10L400 10" /></svg>
+        <div class="pdoc-eq pdoc-eq--rule" data-bars="30" data-dur="2.4s" data-step="-.02s" aria-hidden="true"></div>
       </div>
       <ul class="pdoc-list">
         <li><span>If SOMA were a person, how would you describe them to a close friend? What do they sound like, and how do they make you feel after hanging out with them?</span></li>
@@ -421,7 +420,7 @@ body{margin:0;background:#f3efe1}
     </section>
 
     <div class="pdoc-coda">
-      <svg class="pdoc-wave" data-wave="decay" viewBox="0 0 1000 30" preserveAspectRatio="none" aria-hidden="true"><path d="M0 15L1000 15" /></svg>
+      <div class="pdoc-eq pdoc-eq--coda" data-bars="64" data-dur="1.9s" data-step="-.03s" aria-hidden="true"></div>
     </div>
 
     <div class="pdoc-colophon">
@@ -440,118 +439,51 @@ body{margin:0;background:#f3efe1}
 
 <script>
 (function () {
-  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var strips = [].slice.call(document.querySelectorAll('.pdoc-eq'));
+  if (!strips.length) return;
 
-  /* ---- the masthead signal: a packet of oscillation travelling a line,
-     the way a note moves through a circuit ---- */
-  var hero = document.querySelector('.pdoc-signal');
-  if (hero && !reduce) {
-    var hp = hero.querySelector('path'), W = 1000, MID = 23, N = 170;
-    var hrun = true, hlast = 0, hstart = null;
-    function heroFrame(t) {
-      var pos = (((t * 0.055) % 1.7) - 0.35) * W, d = '', i, x, env, y;
-      for (i = 0; i <= N; i++) {
-        x = i * W / N;
-        env = Math.exp(-Math.pow((x - pos) / 150, 2));
-        y = MID + env * 16 * Math.sin((x - pos) * 0.075 + t * 1.1)
-                + Math.sin(x * 0.02 + t * 0.5) * 2.2
-                + Math.sin(x * 0.037 - t * 0.31) * 1.2;
-        d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(2);
-      }
-      return d;
+  strips.forEach(function (el) {
+    var n = parseInt(el.getAttribute('data-bars'), 10) || 32, i, bar;
+    el.style.setProperty('--dur', el.getAttribute('data-dur') || '2s');
+    el.style.setProperty('--step', el.getAttribute('data-step') || '.05s');
+    var frag = document.createDocumentFragment();
+    for (i = 0; i < n; i++) {
+      bar = document.createElement('i');
+      bar.style.setProperty('--i', i);
+      frag.appendChild(bar);
     }
-    (function hloop(now) {
-      if (!hrun) return;
-      if (hstart === null) hstart = now;
-      if (now - hlast > 22) { hlast = now; hp.setAttribute('d', heroFrame(6.2 + (now - hstart) / 1000)); }
-      requestAnimationFrame(hloop);
-    })(performance.now());
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (es) {
-        es.forEach(function (e) {
-          if (e.isIntersecting && !hrun) { hrun = true; hlast = 0; requestAnimationFrame(function (n) { hstart = n - 6200; (function l(now){ if(!hrun) return; if(now-hlast>22){hlast=now; hp.setAttribute('d', heroFrame(6.2 + (now-hstart)/1000));} requestAnimationFrame(l); })(n); }); }
-          else if (!e.isIntersecting) { hrun = false; }
-        });
-      }).observe(hero);
-    }
-  }
-
-  /* ---- section signals. Three characters:
-     ripple  - a short wave train drifting right, restless
-     breathe - a standing wave that swells and falls away
-     decay   - one struck note ringing out and fading, for the foot of the page
-     All three answer to the pointer: passing over lifts a bump under it that
-     settles once you leave, so the line behaves like something being touched. ---- */
-  var waves = [].slice.call(document.querySelectorAll('.pdoc-wave'));
-  if (!waves.length) return;
-
-  waves.forEach(function (svg) {
-    var vb = svg.getAttribute('viewBox').split(' ');
-    svg.__w = parseFloat(vb[2]);
-    svg.__h = parseFloat(vb[3]);
-    svg.__mid = svg.__h / 2;
-    svg.__path = svg.querySelector('path');
-    svg.__mode = svg.getAttribute('data-wave');
-    svg.__touch = 0;      // pointer influence, 0..1
-    svg.__tx = 0;         // pointer position in viewBox units
-    svg.__live = true;
-
-    svg.addEventListener('pointermove', function (e) {
-      var r = svg.getBoundingClientRect();
-      svg.__tx = ((e.clientX - r.left) / r.width) * svg.__w;
-      svg.__touch = 1;
-    });
-    svg.addEventListener('pointerleave', function () { svg.__touch = 0; });
-
-    if ('IntersectionObserver' in window) {
-      new IntersectionObserver(function (es) {
-        es.forEach(function (e) { svg.__live = e.isIntersecting; });
-      }).observe(svg);
-    }
+    el.appendChild(frag);
+    el.classList.add('is-live');
+    el.__bars = [].slice.call(el.children);
   });
 
-  function shape(svg, t) {
-    var W = svg.__w, MID = svg.__mid, N = 70, d = '', i, x, y, a, env;
-    for (i = 0; i <= N; i++) {
-      x = i * W / N;
-      y = MID;
-      if (svg.__mode === 'ripple') {
-        env = Math.exp(-Math.pow((x - (((t * 0.13) % 1.5 - 0.25) * W)) / (W * 0.22), 2));
-        y += env * 5.5 * Math.sin(x * 0.14 - t * 3.2) + Math.sin(x * 0.05 + t * 0.9) * 0.7;
-      } else if (svg.__mode === 'breathe') {
-        a = 1.2 + 3.4 * (0.5 - 0.5 * Math.cos(t * 0.7));
-        y += a * Math.sin(x * 0.075 + t * 1.4) * Math.sin((x / W) * Math.PI);
-      } else {                                   // decay
-        env = Math.exp(-x / (W * 0.42));
-        y += env * 9 * Math.sin(x * 0.09 - t * 2.4) + Math.sin(x * 0.02 + t * 0.5) * 0.6;
-      }
-      if (svg.__touch > 0.001) {
-        env = Math.exp(-Math.pow((x - svg.__tx) / (W * 0.09), 2));
-        y += svg.__touch * env * 7 * Math.sin(x * 0.3 - t * 7);
-      }
-      d += (i ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(2);
-    }
-    return d;
-  }
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
-  if (reduce) {
-    waves.forEach(function (svg) { svg.__path.setAttribute('d', shape(svg, 1.6)); });
-    return;
-  }
+  /* Passing a pointer over a strip lifts the bars nearest it, so the row
+     answers to touch. The lift animates height while the keyframes drive
+     scaleY, so the two compose instead of fighting. */
+  strips.forEach(function (el) {
+    var raf = null, px = -1;
+    el.style.cursor = 'crosshair';
+    el.__bars.forEach(function (b) { b.style.transition = 'height .25s ease-out'; });
 
-  var last = 0, t0 = null;
-  (function loop(now) {
-    if (t0 === null) t0 = now;
-    if (now - last > 24) {
-      last = now;
-      var t = (now - t0) / 1000;
-      waves.forEach(function (svg) {
-        if (!svg.__live) return;
-        if (svg.__touch > 0) svg.__touch *= 0.94;   // ease the touch back out
-        svg.__path.setAttribute('d', shape(svg, t));
+    function paint() {
+      raf = null;
+      var r = el.getBoundingClientRect(), reach = r.width * 0.14, n = el.__bars.length;
+      el.__bars.forEach(function (b, i) {
+        var bx = (i + 0.5) / n * r.width;
+        var lift = px < 0 ? 0 : Math.exp(-Math.pow((bx - px) / reach, 2));
+        b.style.height = (100 + lift * 55) + '%';
       });
     }
-    requestAnimationFrame(loop);
-  })(performance.now());
+    el.addEventListener('pointermove', function (e) {
+      px = e.clientX - el.getBoundingClientRect().left;
+      if (!raf) raf = requestAnimationFrame(paint);
+    });
+    el.addEventListener('pointerleave', function () {
+      px = -1;
+      if (!raf) raf = requestAnimationFrame(paint);
+    });
+  });
 })();
 </script>
