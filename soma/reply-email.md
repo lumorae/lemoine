@@ -3,44 +3,36 @@
 **Reply-all to:** somalabpr@gmail.com, somasynthsRU@gmail.com
 **Subject:** Re: A world for SOMA
 
-The page is already built in Webflow at /soma (page id 6a6584b0805a022c8ed59e29), currently
-a draft with the embed in place. Before sending:
-
-1. Pages panel → gear on "SOMA Laboratory — how i work" → SEO Settings → turn **Sitemap
-   Indexing OFF** (adds noindex, drops it from the sitemap). Do this first — it cannot be
-   set through the API.
-2. Same panel → uncheck **Draft**.
-3. Publish, then replace `[ LINK ]` below with https://www.johnnylemoine.com/soma
+Publish the Webflow page, then send. Link is live at https://www.johnnylemoine.com/soma
 
 ---
 
 Hi Regina,
 
-Thank you for the kind and honest reply, and for the invitation to keep this in writing. Written suits me well.
+Thank you for the kind and honest reply, and for the invitation to keep this in
+writing. That suits me well.
 
-No concern at all about the timing. I would rather be the right person at the right moment than the persistent one now. So here is how I work, in case it is useful when that moment comes.
+No concern at all about the timing. I'd rather be the right person at the right
+moment than the persistent one now.
 
-It is worth saying first what I would not do. SOMA already has a world: a philosophy, a vocabulary, a way of thinking about sound that almost nobody else is doing. I would not be inventing one. The work would be making sure that world survives the translation to a screen.
+You asked about my process, so rather than write you a long email I made you a
+page:
 
-**I start by listening.** I read everything a company has already written about itself and I talk to the people who built it. That phase ends when I can explain your company back to you in your own words and you recognise it. Nothing gets drawn before that.
+**https://www.johnnylemoine.com/soma**
 
-**Then one foundational idea.** Every project I take resolves into a single idea that everything afterwards has to answer to. It is the slowest part and the one that matters most. Once it exists, decisions stop being matters of taste.
+The short version: every project starts with a workshop where I ask the team
+twenty-odd questions written specifically for them, because the useful answers
+are never the rehearsed ones. From that I write the strategy, and everything
+after — identity, packaging, the website — answers to it. I design and build,
+and I stay through launch and past it. Fifteen years as an architect before
+this studio is where the habit of building everything from one structural idea
+comes from.
 
-**Then the making.** Identity, typography, motion and the website all come downstream of that idea. I design the sites and I build them myself, so nothing is lost in the handoff between design and code, and so the site can keep growing after launch instead of freezing.
+The page also covers High Spirits Flutes, another instrument maker, which is the
+closest thing I've made to what SOMA would need.
 
-**And I stay past launch.** You work with me directly, start to finish. Part of what I am there for is to push back when a decision weakens the idea, including my own decisions.
-
-Fifteen years as an architect before this studio. That is where the habit of building everything from one structural idea comes from.
-
-I put all of this on a single page made for you, with some of the work alongside it — including High Spirits Flutes, the closest parallel to what you do — and the practical questions about how a project runs, answered plainly: [ LINK ]
-
-And whenever the time is right, these would be my first three questions:
-
-1. Which part of SOMA's world do you feel the website currently fails to carry?
-2. Who is the person you most want to reach and are not reaching yet, and what stops them?
-3. What must never change, no matter who redesigns it?
-
-No need to answer them now. I am glad to simply be on your list, and I will keep enjoying the instruments in the meantime.
+No reply needed. I'm glad to simply be on your list, and I'll keep enjoying the
+instruments in the meantime.
 
 With gratitude,
 Johnny
