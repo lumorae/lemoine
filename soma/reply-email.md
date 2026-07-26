@@ -26,7 +26,7 @@ It is worth saying first what I would not do. SOMA already has a world: a philos
 
 Fifteen years as an architect before this studio. That is where the habit of building everything from one structural idea comes from.
 
-I put the same thing on a single page, made for you, if it is easier to read than an email: [ LINK ]
+I put all of this on a single page made for you, with some of the work alongside it — including High Spirits Flutes, the closest parallel to what you do — and the practical questions about how a project runs, answered plainly: [ LINK ]
 
 And whenever the time is right, these would be my first three questions:
 
