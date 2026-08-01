@@ -1,0 +1,18 @@
+{
+  "name": "lemoine-explosion-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "prepare-assets": "node prepare.mjs",
+    "proof": "npm run prepare-assets && CAP_W=1280 CAP_H=720 CAP_FPS=30 CAP_SECONDS=8 CAP_OUT=out/proof.mp4 node capture.mjs",
+    "youtube-intro": "npm run prepare-assets && CAP_W=1920 CAP_H=1080 CAP_FPS=60 CAP_SECONDS=10 CAP_MODE=intro CAP_OUT=out/youtube-intro-1080p60.mp4 node capture.mjs",
+    "youtube-outro": "npm run prepare-assets && CAP_W=1920 CAP_H=1080 CAP_FPS=60 CAP_SECONDS=12 CAP_MODE=outro CAP_OUT=out/youtube-outro-1080p60.mp4 node capture.mjs",
+    "reel-intro": "npm run prepare-assets && CAP_W=1080 CAP_H=1920 CAP_FPS=60 CAP_SECONDS=10 CAP_MODE=intro CAP_OUT=out/reel-intro-9x16.mp4 node capture.mjs",
+    "reel-outro": "npm run prepare-assets && CAP_W=1080 CAP_H=1920 CAP_FPS=60 CAP_SECONDS=12 CAP_MODE=outro CAP_OUT=out/reel-outro-9x16.mp4 node capture.mjs"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "playwright": "^1.49.0",
+    "three": "0.160.0"
+  }
+}
