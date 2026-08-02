@@ -23,12 +23,13 @@ from PIL import Image, ImageDraw
 from make_outro import extract_logo, h01, smoothstep, CHARCOAL, PALETTE
 
 FPS = 30
-DURATION = 3.4
+DURATION = 4.4
 N_FRAMES = int(round(FPS * DURATION))
 
-LOGO_HOLD = 1.0           # solid logo on charcoal
-BURST = (1.0, 2.0)        # logo particles fly apart
-DISSOLVE = (1.25, 3.0)    # charcoal -> footage
+ASSEMBLE = (0.15, 1.35)   # logo pixelates in, like the site's above-the-fold logo
+LOGO_HOLD = 2.15          # solid logo on charcoal until here
+BURST = (2.15, 3.15)      # logo particles fly apart
+DISSOLVE = (2.4, 4.05)    # charcoal -> footage
 
 
 def build(template, outdir, keep_frames=False):
@@ -61,6 +62,15 @@ def build(template, outdir, keep_frames=False):
                     life=rng.uniform(0.7, 1.6),
                     s=rng.choice([3, 4, 4, 5, 6]),
                 ))
+
+    # blocky assembly grid over the logo (the site's pixelate-in dissolve)
+    acell = max(8, step * 2)
+    a_cols, a_rows = math.ceil(W / acell), math.ceil(H / acell)
+    logo_cells = []
+    for i in range(a_cols):
+        for j in range(a_rows):
+            if logo_mask[j * acell:(j + 1) * acell, i * acell:(i + 1) * acell].mean() > 0.02:
+                logo_cells.append((i, j))
 
     cell = max(24, H // 48)
     cols, rows = math.ceil(W / cell), math.ceil(H / cell)
@@ -118,8 +128,25 @@ def build(template, outdir, keep_frames=False):
             fade = 1.0 - smoothstep((a / f["life"] - 0.5) / 0.5) if a / f["life"] > 0.5 else 1.0
             d.rectangle([x, y, x + f["s"], y + f["s"]], fill=(*f["c"], int(235 * fade)))
 
-        # logo: solid, then bursting outward with gravity
-        if t < BURST[0]:
+        # logo: pixelates in cell by cell, holds, then bursts outward
+        if t < ASSEMBLE[1]:
+            ap_ = (t - ASSEMBLE[0]) / (ASSEMBLE[1] - ASSEMBLE[0])
+            if ap_ > 0:
+                lmask = Image.new("L", (W, H), 0)
+                lmd = ImageDraw.Draw(lmask)
+                for i, j in logo_cells:
+                    appear = 0.02 + smoothstep(h01(i, j, "asm")) * 0.92
+                    if ap_ >= appear:
+                        x0, y0 = i * acell, j * acell
+                        fresh = (ap_ - appear) < 0.08
+                        jx = int((h01(i, j, n, "ax") - 0.5) * 8) if fresh else 0
+                        jy = int((h01(i, j, n, "ay") - 0.5) * 8) if fresh else 0
+                        lmd.rectangle([x0 + jx, y0 + jy, x0 + acell + jx, y0 + acell + jy], fill=255)
+                assembling = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+                assembling.paste(solid_logo, (0, 0), Image.composite(
+                    solid_logo.split()[3], Image.new("L", (W, H), 0), lmask))
+                frame.paste(assembling, (0, 0), assembling)
+        elif t < BURST[0]:
             frame.paste(solid_logo, (0, 0), solid_logo)
         else:
             k = smoothstep((t - BURST[0]) / 0.25)

@@ -2,10 +2,11 @@
 """Generate a lemoine lower-third overlay (.mov with alpha) in the brand style.
 
 Matches the lemoine-lower3-* templates (colors sampled from the BT.709-tagged
-originals): #181818 charcoal box, #D54664 coral dot, Outfit Light text in brand
-cream. Blocky left-to-right pixel wipe in/out, edge blocks jitter while
-settling, and pixels flake off the box and fall with per-particle gravity —
-same energy as the site's lemon-explosion effect.
+originals): #181818 charcoal box, #D54664 coral dot, Outfit Light text in
+brand cream. Blocky left-to-right pixel wipe in/out; edge blocks jitter while
+settling; pixels flake off the box and fall with size-coherent gravity — big
+blocks drop heavy, small ones drift like dust with a little air wobble — and
+leave through the bottom of frame rather than blinking out.
 
 Usage:
   python3 make_lower3.py --text "high spirits – 432hz spanish cedar" \
@@ -21,7 +22,7 @@ import subprocess
 from PIL import Image, ImageDraw, ImageFont
 
 FPS = 30
-DURATION = 6.5
+DURATION = 8.6
 N_FRAMES = int(round(FPS * DURATION))
 
 CHARCOAL = (24, 24, 24, 255)          # box, sampled from template
@@ -34,7 +35,6 @@ PALETTE = [
     (199, 140, 115), (140, 166, 140), (242, 207, 200), (243, 239, 225),
 ]
 
-# geometry measured off lemoine-lower3-walnut-flute-key-of-a templates
 GEOM = {
     "landscape": dict(size=(1920, 1080), box_x=96, box_bottom=993, box_h=85,
                       dot_dx=37, dot_r=4, text_dx=59, font_size=35, pad_right=36),
@@ -43,7 +43,8 @@ GEOM = {
 }
 
 WIPE_IN = (0.15, 1.05)
-WIPE_OUT = (5.15, 6.05)
+WIPE_OUT = (5.2, 6.1)
+SAFETY_FADE = (DURATION - 0.5, DURATION - 0.1)   # backstop before asset ends
 
 
 def h01(*key):
@@ -63,28 +64,39 @@ def wipe_progress(t, span):
     return smoothstep((t - a) / (b - a))
 
 
-class Faller:
-    """A pixel block detaching from the box and falling under gravity."""
+class Pixel:
+    """A falling pixel. mode 'exit' falls off-frame; 'dust' dissipates near the box."""
 
-    def __init__(self, rng, x, y, t0, chunky_bias=0.0):
-        self.t0 = t0
-        self.x0 = x
-        self.y0 = y
-        self.vx = rng.uniform(-18, 18)
-        self.vy = rng.uniform(4, 38)
-        self.g = rng.uniform(180, 720)          # different paces
-        self.vterm = rng.uniform(110, 520)
-        self.life = rng.uniform(1.3, 3.0)
-        r = rng.random() - chunky_bias
-        if r < 0.62:
-            self.s = rng.randint(3, 6)
-        elif r < 0.9:
-            self.s = rng.randint(7, 10)
+    def __init__(self, rng, x, y, t0, mode="exit", chunky_bias=0.0):
+        self.t0, self.x0, self.y0, self.mode = t0, x, y, mode
+        if mode == "dust":
+            self.s = rng.randint(2, 4)
+            self.g = rng.uniform(40, 120)
+            self.vterm = rng.uniform(55, 140)
+            self.vy = rng.uniform(2, 14)
+            self.vx = rng.uniform(-10, 10)
+            self.life = rng.uniform(1.6, 2.8)
         else:
-            self.s = rng.randint(11, 16)
+            r = rng.random() - chunky_bias
+            if r < 0.55:
+                self.s = rng.randint(3, 6)
+            elif r < 0.87:
+                self.s = rng.randint(7, 10)
+            else:
+                self.s = rng.randint(11, 15)
+            m = self.s / 15.0                     # mass: big falls heavy
+            self.g = 110 + 480 * m + rng.uniform(-30, 30)
+            self.vterm = 130 + 330 * m + rng.uniform(-25, 25)
+            self.vy = rng.uniform(4, 26)
+            self.vx = rng.uniform(-22, 22)
+            self.life = 1e9                       # lives until off-frame
+        # small pixels wobble more (air), heavy ones barely
+        self.wob_amp = max(0.0, 7.5 - 0.45 * self.s) * rng.uniform(0.6, 1.4)
+        self.wob_f = rng.uniform(0.7, 1.9) * 2 * math.pi
+        self.wob_ph = rng.uniform(0, 2 * math.pi)
         cr = rng.random()
         if cr < 0.42:
-            self.c = CHARCOAL[:3]               # flakes of the box itself
+            self.c = CHARCOAL[:3]
         elif cr < 0.52:
             self.c = CORAL[:3]
         elif cr < 0.60:
@@ -92,18 +104,26 @@ class Faller:
         else:
             self.c = PALETTE[rng.randrange(len(PALETTE))]
 
-    def pos(self, t):
+    def pos(self, t, H):
         a = t - self.t0
         if a < 0 or a > self.life:
             return None
-        # integrate capped-velocity fall analytically enough for the eye
         t_cap = max(0.0, (self.vterm - self.vy) / self.g)
         ta = min(a, t_cap)
         y = self.y0 + self.vy * ta + 0.5 * self.g * ta * ta
         if a > t_cap:
             y += self.vterm * (a - t_cap)
-        x = self.x0 + self.vx * a
-        fade = 1.0 - smoothstep((a / self.life - 0.55) / 0.45) if a / self.life > 0.55 else 1.0
+        if y > H + 20:
+            return None
+        x = self.x0 + self.vx * a + self.wob_amp * math.sin(self.wob_f * a + self.wob_ph)
+        if self.mode == "dust":
+            u = a / self.life
+            fade = 1.0 - smoothstep((u - 0.35) / 0.65) if u > 0.35 else 1.0
+        else:
+            fade = 1.0                            # exits the frame, never blinks out
+        # backstop: ease anything still alive out before the asset hard-ends
+        if t > SAFETY_FADE[0]:
+            fade *= 1.0 - smoothstep((t - SAFETY_FADE[0]) / (SAFETY_FADE[1] - SAFETY_FADE[0]))
         return x, y, fade
 
 
@@ -126,33 +146,33 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
     d.ellipse([dx - r, cy - r, dx + r, cy + r], fill=CORAL)
     d.text((box_x + g["text_dx"], cy), label, font=font, anchor="lm", fill=CREAM)
 
-    cell = max(10, round(box_h / 6))            # chunkier pixels
+    cell = max(10, round(box_h / 6))
     cols = math.ceil((box_w + 2) / cell)
     rows = math.ceil((box_h + 2) / cell)
 
     rng = random.Random(432)
-    fallers = []
-    # wipe-in: blocks shake loose under the traveling edge
+    pixels = []
+    # wipe-in: a light shake-loose under the traveling edge
     for i in range(cols):
         u = (i + 0.5) / cols
         t_edge = WIPE_IN[0] + u * (WIPE_IN[1] - WIPE_IN[0])
-        for _ in range(rng.choice([0, 1, 1, 2])):
-            fallers.append(Faller(rng, box_x + u * box_w + rng.uniform(-8, 8),
-                                  box_y + box_h - 2, t_edge + rng.uniform(0, 0.25)))
-    # hold: an organic trickle flaking off the bottom edge
+        for _ in range(rng.choice([0, 1, 1])):
+            pixels.append(Pixel(rng, box_x + u * box_w + rng.uniform(-8, 8),
+                                box_y + box_h - 2, t_edge + rng.uniform(0, 0.25)))
+    # hold: sparse dust flaking off the bottom edge, dissipating nearby
     t = WIPE_IN[1]
-    while t < WIPE_OUT[0]:
-        t += rng.uniform(0.10, 0.45)
-        fallers.append(Faller(rng, box_x + rng.uniform(4, box_w - 4),
-                              box_y + box_h - 2, t))
-    # wipe-out: heavier shed, chunkier
+    while t < WIPE_OUT[0] - 0.3:
+        t += rng.uniform(0.25, 0.7)
+        pixels.append(Pixel(rng, box_x + rng.uniform(4, box_w - 4),
+                            box_y + box_h - 2, t, mode="dust"))
+    # wipe-out: the box sheds properly — everything falls out of frame
     for i in range(cols):
         u = (i + 0.5) / cols
         t_edge = WIPE_OUT[0] + u * (WIPE_OUT[1] - WIPE_OUT[0])
         for _ in range(rng.choice([1, 2, 2, 3])):
-            fallers.append(Faller(rng, box_x + u * box_w + rng.uniform(-10, 10),
-                                  box_y + rng.uniform(box_h * 0.4, box_h),
-                                  t_edge + rng.uniform(0, 0.2), chunky_bias=0.18))
+            pixels.append(Pixel(rng, box_x + u * box_w + rng.uniform(-10, 10),
+                                box_y + rng.uniform(box_h * 0.35, box_h),
+                                t_edge + rng.uniform(0, 0.2), chunky_bias=0.18))
 
     frame_dir = os.path.join(outdir, f"frames-{orientation}")
     os.makedirs(frame_dir, exist_ok=True)
@@ -168,7 +188,7 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
             wipe_active = t <= WIPE_IN[1] + 0.1 or t >= WIPE_OUT[0] - 0.1
             mask = Image.new("L", (W, H), 0)
             md = ImageDraw.Draw(mask)
-            edge_cells = []                     # cells mid-transition jitter
+            edge_cells = []
             for i in range(cols):
                 xc = (i + 0.5) / cols
                 for j in range(rows):
@@ -198,15 +218,14 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
             frame.paste(design, (0, 0), mask)
 
         pd = ImageDraw.Draw(frame)
-        for f in fallers:
-            p = f.pos(t)
+        for px in pixels:
+            p = px.pos(t, H)
             if p is None:
                 continue
             x, y, fade = p
-            if y > H:
+            if fade <= 0.01:
                 continue
-            c = (*f.c, int(235 * fade))
-            pd.rectangle([x, y, x + f.s, y + f.s], fill=c)
+            pd.rectangle([x, y, x + px.s, y + px.s], fill=(*px.c, int(235 * fade)))
 
         frame.save(os.path.join(frame_dir, f"f{n:04d}.png"))
 
