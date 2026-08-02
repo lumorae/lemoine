@@ -22,7 +22,7 @@ import subprocess
 from PIL import Image, ImageDraw, ImageFont
 
 FPS = 30
-DURATION = 8.6
+DURATION = 10.0
 N_FRAMES = int(round(FPS * DURATION))
 
 CHARCOAL = (24, 24, 24, 255)          # box, sampled from template
@@ -42,8 +42,8 @@ GEOM = {
                      dot_dx=41, dot_r=5, text_dx=69, font_size=42, pad_right=41),
 }
 
-WIPE_IN = (0.15, 1.05)
-WIPE_OUT = (5.2, 6.1)
+WIPE_IN = (0.2, 1.7)
+WIPE_OUT = (5.6, 7.1)
 SAFETY_FADE = (DURATION - 0.5, DURATION - 0.1)   # backstop before asset ends
 
 
@@ -86,7 +86,7 @@ class Pixel:
                 self.s = rng.randint(11, 15)
             m = self.s / 15.0                     # mass: big falls heavy
             self.g = 110 + 480 * m + rng.uniform(-30, 30)
-            self.vterm = 130 + 330 * m + rng.uniform(-25, 25)
+            self.vterm = 150 + 330 * m + rng.uniform(-25, 25)
             self.vy = rng.uniform(4, 26)
             self.vx = rng.uniform(-22, 22)
             self.life = 1e9                       # lives until off-frame

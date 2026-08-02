@@ -72,7 +72,7 @@ OUTRO_DUR=0
 INTRO_DUR=0
 [[ -n $INTRO ]] && INTRO_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$INTRO")
 # lower third by default appears just as the intro finishes dissolving
-[[ -z $L3_AT ]] && L3_AT=$(python3 -c "print(max(0.8, $INTRO_DUR - 0.4))")
+[[ -z $L3_AT ]] && L3_AT=$(python3 -c "print(max(0.8, $INTRO_DUR - 2.5))")
 
 # 1) extract trimmed audio (a:0 — iPhone spatial track is undecodable), reverb
 #    padded by the outro length; with an outro the final note rings out over it
