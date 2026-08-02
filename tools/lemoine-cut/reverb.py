@@ -44,6 +44,8 @@ def main():
     ap.add_argument("--out", required=True)
     ap.add_argument("--wet-db", type=float, default=-12.0,
                     help="wet level relative to dry RMS (default -12)")
+    ap.add_argument("--pad-sec", type=float, default=0.0,
+                    help="silence appended so the reverb tail rings out (e.g. outro length)")
     args = ap.parse_args()
 
     dry, sr = read_wav(args.inp)
@@ -52,6 +54,8 @@ def main():
         raise SystemExit(f"sample rate mismatch: audio {sr} vs IR {sr_ir}")
     if dry.shape[1] == 1:
         dry = np.repeat(dry, 2, axis=1)
+    if args.pad_sec > 0:
+        dry = np.concatenate([dry, np.zeros((int(sr * args.pad_sec), 2))])
 
     n = len(dry)
     wet = np.zeros((n, 2))
