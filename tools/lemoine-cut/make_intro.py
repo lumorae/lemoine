@@ -25,7 +25,9 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from make_outro import (extract_logo, h01, smoothstep, CHARCOAL, PALETTE,
-                        dissolve_field, charcoal_layer)
+                        dissolve_field, dissolve_alpha, charcoal_layer)
+
+import brand
 
 FPS = 30
 DURATION = 7.0
@@ -35,11 +37,23 @@ SAFETY_FADE = (6.3, 6.85)   # ease any straggler out while it is still moving
 ASSEMBLE = (0.15, 1.35)   # logo pixelates in, like the site's above-the-fold logo
 BURST_AT = 2.0            # logo explodes (site lemon-press moment)
 DISSOLVE = (2.2, 3.9)     # charcoal -> footage
-# weighted like digitalPalette in lemoine-explosion-github.js (coral dominant)
-BURST_COLORS = ([(204, 54, 102)] * 6 + [(242, 56, 107)] * 2 + [(245, 112, 66)] * 2 +
-                [(230, 173, 56)] * 2 + [(82, 173, 133)] * 2 + [(56, 143, 199)] * 2 +
-                [(122, 92, 199)] + [(224, 122, 173)] * 2 + [(199, 140, 115)] * 2 +
-                [(140, 166, 140)] * 2 + [(242, 207, 200)] * 2 + [(243, 239, 225)] * 2)
+
+def _rot3(px, py, pz, ax, ay):
+    """Rotate a 3D point around x then y; return projected (x, y) and depth."""
+    cy_, sy_ = math.cos(ay), math.sin(ay)
+    cx_, sx_ = math.cos(ax), math.sin(ax)
+    y2 = py * cx_ - pz * sx_
+    z2 = py * sx_ + pz * cx_
+    x3 = px * cy_ + z2 * sy_
+    z3 = -px * sy_ + z2 * cy_
+    return x3, y2, z3
+
+
+_CUBE_V = [(sx, sy, sz) for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)]
+_CUBE_EDGES = [(0, 1), (0, 2), (0, 4), (1, 3), (1, 5), (2, 3), (2, 6),
+               (3, 7), (4, 5), (4, 6), (5, 7), (6, 7)]
+_CUBE_FACES = [(0, 1, 3, 2), (4, 5, 7, 6), (0, 1, 5, 4),
+               (2, 3, 7, 6), (0, 2, 6, 4), (1, 3, 7, 5)]
 
 
 class Shard:
@@ -78,6 +92,14 @@ class Shard:
         # crumble pacing: big shards start shedding sub-cells mid-flight
         self.crumble_t0 = rng.uniform(0.5, 1.1)
         self.crumble_dur = rng.uniform(0.9, 1.8)
+        # kind: flat square / solid 3d cube / wireframe cube (site cube language)
+        kr = rng.random()
+        self.kind = "flat" if kr < 0.62 else ("cube" if kr < 0.83 else "wire")
+        if self.kind != "flat":
+            self.s = max(self.s, 10)
+            self.faces = brand.coral_faces(rng)
+            self.rx0, self.ry0 = rng.uniform(0, math.pi), rng.uniform(0, math.pi)
+            self.rwx, self.rwy = rng.uniform(-2.4, 2.4), rng.uniform(-2.4, 2.4)
 
     def draw(self, pd, t, W, H):
         if self.dead:
@@ -103,6 +125,24 @@ class Shard:
             alpha = int(240 * (1.0 - smoothstep((t - SAFETY_FADE[0]) / (SAFETY_FADE[1] - SAFETY_FADE[0]))))
             if alpha <= 2:
                 return False
+        if self.kind != "flat":
+            ax = self.rx0 + self.rwx * a
+            ay = self.ry0 + self.rwy * a
+            r = self.s / 2.0
+            pts = [_rot3(vx_ * r, vy_ * r, vz_ * r, ax, ay) for vx_, vy_, vz_ in _CUBE_V]
+            if self.kind == "wire":
+                for e0, e1 in _CUBE_EDGES:
+                    pd.line([(x + pts[e0][0], y + pts[e0][1]),
+                             (x + pts[e1][0], y + pts[e1][1])],
+                            fill=(*self.c, alpha), width=2)
+            else:
+                dark, base, light = self.faces
+                order = sorted(range(6), key=lambda f: sum(pts[i][2] for i in _CUBE_FACES[f]))
+                for rank, f in enumerate(order[3:]):
+                    col = (dark, base, light)[rank]
+                    poly = [(x + pts[i][0], y + pts[i][1]) for i in _CUBE_FACES[f]]
+                    pd.polygon(poly, fill=(*col, alpha))
+            return True
         if self.s < 7:
             pd.rectangle([x, y, x + self.s, y + self.s], fill=(*self.c, alpha))
             return True
@@ -148,7 +188,7 @@ def build(template, outdir, keep_frames=False):
                 if rng.random() < 0.45:
                     c = tuple(int(v) for v in logo_px[min(y + 3, H - 1), min(x + 3, W - 1)])
                 else:
-                    c = BURST_COLORS[rng.randrange(len(BURST_COLORS))]
+                    c = brand.pick(rng, coral=0.45, charcoal=0.12, cream=0.38)
                 shards.append(Shard(rng, x, y, cx, cy, c))
 
     # blocky assembly grid over the logo (the site's pixelate-in dissolve)
@@ -159,19 +199,20 @@ def build(template, outdir, keep_frames=False):
             if logo_mask[j * acell:(j + 1) * acell, i * acell:(i + 1) * acell].mean() > 0.02:
                 logo_cells.append((i, j))
 
-    # ethereal dissolve field; fine dust drifts loose as each patch erodes
-    field = dissolve_field(W, H, "intro")
-    SOFT = 0.14
+    # pixel dissolve grid; fine dust drifts loose as each patch erodes
+    grid, dcell = dissolve_field(W, H, "intro")
+    SOFT = 0.055
     fallers = []
-    for _ in range(460):
+    for _ in range(440):
         fx_, fy_ = rng.uniform(0, W - 1), rng.uniform(0, H - 1)
-        drop = DISSOLVE[0] + float(field[int(fy_), int(fx_)]) * (DISSOLVE[1] - DISSOLVE[0])
-        f = Shard(rng, fx_, fy_, W / 2, -H, CHARCOAL if rng.random() < 0.35
-                  else BURST_COLORS[rng.randrange(len(BURST_COLORS))])
+        drop = DISSOLVE[0] + float(grid[int(fy_ // dcell), int(fx_ // dcell)]) * (DISSOLVE[1] - DISSOLVE[0])
+        f = Shard(rng, fx_, fy_, W / 2, -H,
+                  brand.pick(rng, coral=0.36, charcoal=0.34, cream=0.25))
         f.t0 = drop + rng.uniform(0, 0.15)
         f.vx = rng.uniform(-24, 24)
         f.vy = rng.uniform(4, 34)
         f.s = rng.choice([2, 2, 3, 3, 4, 4, 5, 6])
+        f.kind = "flat"
         f.wob_amp = rng.uniform(3.0, 9.0)
         fallers.append(f)
 
@@ -185,12 +226,12 @@ def build(template, outdir, keep_frames=False):
         fx = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         fxd = ImageDraw.Draw(fx)
 
-        # charcoal erodes away to the footage — soft, fine-grained, cloud-like
+        # charcoal erodes away to the footage — crisp cells, organic cloud timing
         p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0]) * (1 + SOFT)
         if t < DISSOLVE[0]:
             d.rectangle([0, 0, W, H], fill=(*CHARCOAL, 255))
         elif p < 1 + SOFT + 0.05:
-            a8 = (np.clip((field - p) / SOFT + 1, 0, 1) * 255).astype(np.uint8)
+            a8 = dissolve_alpha(grid, dcell, W, H, p, appearing=False, soft=SOFT)
             if a8.max() > 0:
                 frame.alpha_composite(charcoal_layer(W, H, a8))
 

@@ -22,6 +22,8 @@ import tempfile
 import numpy as np
 from PIL import Image, ImageDraw
 
+import brand
+
 FPS = 30
 DURATION = 6.2
 N_FRAMES = int(round(FPS * DURATION))
@@ -54,24 +56,33 @@ def smoothstep(t):
 
 
 
-def dissolve_field(W, H, seed_salt):
-    """Threshold field for an ethereal pixel dissolve.
+def dissolve_field(W, H, seed_salt, cell=12):
+    """Cell threshold grid for a pixelated-but-organic dissolve.
 
-    Low-frequency clouds make the erosion flow organically; 6px and 2px grain
-    keep it pixelated but fine. Returns float32 (H, W) in [0.02, 0.95].
+    Timing flows in cloud-shaped patches, but the medium stays crisp square
+    cells — no per-pixel mist. Returns (grid float32 (rows, cols), cell).
     """
     rng = np.random.default_rng(abs(hash(seed_salt)) % (2 ** 31))
-    clouds = Image.fromarray((rng.random((max(2, H // 192), max(2, W // 192))) * 255
-                              ).astype(np.uint8)).resize((W, H), Image.BILINEAR)
-    g6 = Image.fromarray((rng.random((H // 6 + 1, W // 6 + 1)) * 255
-                          ).astype(np.uint8)).resize((W, H), Image.NEAREST)
-    g2 = Image.fromarray((rng.random((H // 2 + 1, W // 2 + 1)) * 255
-                          ).astype(np.uint8)).resize((W, H), Image.NEAREST)
-    th = (0.58 * np.asarray(clouds, np.float32) + 0.27 * np.asarray(g6, np.float32)[:H, :W]
-          + 0.15 * np.asarray(g2, np.float32)[:H, :W]) / 255.0
+    cols, rows = math.ceil(W / cell), math.ceil(H / cell)
+    clouds = Image.fromarray((rng.random((max(2, rows // 16), max(2, cols // 16))) * 255
+                              ).astype(np.uint8)).resize((cols, rows), Image.BILINEAR)
+    th = 0.72 * np.asarray(clouds, np.float32) / 255.0 + 0.28 * rng.random((rows, cols)).astype(np.float32)
+    # a few straggler cells hang on a beat longer — organic, not uniform
+    th += (rng.random((rows, cols)) < 0.08) * 0.07
     th -= th.min()
     th /= max(th.max(), 1e-6)
-    return (0.02 + 0.93 * th).astype(np.float32)
+    return (0.02 + 0.93 * th).astype(np.float32), cell
+
+
+def dissolve_alpha(grid, cell, W, H, p, appearing, soft=0.055):
+    """Upsample the cell grid to a crisp per-pixel alpha for progress p."""
+    if appearing:
+        a = np.clip((p - grid) / soft, 0, 1)
+    else:
+        a = np.clip((grid - p) / soft + 1, 0, 1)
+    a8 = (a * 255).astype(np.uint8)
+    full = np.kron(a8, np.ones((cell, cell), dtype=np.uint8))
+    return full[:H, :W]
 
 
 def charcoal_layer(W, H, alpha_arr):
@@ -167,20 +178,20 @@ def build(endcard, outdir, name, keep_frames=False):
     tag_cells = grid_cells(tag_mask)
     pill_cells = grid_cells(pill_mask)
 
-    # ethereal dissolve field + fine falling dust released as each patch turns
-    field = dissolve_field(W, H, "outro-" + name)
-    SOFT = 0.14
+    # pixel dissolve grid + falling dust released as each patch turns (brand ramps)
+    grid, dcell = dissolve_field(W, H, "outro-" + name)
+    SOFT = 0.055
     fallers = []
-    for _ in range(420):
+    for _ in range(380):
         fx_, fy_ = rng.uniform(0, W - 1), rng.uniform(0, H - 1)
-        flip = DISSOLVE[0] + float(field[int(fy_), int(fx_)]) * (DISSOLVE[1] - DISSOLVE[0])
+        flip = DISSOLVE[0] + float(grid[int(fy_ // dcell), int(fx_ // dcell)]) * (DISSOLVE[1] - DISSOLVE[0])
         fallers.append(dict(
             x=fx_, y=fy_,
             vx=rng.uniform(-18, 18), vy=rng.uniform(4, 30),
             g=rng.uniform(120, 620), vterm=rng.uniform(110, 480),
             t0=flip + rng.uniform(0, 0.2), life=rng.uniform(1.0, 2.4),
-            s=rng.choice([2, 2, 3, 3, 4, 5, 7]),
-            c=CHARCOAL if rng.random() < 0.35 else PALETTE[rng.randrange(len(PALETTE))],
+            s=rng.choice([2, 3, 3, 4, 4, 5, 7]),
+            c=brand.pick(rng, coral=0.38, charcoal=0.32, cream=0.25),
         ))
 
     frame_dir = os.path.join(outdir, f"frames-outro-{name}")
@@ -193,13 +204,12 @@ def build(endcard, outdir, name, keep_frames=False):
         fx = Image.new("RGBA", (W, H), (0, 0, 0, 0))   # particles layer
         fxd = ImageDraw.Draw(fx)
 
-        # 1) footage dissolves to charcoal — soft, fine-grained, cloud-like
+        # 1) footage dissolves to charcoal — crisp cells, organic cloud timing
         p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0]) * (1 + SOFT)
         if t >= DISSOLVE[1]:
             d.rectangle([0, 0, W, H], fill=(*CHARCOAL, 255))
         elif p > 0:
-            a8 = (np.clip((p - field) / SOFT, 0, 1) * 255).astype(np.uint8)
-            frame.alpha_composite(charcoal_layer(W, H, a8))
+            frame.alpha_composite(charcoal_layer(W, H, dissolve_alpha(grid, dcell, W, H, p, appearing=True, soft=SOFT)))
 
         # 2) falling pixels
         for f in fallers:

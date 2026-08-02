@@ -21,6 +21,8 @@ import subprocess
 
 from PIL import Image, ImageDraw, ImageFont
 
+import brand
+
 FPS = 30
 DURATION = 10.0
 N_FRAMES = int(round(FPS * DURATION))
@@ -94,15 +96,8 @@ class Pixel:
         self.wob_amp = max(0.0, 7.5 - 0.45 * self.s) * rng.uniform(0.6, 1.4)
         self.wob_f = rng.uniform(0.7, 1.9) * 2 * math.pi
         self.wob_ph = rng.uniform(0, 2 * math.pi)
-        cr = rng.random()
-        if cr < 0.42:
-            self.c = CHARCOAL[:3]
-        elif cr < 0.52:
-            self.c = CORAL[:3]
-        elif cr < 0.60:
-            self.c = CREAM[:3]
-        else:
-            self.c = PALETTE[rng.randrange(len(PALETTE))]
+        # brand ramps: coral/charcoal/cream shades for depth, ~5% accents
+        self.c = brand.pick(rng, coral=0.33, charcoal=0.37, cream=0.25)
 
     def pos(self, t, H):
         a = t - self.t0
