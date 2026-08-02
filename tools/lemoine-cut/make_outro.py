@@ -3,12 +3,13 @@
 
 Plays AFTER the footage ends (the pipeline freezes the last frame under it):
 the frame dissolves into charcoal cell by cell while pixels fall with
-per-particle gravity, then particles gather into the Lemoine logo — taken
-verbatim from the original brand outro template's final frame — and hold.
+per-particle gravity, then particles gather into the end-card's lemon mark and
+wordmark, the tagline pixelates in, and the URL pill lands last. The end-card
+artwork comes straight from the brand SVGs (endcards/), rasterized 1:1.
 
 Usage:
-  python3 make_outro.py --template lemoine-outro-vertical-1080x1920-alpha-iphone.mov \
-      --outdir out/
+  python3 make_outro.py --endcard endcards/endcard-dont-blend-in-1080x1920.png \
+      --name dont-blend-in --outdir out/
 """
 import argparse
 import hashlib
@@ -22,7 +23,7 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 FPS = 30
-DURATION = 5.2
+DURATION = 6.2
 N_FRAMES = int(round(FPS * DURATION))
 
 CHARCOAL = (25, 25, 25)
@@ -32,9 +33,13 @@ PALETTE = [
     (199, 140, 115), (140, 166, 140), (242, 207, 200), (243, 239, 225),
 ]
 
-DISSOLVE = (0.0, 1.8)     # footage -> charcoal
-GATHER = (1.3, 3.6)       # particles -> logo
-LOGO_SOLID = 3.7          # exact logo from here on
+DISSOLVE = (0.0, 1.8)      # footage -> charcoal
+GATHER = (1.3, 3.6)        # particles -> lemon + wordmark
+LOGO_SOLID = 3.7
+TAG_REVEAL = (3.5, 4.05)   # tagline pixelates in
+PILL_REVEAL = (3.85, 4.4)  # url pill pixelates in
+LAYER_SPLIT_TAG = 1050     # y boundaries between end-card layers
+LAYER_SPLIT_PILL = 1250
 
 
 def h01(*key):
@@ -48,43 +53,86 @@ def smoothstep(t):
 
 
 def extract_logo(template, work):
-    """Grab the clean final logo frame from the brand outro template."""
+    """Grab the clean final logo frame from the brand outro template (intro uses this)."""
     frame = os.path.join(work, "logo.png")
     subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "6.0", "-i", template,
                     "-frames:v", "1", frame], check=True)
     im = Image.open(frame).convert("RGB")
     a = np.asarray(im).astype(int)
-    bg = np.median(a[a.shape[0] // 10, :], axis=0)  # top strip = background
+    bg = np.median(a[a.shape[0] // 10, :], axis=0)
     mask = (np.abs(a - bg).sum(axis=2) > 40)
     return im, mask
 
 
-def build(template, outdir, keep_frames=False):
-    work = tempfile.mkdtemp()
-    logo_im, logo_mask = extract_logo(template, work)
-    W, H = logo_im.size
-    logo_px = np.asarray(logo_im)
+def layer_image(px, mask, W, H, y0, y1):
+    m = np.zeros_like(mask)
+    m[y0:y1] = mask[y0:y1]
+    arr = np.zeros((H, W, 4), dtype=np.uint8)
+    arr[..., :3] = px
+    arr[..., 3] = np.where(m, 255, 0)
+    return Image.fromarray(arr), m
 
-    # particle targets: logo sampled on a coarse pixel grid
-    step = 5
-    targets = []
+
+def blocky_reveal(frame, layer_img, cells, p, n, acell):
+    """Site-style pixelate-in of a layer, with settle jitter on fresh cells."""
+    if p <= 0:
+        return
+    if p >= 1:
+        frame.paste(layer_img, (0, 0), layer_img)
+        return
+    W, H = layer_img.size
+    lmask = Image.new("L", (W, H), 0)
+    lmd = ImageDraw.Draw(lmask)
+    for i, j in cells:
+        appear = 0.02 + smoothstep(h01(i, j, "rv")) * 0.92
+        if p >= appear:
+            x0, y0 = i * acell, j * acell
+            fresh = (p - appear) < 0.1
+            jx = int((h01(i, j, n, "rx") - 0.5) * 8) if fresh else 0
+            jy = int((h01(i, j, n, "ry") - 0.5) * 8) if fresh else 0
+            lmd.rectangle([x0 + jx, y0 + jy, x0 + acell + jx, y0 + acell + jy], fill=255)
+    part = Image.composite(layer_img.split()[3], Image.new("L", layer_img.size, 0), lmask)
+    frame.paste(layer_img, (0, 0), part)
+
+
+def build(endcard, outdir, name, keep_frames=False):
+    card = Image.open(endcard).convert("RGB")
+    W, H = card.size
+    px = np.asarray(card)
+    bg = np.array(CHARCOAL)
+    mask = (np.abs(px.astype(int) - bg).sum(axis=2) > 30)
+
+    logo_img, logo_mask = layer_image(px, mask, W, H, 0, LAYER_SPLIT_TAG)
+    tag_img, tag_mask = layer_image(px, mask, W, H, LAYER_SPLIT_TAG, LAYER_SPLIT_PILL)
+    pill_img, pill_mask = layer_image(px, mask, W, H, LAYER_SPLIT_PILL, H)
+
+    # particle targets for the lemon + wordmark gather
     rng = random.Random(1919)
+    step = 5
     ys, xs = np.where(logo_mask)
-    x0m, x1m, y0m, y1m = xs.min(), xs.max(), ys.min(), ys.max()
-    for y in range(0, H, step):
+    cx, cy = xs.mean(), ys.mean()
+    targets = []
+    for y in range(0, LAYER_SPLIT_TAG, step):
         for x in range(0, W, step):
-            block = logo_mask[y:y + step, x:x + step]
-            if block.mean() > 0.3:
-                c = tuple(int(v) for v in logo_px[min(y + step // 2, H - 1), min(x + step // 2, W - 1)])
-                # scatter start: inflated logo bbox
-                cx, cy = (x0m + x1m) / 2, (y0m + y1m) / 2
+            if logo_mask[y:y + step, x:x + step].mean() > 0.3:
+                c = tuple(int(v) for v in px[min(y + step // 2, H - 1), min(x + step // 2, W - 1)])
                 sx = cx + (x - cx) * rng.uniform(1.6, 3.4) + rng.uniform(-90, 90)
                 sy = cy + (y - cy) * rng.uniform(1.6, 3.4) + rng.uniform(-140, 90)
-                targets.append(dict(
-                    tx=x, ty=y, sx=sx, sy=sy, c=c,
-                    t0=GATHER[0] + rng.uniform(0, 0.9),
-                    dur=rng.uniform(0.7, 1.3),
-                ))
+                targets.append(dict(tx=x, ty=y, sx=sx, sy=sy, c=c,
+                                    t0=GATHER[0] + rng.uniform(0, 0.9),
+                                    dur=rng.uniform(0.7, 1.3)))
+
+    # blocky reveal grids for tagline and pill
+    acell = 10
+    def grid_cells(m):
+        cells = []
+        for i in range(math.ceil(W / acell)):
+            for j in range(math.ceil(H / acell)):
+                if m[j * acell:(j + 1) * acell, i * acell:(i + 1) * acell].mean() > 0.02:
+                    cells.append((i, j))
+        return cells
+    tag_cells = grid_cells(tag_mask)
+    pill_cells = grid_cells(pill_mask)
 
     # dissolve grid + falling pixels
     cell = max(24, H // 48)
@@ -92,7 +140,6 @@ def build(template, outdir, keep_frames=False):
     fallers = []
     for i in range(cols):
         for j in range(rows):
-            # min 0.05 keeps frame 0 fully transparent (overlay extends it backward)
             flip = DISSOLVE[0] + (0.05 + smoothstep(h01(i, j, "flip")) * 0.85) * (DISSOLVE[1] - DISSOLVE[0])
             if rng.random() < 0.5:
                 fallers.append(dict(
@@ -104,13 +151,7 @@ def build(template, outdir, keep_frames=False):
                     c=CHARCOAL if rng.random() < 0.35 else PALETTE[rng.randrange(len(PALETTE))],
                 ))
 
-    solid_logo = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-    solid_arr = np.zeros((H, W, 4), dtype=np.uint8)
-    solid_arr[..., :3] = logo_px
-    solid_arr[..., 3] = np.where(logo_mask, 255, 0)
-    solid_logo = Image.fromarray(solid_arr)
-
-    frame_dir = os.path.join(outdir, "frames-outro")
+    frame_dir = os.path.join(outdir, f"frames-outro-{name}")
     os.makedirs(frame_dir, exist_ok=True)
 
     for n in range(N_FRAMES):
@@ -118,7 +159,7 @@ def build(template, outdir, keep_frames=False):
         frame = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d = ImageDraw.Draw(frame)
 
-        # 1) dissolve: cells flip to opaque charcoal in organic order
+        # 1) footage dissolves to charcoal
         p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0])
         if t >= DISSOLVE[1]:
             d.rectangle([0, 0, W, H], fill=(*CHARCOAL, 255))
@@ -150,13 +191,13 @@ def build(template, outdir, keep_frames=False):
             fade = 1.0 - smoothstep((a / f["life"] - 0.5) / 0.5) if a / f["life"] > 0.5 else 1.0
             d.rectangle([x, y, x + f["s"], y + f["s"]], fill=(*f["c"], int(235 * fade)))
 
-        # 3) logo: particles gather, then the exact template logo
+        # 3) lemon + wordmark: particles gather, then the exact artwork
         if t >= LOGO_SOLID:
             k = smoothstep((t - LOGO_SOLID) / 0.3)
             if k >= 1:
-                frame.paste(solid_logo, (0, 0), solid_logo)
+                frame.paste(logo_img, (0, 0), logo_img)
             else:
-                tmp = solid_logo.copy()
+                tmp = logo_img.copy()
                 tmp.putalpha(tmp.split()[3].point(lambda v: int(v * k)))
                 frame.paste(tmp, (0, 0), tmp)
         if GATHER[0] <= t < LOGO_SOLID + 0.3:
@@ -173,9 +214,15 @@ def build(template, outdir, keep_frames=False):
                 if alpha > 3:
                     d.rectangle([x, y, x + s, y + s], fill=(*tg["c"], alpha))
 
+        # 4) tagline, then the url pill, pixelate in
+        blocky_reveal(frame, tag_img, tag_cells,
+                      (t - TAG_REVEAL[0]) / (TAG_REVEAL[1] - TAG_REVEAL[0]), n, acell)
+        blocky_reveal(frame, pill_img, pill_cells,
+                      (t - PILL_REVEAL[0]) / (PILL_REVEAL[1] - PILL_REVEAL[0]), n, acell)
+
         frame.save(os.path.join(frame_dir, f"f{n:04d}.png"))
 
-    out_mov = os.path.join(outdir, f"lemoine-outro-pixel-{W}x{H}-alpha.mov")
+    out_mov = os.path.join(outdir, f"lemoine-outro-pixel-{name}-{W}x{H}-alpha.mov")
     subprocess.run([
         "ffmpeg", "-y", "-v", "error", "-framerate", str(FPS),
         "-i", os.path.join(frame_dir, "f%04d.png"),
@@ -191,8 +238,9 @@ def build(template, outdir, keep_frames=False):
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
-    ap.add_argument("--template", required=True, help="original brand outro .mov (logo source)")
+    ap.add_argument("--endcard", required=True, help="end-card PNG (from endcards/*.svg)")
+    ap.add_argument("--name", required=True, help="variant name for the output file")
     ap.add_argument("--outdir", default=".")
     ap.add_argument("--keep-frames", action="store_true")
     args = ap.parse_args()
-    print(build(args.template, args.outdir, keep_frames=args.keep_frames))
+    print(build(args.endcard, args.outdir, args.name, keep_frames=args.keep_frames))
