@@ -164,6 +164,8 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
 
         frame = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         if p_in > 0 and p_out < 1:
+            # jitter only while a wipe is actually running — never during hold
+            wipe_active = t <= WIPE_IN[1] + 0.1 or t >= WIPE_OUT[0] - 0.1
             mask = Image.new("L", (W, H), 0)
             md = ImageDraw.Draw(mask)
             edge_cells = []                     # cells mid-transition jitter
@@ -180,18 +182,20 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
                     y1 = min(y0 + cell, box_y + box_h)
                     if x1 <= x0 or y1 <= y0:
                         continue
-                    settling = (p_in - thr) < 0.12 or (0 < p_out and (thr - p_out) < 0.12)
+                    settling = wipe_active and (
+                        (p_in - thr) < 0.12 or (0 < p_out and (thr - p_out) < 0.12))
                     if settling:
                         edge_cells.append((x0, y0, x1, y1, i, j))
                     else:
                         md.rectangle([x0, y0, x1, y1], fill=255)
-            frame.paste(design, (0, 0), mask)
-            # settling blocks drawn displaced — pixelated movement
+            # displaced settling blocks go UNDER the settled design so they
+            # never eat into legible text
             for x0, y0, x1, y1, i, j in edge_cells:
                 jx = int((h01(i, j, n, "jx") - 0.5) * cell * 0.9)
                 jy = int((h01(i, j, n, "jy") - 0.5) * cell * 0.9)
                 block = design.crop((x0, y0, x1, y1))
                 frame.paste(block, (x0 + jx, y0 + jy), block)
+            frame.paste(design, (0, 0), mask)
 
         pd = ImageDraw.Draw(frame)
         for f in fallers:

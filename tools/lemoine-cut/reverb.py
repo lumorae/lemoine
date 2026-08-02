@@ -46,6 +46,10 @@ def main():
                     help="wet level relative to dry RMS (default -12)")
     ap.add_argument("--pad-sec", type=float, default=0.0,
                     help="silence appended so the reverb tail rings out (e.g. outro length)")
+    ap.add_argument("--ring-ir", default=None,
+                    help="long IR: convolve the final note with it so the ending rings out")
+    ap.add_argument("--ring-db", type=float, default=-8.0,
+                    help="ring-out level relative to the final note (default -8)")
     args = ap.parse_args()
 
     dry, sr = read_wav(args.inp)
@@ -66,6 +70,29 @@ def main():
     rms = lambda s: np.sqrt(np.mean(s ** 2)) + 1e-12
     wet *= (rms(dry) / rms(wet)) * (10 ** (args.wet_db / 20))
     mix = dry + wet
+
+    if args.ring_ir:
+        # find where the last note ends and let it ring through the padding
+        ring_ir, _ = read_wav(args.ring_ir)
+        win = int(sr * 0.08)
+        env = np.sqrt(np.convolve(np.mean(dry ** 2, axis=1),
+                                  np.ones(win) / win, mode="same"))
+        thresh = max(env.max() * 10 ** (-30 / 20), 10 ** (-38 / 20))
+        loud = np.where(env > thresh)[0]
+        if len(loud):
+            note_end = int(loud[-1])
+            a = max(0, note_end - int(sr * 1.0))
+            piece = dry[a:note_end].copy()
+            fade_n = min(int(sr * 0.15), len(piece))
+            piece[:fade_n] *= np.linspace(0, 1, fade_n)[:, None]
+            ring = np.zeros_like(mix)
+            for c in range(2):
+                tail = fftconvolve(piece[:, c], ring_ir[:, min(c, ring_ir.shape[1] - 1)])
+                end = min(len(mix), a + len(tail))
+                ring[a:end, c] = tail[:end - a]
+            ring *= (rms(piece) / rms(ring)) * (10 ** (args.ring_db / 20))
+            mix += ring
+            print(f"ring-out: note ends at {note_end/sr:.2f}s, tail added")
 
     peak = np.max(np.abs(mix))
     if peak > 0.98:

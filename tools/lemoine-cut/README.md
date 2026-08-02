@@ -40,3 +40,13 @@ Requires: ffmpeg, python3 with pillow + numpy.
 Note: the existing intro/outro brand assets are HEVC-with-alpha, which ffmpeg
 cannot decode the alpha layer of; this pipeline generates its own overlays as
 ProRes 4444 instead.
+
+## Auto-saving cuts to Google Drive
+
+The claude.ai Drive connector can only download up to 10 MB and can't upload
+video-size files at all, so renders can't land in Drive through it. Instead,
+`drive_upload.py` uploads straight to the "Cut" folder via the Drive API with
+a service-account key (one-time setup in its header comment). Once the key is
+in place, finished cuts get pushed to Drive automatically at the end of
+`lemoine_cut.sh`; until then they're committed to the repo's `renders/` and
+sent in chat.

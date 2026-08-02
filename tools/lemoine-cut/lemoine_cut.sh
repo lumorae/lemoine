@@ -15,16 +15,17 @@
 #   -k     keep source resolution (default: deliver at 1080p for speed/size)
 #   -q     x264 crf (default 19)
 #   -O     pixel-explosion outro overlay (.mov with alpha); plays after the
-#          footage on a frozen last frame while the reverb tail rings out
+#          footage on a frozen last frame while the last note rings out
+#   -I     pixel-explosion intro overlay (.mov with alpha); plays at t=0
 set -euo pipefail
 
-IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT=0.8 KEEP_RES=0 CRF=19 OUTRO=""
-while getopts "i:o:l:s:e:aw:t:kq:O:" opt; do
+IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO=""
+while getopts "i:o:l:s:e:aw:t:kq:O:I:" opt; do
   case $opt in
     i) IN=$OPTARG;; o) OUT=$OPTARG;; l) LOWER3=$OPTARG;;
     s) START=$OPTARG;; e) END=$OPTARG;; a) AUTOTRIM=1;;
     w) WET_DB=$OPTARG;; t) L3_AT=$OPTARG;; k) KEEP_RES=1;; q) CRF=$OPTARG;;
-    O) OUTRO=$OPTARG;;
+    O) OUTRO=$OPTARG;; I) INTRO=$OPTARG;;
     *) exit 2;;
   esac
 done
@@ -68,11 +69,20 @@ e = '${END:-}'
 print((float(e) if e else $(ffprobe -v error -show_entries format=duration -of csv=p=0 "$IN")) - s)")
 OUTRO_DUR=0
 [[ -n $OUTRO ]] && OUTRO_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUTRO")
+INTRO_DUR=0
+[[ -n $INTRO ]] && INTRO_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$INTRO")
+# lower third by default appears just as the intro finishes dissolving
+[[ -z $L3_AT ]] && L3_AT=$(python3 -c "print(max(0.8, $INTRO_DUR - 0.4))")
 
 # 1) extract trimmed audio (a:0 — iPhone spatial track is undecodable), reverb
-#    padded by the outro length so the tail rings out over it
+#    padded by the outro length; with an outro the final note rings out over it
 ffmpeg -y -v error "${TRIM_IN[@]}" -i "$IN" -map 0:a:0 -vn -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
-python3 "$HERE/reverb.py" --in "$WORK/dry.wav" --ir "$IR" --out "$WORK/wetmix.wav" --wet-db "$WET_DB" --pad-sec "$OUTRO_DUR"
+RING=()
+if [[ -n $OUTRO ]]; then
+  [[ -f "$HERE/ir-ring.wav" ]] || python3 "$HERE/make_ir.py" --out "$HERE/ir-ring.wav" --t60 4.8
+  RING=(--ring-ir "$HERE/ir-ring.wav")
+fi
+python3 "$HERE/reverb.py" --in "$WORK/dry.wav" --ir "$IR" --out "$WORK/wetmix.wav" --wet-db "$WET_DB" --pad-sec "$OUTRO_DUR" "${RING[@]}"
 
 # 2) video chain: optional downscale, HDR→SDR tone-map, overlay in RGB so the
 #    brand colors pass through exactly once into BT.709
@@ -95,30 +105,36 @@ case "$SRC_TRC" in
     ;;
 esac
 
-OUTRO_IN=()
+# build the RGB compositing chain: footage (+freeze), lower3, outro, intro
+EXTRA_IN=()
+IDX=3
 if [[ -n $OUTRO ]]; then
-  # freeze the last frame under the outro; outro frame 0 is fully transparent
-  TOTAL=$(python3 -c "print($CLIP_DUR + $OUTRO_DUR)")
-  FILTER_V="[0:v:0]${TOSDR},tpad=stop_mode=clone:stop_duration=${OUTRO_DUR}[sdr];\
-[1:v]format=rgba,setpts=PTS+${L3_AT}/TB[l3];\
-[l3][sdr]scale2ref=w=iw:h=ih[l3s][base];\
-[base][l3s]overlay=x=0:y=0:eof_action=pass:format=auto[mid];\
-[3:v]format=rgba,setpts=PTS+${CLIP_DUR}/TB[og];\
-[og][mid]scale2ref=w=iw:h=ih[ogs][mid2];\
-[mid2][ogs]overlay=x=0:y=0:eof_action=pass:format=auto[rgb];\
-[rgb]zscale=m=bt709:r=tv,format=yuv420p[vout]"
-  FILTER_A="[2:a]loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=out:st=$(python3 -c "print($TOTAL-0.6)"):d=0.6[aout]"
-  OUTRO_IN=(-i "$OUTRO")
+  FV="[0:v:0]${TOSDR},tpad=stop_mode=clone:stop_duration=${OUTRO_DUR}[sdr];"
 else
-  FILTER_V="[0:v:0]${TOSDR}[sdr];\
-[1:v]format=rgba,setpts=PTS+${L3_AT}/TB[l3];\
-[l3][sdr]scale2ref=w=iw:h=ih[l3s][base];\
-[base][l3s]overlay=x=0:y=0:eof_action=pass:format=auto[rgb];\
-[rgb]zscale=m=bt709:r=tv,format=yuv420p[vout]"
-  FILTER_A="[2:a]loudnorm=I=-14:TP=-1.5:LRA=11[aout]"
+  FV="[0:v:0]${TOSDR}[sdr];"
 fi
+FV+="[1:v]format=rgba,setpts=PTS+${L3_AT}/TB[l3];\
+[l3][sdr]scale2ref=w=iw:h=ih[l3s][base];\
+[base][l3s]overlay=x=0:y=0:eof_action=pass:format=auto[mid]"
+CUR="mid"
+if [[ -n $OUTRO ]]; then
+  FV+=";[${IDX}:v]format=rgba,setpts=PTS+${CLIP_DUR}/TB[og];\
+[og][${CUR}]scale2ref=w=iw:h=ih[ogs][c${IDX}];\
+[c${IDX}][ogs]overlay=x=0:y=0:eof_action=pass:format=auto[o${IDX}]"
+  CUR="o${IDX}"; EXTRA_IN+=(-i "$OUTRO"); IDX=$((IDX+1))
+fi
+if [[ -n $INTRO ]]; then
+  FV+=";[${IDX}:v]format=rgba[ig];\
+[ig][${CUR}]scale2ref=w=iw:h=ih[igs][c${IDX}];\
+[c${IDX}][igs]overlay=x=0:y=0:eof_action=pass:format=auto[o${IDX}]"
+  CUR="o${IDX}"; EXTRA_IN+=(-i "$INTRO"); IDX=$((IDX+1))
+fi
+FILTER_V="$FV;[${CUR}]zscale=m=bt709:r=tv,format=yuv420p[vout]"
 
-ffmpeg -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${OUTRO_IN[@]}" \
+TOTAL=$(python3 -c "print($CLIP_DUR + $OUTRO_DUR)")
+FILTER_A="[2:a]loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=out:st=$(python3 -c "print($TOTAL-0.6)"):d=0.6[aout]"
+
+ffmpeg -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${EXTRA_IN[@]}" \
   -filter_complex "$FILTER_V;$FILTER_A" \
   -map "[vout]" -map "[aout]" -shortest \
   -c:v libx264 -preset fast -crf "$CRF" \
@@ -127,3 +143,8 @@ ffmpeg -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${OUTRO_I
   -movflags +faststart \
   "$OUT"
 echo "done: $OUT"
+
+# auto-save to Drive when a service-account key is configured
+if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
+  python3 "$HERE/drive_upload.py" --file "$OUT" || echo "drive upload failed (kept local)"
+fi
