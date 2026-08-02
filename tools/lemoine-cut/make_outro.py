@@ -52,6 +52,38 @@ def smoothstep(t):
     return t * t * (3 - 2 * t)
 
 
+
+
+def dissolve_field(W, H, seed_salt):
+    """Threshold field for an ethereal pixel dissolve.
+
+    Low-frequency clouds make the erosion flow organically; 6px and 2px grain
+    keep it pixelated but fine. Returns float32 (H, W) in [0.02, 0.95].
+    """
+    rng = np.random.default_rng(abs(hash(seed_salt)) % (2 ** 31))
+    clouds = Image.fromarray((rng.random((max(2, H // 192), max(2, W // 192))) * 255
+                              ).astype(np.uint8)).resize((W, H), Image.BILINEAR)
+    g6 = Image.fromarray((rng.random((H // 6 + 1, W // 6 + 1)) * 255
+                          ).astype(np.uint8)).resize((W, H), Image.NEAREST)
+    g2 = Image.fromarray((rng.random((H // 2 + 1, W // 2 + 1)) * 255
+                          ).astype(np.uint8)).resize((W, H), Image.NEAREST)
+    th = (0.58 * np.asarray(clouds, np.float32) + 0.27 * np.asarray(g6, np.float32)[:H, :W]
+          + 0.15 * np.asarray(g2, np.float32)[:H, :W]) / 255.0
+    th -= th.min()
+    th /= max(th.max(), 1e-6)
+    return (0.02 + 0.93 * th).astype(np.float32)
+
+
+def charcoal_layer(W, H, alpha_arr):
+    """Opaque-charcoal RGBA layer with a per-pixel alpha array (uint8)."""
+    arr = np.zeros((H, W, 4), dtype=np.uint8)
+    arr[..., 0] = CHARCOAL[0]
+    arr[..., 1] = CHARCOAL[1]
+    arr[..., 2] = CHARCOAL[2]
+    arr[..., 3] = alpha_arr
+    return Image.fromarray(arr)
+
+
 def extract_logo(template, work):
     """Grab the clean final logo frame from the brand outro template (intro uses this)."""
     frame = os.path.join(work, "logo.png")
@@ -135,22 +167,21 @@ def build(endcard, outdir, name, keep_frames=False):
     tag_cells = grid_cells(tag_mask)
     pill_cells = grid_cells(pill_mask)
 
-    # dissolve grid + falling pixels
-    cell = max(24, H // 48)
-    cols, rows = math.ceil(W / cell), math.ceil(H / cell)
+    # ethereal dissolve field + fine falling dust released as each patch turns
+    field = dissolve_field(W, H, "outro-" + name)
+    SOFT = 0.14
     fallers = []
-    for i in range(cols):
-        for j in range(rows):
-            flip = DISSOLVE[0] + (0.05 + smoothstep(h01(i, j, "flip")) * 0.85) * (DISSOLVE[1] - DISSOLVE[0])
-            if rng.random() < 0.5:
-                fallers.append(dict(
-                    x=i * cell + rng.uniform(0, cell), y=j * cell + cell,
-                    vx=rng.uniform(-22, 22), vy=rng.uniform(6, 44),
-                    g=rng.uniform(180, 760), vterm=rng.uniform(130, 560),
-                    t0=flip, life=rng.uniform(0.9, 2.2),
-                    s=rng.choice([3, 4, 4, 5, 6, 8, 10]),
-                    c=CHARCOAL if rng.random() < 0.35 else PALETTE[rng.randrange(len(PALETTE))],
-                ))
+    for _ in range(420):
+        fx_, fy_ = rng.uniform(0, W - 1), rng.uniform(0, H - 1)
+        flip = DISSOLVE[0] + float(field[int(fy_), int(fx_)]) * (DISSOLVE[1] - DISSOLVE[0])
+        fallers.append(dict(
+            x=fx_, y=fy_,
+            vx=rng.uniform(-18, 18), vy=rng.uniform(4, 30),
+            g=rng.uniform(120, 620), vterm=rng.uniform(110, 480),
+            t0=flip + rng.uniform(0, 0.2), life=rng.uniform(1.0, 2.4),
+            s=rng.choice([2, 2, 3, 3, 4, 5, 7]),
+            c=CHARCOAL if rng.random() < 0.35 else PALETTE[rng.randrange(len(PALETTE))],
+        ))
 
     frame_dir = os.path.join(outdir, f"frames-outro-{name}")
     os.makedirs(frame_dir, exist_ok=True)
@@ -162,21 +193,13 @@ def build(endcard, outdir, name, keep_frames=False):
         fx = Image.new("RGBA", (W, H), (0, 0, 0, 0))   # particles layer
         fxd = ImageDraw.Draw(fx)
 
-        # 1) footage dissolves to charcoal
-        p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0])
+        # 1) footage dissolves to charcoal — soft, fine-grained, cloud-like
+        p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0]) * (1 + SOFT)
         if t >= DISSOLVE[1]:
             d.rectangle([0, 0, W, H], fill=(*CHARCOAL, 255))
         elif p > 0:
-            for i in range(cols):
-                for j in range(rows):
-                    flip = 0.05 + smoothstep(h01(i, j, "flip")) * 0.85
-                    if p >= flip:
-                        x0, y0 = i * cell, j * cell
-                        jitter = (p - flip) < 0.08
-                        jx = int((h01(i, j, n, "x") - 0.5) * 6) if jitter else 0
-                        jy = int((h01(i, j, n, "y") - 0.5) * 6) if jitter else 0
-                        d.rectangle([x0 + jx, y0 + jy, x0 + cell + jx, y0 + cell + jy],
-                                    fill=(*CHARCOAL, 255))
+            a8 = (np.clip((p - field) / SOFT, 0, 1) * 255).astype(np.uint8)
+            frame.alpha_composite(charcoal_layer(W, H, a8))
 
         # 2) falling pixels
         for f in fallers:

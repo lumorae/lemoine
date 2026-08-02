@@ -132,7 +132,17 @@ fi
 FILTER_V="$FV;[${CUR}]zscale=m=bt709:r=tv,format=yuv420p[vout]"
 
 TOTAL=$(python3 -c "print($CLIP_DUR + $OUTRO_DUR)")
-FILTER_A="[2:a]loudnorm=I=-14:TP=-1.5:LRA=11,afade=t=out:st=$(python3 -c "print($TOTAL-0.6)"):d=0.6[aout]"
+# audio stays silent over the intro card, fading in as the footage reveals
+# (reveal timing read from make_intro.py so the two can never drift apart)
+AFADE_IN=""
+if [[ -n $INTRO ]]; then
+  read -r REV_ST REV_EN < <(python3 -c "
+import sys; sys.path.insert(0, '$HERE')
+import make_intro
+print(make_intro.DISSOLVE[0], make_intro.DISSOLVE[1])")
+  AFADE_IN="afade=t=in:st=${REV_ST}:d=$(python3 -c "print(max(0.8, $REV_EN - $REV_ST - 0.3))"):curve=qsin,"
+fi
+FILTER_A="[2:a]loudnorm=I=-14:TP=-1.5:LRA=11,${AFADE_IN}afade=t=out:st=$(python3 -c "print($TOTAL-0.6)"):d=0.6[aout]"
 
 ffmpeg -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${EXTRA_IN[@]}" \
   -filter_complex "$FILTER_V;$FILTER_A" \

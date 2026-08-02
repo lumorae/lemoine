@@ -24,7 +24,8 @@ import tempfile
 import numpy as np
 from PIL import Image, ImageDraw
 
-from make_outro import extract_logo, h01, smoothstep, CHARCOAL, PALETTE
+from make_outro import (extract_logo, h01, smoothstep, CHARCOAL, PALETTE,
+                        dissolve_field, charcoal_layer)
 
 FPS = 30
 DURATION = 7.0
@@ -158,23 +159,21 @@ def build(template, outdir, keep_frames=False):
             if logo_mask[j * acell:(j + 1) * acell, i * acell:(i + 1) * acell].mean() > 0.02:
                 logo_cells.append((i, j))
 
-    # charcoal dissolve grid; dropping cells shed pixels that also exit for real
-    cell = max(24, H // 48)
-    cols, rows = math.ceil(W / cell), math.ceil(H / cell)
+    # ethereal dissolve field; fine dust drifts loose as each patch erodes
+    field = dissolve_field(W, H, "intro")
+    SOFT = 0.14
     fallers = []
-    for i in range(cols):
-        for j in range(rows):
-            drop = DISSOLVE[0] + (0.03 + smoothstep(h01(i, j, "idrop")) * 0.9) * (DISSOLVE[1] - DISSOLVE[0])
-            if rng.random() < 0.4:
-                f = Shard(rng, i * cell + rng.uniform(0, cell), j * cell + cell,
-                          W / 2, -H, CHARCOAL if rng.random() < 0.35
-                          else BURST_COLORS[rng.randrange(len(BURST_COLORS))])
-                # dissolve flakes drop rather than burst: damp the radial launch
-                f.t0 = drop + rng.uniform(0, 0.15)
-                f.vx = rng.uniform(-30, 30)
-                f.vy = rng.uniform(5, 45)
-                f.s = min(f.s, 10)
-                fallers.append(f)
+    for _ in range(460):
+        fx_, fy_ = rng.uniform(0, W - 1), rng.uniform(0, H - 1)
+        drop = DISSOLVE[0] + float(field[int(fy_), int(fx_)]) * (DISSOLVE[1] - DISSOLVE[0])
+        f = Shard(rng, fx_, fy_, W / 2, -H, CHARCOAL if rng.random() < 0.35
+                  else BURST_COLORS[rng.randrange(len(BURST_COLORS))])
+        f.t0 = drop + rng.uniform(0, 0.15)
+        f.vx = rng.uniform(-24, 24)
+        f.vy = rng.uniform(4, 34)
+        f.s = rng.choice([2, 2, 3, 3, 4, 4, 5, 6])
+        f.wob_amp = rng.uniform(3.0, 9.0)
+        fallers.append(f)
 
     frame_dir = os.path.join(outdir, "frames-intro")
     os.makedirs(frame_dir, exist_ok=True)
@@ -186,21 +185,14 @@ def build(template, outdir, keep_frames=False):
         fx = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         fxd = ImageDraw.Draw(fx)
 
-        # charcoal base dissolving away (cells flip to transparent)
-        p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0])
+        # charcoal erodes away to the footage — soft, fine-grained, cloud-like
+        p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0]) * (1 + SOFT)
         if t < DISSOLVE[0]:
             d.rectangle([0, 0, W, H], fill=(*CHARCOAL, 255))
-        elif t < DISSOLVE[1] + 0.2:
-            for i in range(cols):
-                for j in range(rows):
-                    drop = 0.03 + smoothstep(h01(i, j, "idrop")) * 0.9
-                    if p < drop:
-                        x0, y0 = i * cell, j * cell
-                        jitter = (drop - p) < 0.08
-                        jx = int((h01(i, j, n, "x") - 0.5) * 6) if jitter else 0
-                        jy = int((h01(i, j, n, "y") - 0.5) * 6) if jitter else 0
-                        d.rectangle([x0 + jx, y0 + jy, x0 + cell + jx, y0 + cell + jy],
-                                    fill=(*CHARCOAL, 255))
+        elif p < 1 + SOFT + 0.05:
+            a8 = (np.clip((field - p) / SOFT + 1, 0, 1) * 255).astype(np.uint8)
+            if a8.max() > 0:
+                frame.alpha_composite(charcoal_layer(W, H, a8))
 
         # logo: pixelates in cell by cell, holds, then explodes site-style
         if t < ASSEMBLE[1]:
