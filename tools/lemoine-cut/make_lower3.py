@@ -217,7 +217,8 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
                 frame.paste(block, (x0 + jx, y0 + jy), block)
             frame.paste(design, (0, 0), mask)
 
-        pd = ImageDraw.Draw(frame)
+        fx = Image.new("RGBA", (W, H), (0, 0, 0, 0))
+        pd = ImageDraw.Draw(fx)
         for px in pixels:
             p = px.pos(t, H)
             if p is None:
@@ -226,6 +227,7 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
             if fade <= 0.01:
                 continue
             pd.rectangle([x, y, x + px.s, y + px.s], fill=(*px.c, int(235 * fade)))
+        frame.alpha_composite(fx)
 
         frame.save(os.path.join(frame_dir, f"f{n:04d}.png"))
 

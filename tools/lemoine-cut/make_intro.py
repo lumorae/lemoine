@@ -95,6 +95,8 @@ def build(template, outdir, keep_frames=False):
         t = n / FPS
         frame = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d = ImageDraw.Draw(frame)
+        fx = Image.new("RGBA", (W, H), (0, 0, 0, 0))   # particles layer
+        fxd = ImageDraw.Draw(fx)
 
         # charcoal base dissolving away (cells flip to transparent)
         p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0])
@@ -126,7 +128,7 @@ def build(template, outdir, keep_frames=False):
             if y > H:
                 continue
             fade = 1.0 - smoothstep((a / f["life"] - 0.5) / 0.5) if a / f["life"] > 0.5 else 1.0
-            d.rectangle([x, y, x + f["s"], y + f["s"]], fill=(*f["c"], int(235 * fade)))
+            fxd.rectangle([x, y, x + f["s"], y + f["s"]], fill=(*f["c"], int(235 * fade)))
 
         # logo: pixelates in cell by cell, holds, then bursts outward
         if t < ASSEMBLE[1]:
@@ -142,18 +144,18 @@ def build(template, outdir, keep_frames=False):
                         jx = int((h01(i, j, n, "ax") - 0.5) * 8) if fresh else 0
                         jy = int((h01(i, j, n, "ay") - 0.5) * 8) if fresh else 0
                         lmd.rectangle([x0 + jx, y0 + jy, x0 + acell + jx, y0 + acell + jy], fill=255)
-                assembling = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-                assembling.paste(solid_logo, (0, 0), Image.composite(
+                assembling = solid_logo.copy()
+                assembling.putalpha(Image.composite(
                     solid_logo.split()[3], Image.new("L", (W, H), 0), lmask))
-                frame.paste(assembling, (0, 0), assembling)
+                frame.alpha_composite(assembling)
         elif t < BURST[0]:
-            frame.paste(solid_logo, (0, 0), solid_logo)
+            frame.alpha_composite(solid_logo)
         else:
             k = smoothstep((t - BURST[0]) / 0.25)
             if k < 1:
                 tmp = solid_logo.copy()
                 tmp.putalpha(tmp.split()[3].point(lambda v: int(v * (1 - k))))
-                frame.paste(tmp, (0, 0), tmp)
+                frame.alpha_composite(tmp)
             for sh in shards:
                 a = t - sh["t0"]
                 if a < 0 or a > sh["life"]:
@@ -163,8 +165,9 @@ def build(template, outdir, keep_frames=False):
                 if not (-20 < x < W + 20 and y < H + 20):
                     continue
                 fade = 1.0 - smoothstep((a / sh["life"] - 0.4) / 0.6) if a / sh["life"] > 0.4 else 1.0
-                d.rectangle([x, y, x + sh["s"], y + sh["s"]], fill=(*sh["c"], int(245 * fade)))
+                fxd.rectangle([x, y, x + sh["s"], y + sh["s"]], fill=(*sh["c"], int(245 * fade)))
 
+        frame.alpha_composite(fx)
         frame.save(os.path.join(frame_dir, f"f{n:04d}.png"))
 
     out_mov = os.path.join(outdir, f"lemoine-intro-pixel-{W}x{H}-alpha.mov")

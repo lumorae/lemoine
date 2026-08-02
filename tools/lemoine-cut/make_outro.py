@@ -78,7 +78,7 @@ def blocky_reveal(frame, layer_img, cells, p, n, acell):
     if p <= 0:
         return
     if p >= 1:
-        frame.paste(layer_img, (0, 0), layer_img)
+        frame.alpha_composite(layer_img)
         return
     W, H = layer_img.size
     lmask = Image.new("L", (W, H), 0)
@@ -91,8 +91,9 @@ def blocky_reveal(frame, layer_img, cells, p, n, acell):
             jx = int((h01(i, j, n, "rx") - 0.5) * 8) if fresh else 0
             jy = int((h01(i, j, n, "ry") - 0.5) * 8) if fresh else 0
             lmd.rectangle([x0 + jx, y0 + jy, x0 + acell + jx, y0 + acell + jy], fill=255)
-    part = Image.composite(layer_img.split()[3], Image.new("L", layer_img.size, 0), lmask)
-    frame.paste(layer_img, (0, 0), part)
+    part = layer_img.copy()
+    part.putalpha(Image.composite(layer_img.split()[3], Image.new("L", layer_img.size, 0), lmask))
+    frame.alpha_composite(part)
 
 
 def build(endcard, outdir, name, keep_frames=False):
@@ -158,6 +159,8 @@ def build(endcard, outdir, name, keep_frames=False):
         t = n / FPS
         frame = Image.new("RGBA", (W, H), (0, 0, 0, 0))
         d = ImageDraw.Draw(frame)
+        fx = Image.new("RGBA", (W, H), (0, 0, 0, 0))   # particles layer
+        fxd = ImageDraw.Draw(fx)
 
         # 1) footage dissolves to charcoal
         p = (t - DISSOLVE[0]) / (DISSOLVE[1] - DISSOLVE[0])
@@ -189,17 +192,17 @@ def build(endcard, outdir, name, keep_frames=False):
             if y > H:
                 continue
             fade = 1.0 - smoothstep((a / f["life"] - 0.5) / 0.5) if a / f["life"] > 0.5 else 1.0
-            d.rectangle([x, y, x + f["s"], y + f["s"]], fill=(*f["c"], int(235 * fade)))
+            fxd.rectangle([x, y, x + f["s"], y + f["s"]], fill=(*f["c"], int(235 * fade)))
 
         # 3) lemon + wordmark: particles gather, then the exact artwork
         if t >= LOGO_SOLID:
             k = smoothstep((t - LOGO_SOLID) / 0.3)
             if k >= 1:
-                frame.paste(logo_img, (0, 0), logo_img)
+                frame.alpha_composite(logo_img)
             else:
                 tmp = logo_img.copy()
                 tmp.putalpha(tmp.split()[3].point(lambda v: int(v * k)))
-                frame.paste(tmp, (0, 0), tmp)
+                frame.alpha_composite(tmp)
         if GATHER[0] <= t < LOGO_SOLID + 0.3:
             fadeout = 1.0 if t < LOGO_SOLID else 1.0 - smoothstep((t - LOGO_SOLID) / 0.3)
             for tg in targets:
@@ -212,7 +215,9 @@ def build(endcard, outdir, name, keep_frames=False):
                 s = 3 + 2 * e
                 alpha = int(255 * min(1.0, 0.25 + 0.75 * e) * fadeout)
                 if alpha > 3:
-                    d.rectangle([x, y, x + s, y + s], fill=(*tg["c"], alpha))
+                    fxd.rectangle([x, y, x + s, y + s], fill=(*tg["c"], alpha))
+
+        frame.alpha_composite(fx)
 
         # 4) tagline, then the url pill, pixelate in
         blocky_reveal(frame, tag_img, tag_cells,
