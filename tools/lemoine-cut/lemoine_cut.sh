@@ -54,13 +54,14 @@ TRIM_IN=()
 [[ -n $END ]] && { E=$END; S=${START:-0}; TRIM_IN+=(-t "$(python3 -c "print(float('$E')-float('$S'))")"); }
 
 # 1) extract trimmed audio, 2) convolution reverb in python
-ffmpeg -y -v error "${TRIM_IN[@]}" -i "$IN" -vn -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
+# iPhone clips carry an extra spatial-audio track ffmpeg can't decode — take a:0
+ffmpeg -y -v error "${TRIM_IN[@]}" -i "$IN" -map 0:a:0 -vn -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
 python3 "$HERE/reverb.py" --in "$WORK/dry.wav" --ir "$IR" --out "$WORK/wetmix.wav" --wet-db "$WET_DB"
 
 # 3) video with lower third + processed audio, loudness normalized for social
 # (frame 0 of the overlay is fully transparent, so pre-start extension is invisible)
 FILTER_V="[1:v]setpts=PTS+${L3_AT}/TB[l3];\
-[l3][0:v]scale2ref=w=iw:h=ih[l3s][base];\
+[l3][0:v:0]scale2ref=w=iw:h=ih[l3s][base];\
 [base][l3s]overlay=x=0:y=0:eof_action=pass:format=auto[vout]"
 
 ffmpeg -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" \
