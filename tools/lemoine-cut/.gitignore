@@ -4,3 +4,4 @@ frames-*/
 *.mov
 *.mp4
 gdrive-sa.json
+__pycache__/
