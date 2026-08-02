@@ -27,8 +27,9 @@ from PIL import Image, ImageDraw
 from make_outro import extract_logo, h01, smoothstep, CHARCOAL, PALETTE
 
 FPS = 30
-DURATION = 6.2
+DURATION = 7.0
 N_FRAMES = int(round(FPS * DURATION))
+SAFETY_FADE = (6.3, 6.85)   # ease any straggler out while it is still moving
 
 ASSEMBLE = (0.15, 1.35)   # logo pixelates in, like the site's above-the-fold logo
 BURST_AT = 2.0            # logo explodes (site lemon-press moment)
@@ -63,8 +64,9 @@ class Shard:
         else:
             self.s = rng.randint(12, 18)
         m = self.s / 18.0
-        self.g = 260 + 420 * m + rng.uniform(-40, 40)
-        self.vterm = 200 + 380 * m + rng.uniform(-30, 30)
+        self.g = 300 + 420 * m + rng.uniform(-40, 40)
+        self.vterm = 280 + 360 * m + rng.uniform(-30, 30)
+        self.dead = False
         self.wob_amp = max(0.0, 8.0 - 0.45 * self.s) * rng.uniform(0.6, 1.4)
         self.wob_f = rng.uniform(0.7, 1.9) * 2 * math.pi
         self.wob_ph = rng.uniform(0, 2 * math.pi)
@@ -77,6 +79,8 @@ class Shard:
         self.crumble_dur = rng.uniform(0.9, 1.8)
 
     def draw(self, pd, t, W, H):
+        if self.dead:
+            return False
         a = t - self.t0
         if a < 0:
             return False
@@ -89,10 +93,17 @@ class Shard:
         else:
             y = self.y0 + self.vy * a + 0.5 * self.g * a * a
         x = self.x0 + self.vx * a + self.wob_amp * math.sin(self.wob_f * a + self.wob_ph)
-        if y > H + 24 or x < -24 or x > W + 24:
+        if y > H + 24 or x < -24 or x > W + 24 or y < -24:
+            # leaving any edge (including up, mid-launch) is a real exit
+            self.dead = True
             return False
+        alpha = 240
+        if t > SAFETY_FADE[0]:
+            alpha = int(240 * (1.0 - smoothstep((t - SAFETY_FADE[0]) / (SAFETY_FADE[1] - SAFETY_FADE[0]))))
+            if alpha <= 2:
+                return False
         if self.s < 7:
-            pd.rectangle([x, y, x + self.s, y + self.s], fill=(*self.c, 240))
+            pd.rectangle([x, y, x + self.s, y + self.s], fill=(*self.c, alpha))
             return True
         # rotating square, crumbling into 4x4 sub-cells as it flies
         integrity = 1.0 - smoothstep((a - self.crumble_t0) / self.crumble_dur)
@@ -108,7 +119,7 @@ class Shard:
                 ly = (jj - 1.5) * sub
                 px_ = x + lx * ct - ly * st
                 py_ = y + lx * st + ly * ct
-                pd.rectangle([px_, py_, px_ + sub, py_ + sub], fill=(*self.c, 240))
+                pd.rectangle([px_, py_, px_ + sub, py_ + sub], fill=(*self.c, alpha))
         return True
 
 
