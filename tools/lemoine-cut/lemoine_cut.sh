@@ -34,9 +34,9 @@ if [[ $AUTOTRIM == 1 && -z $START ]]; then
   # find first/last non-silent audio, pad by 1s
   SIL=$(ffmpeg -i "$IN" -af "silencedetect=noise=-35dB:d=0.6" -f null - 2>&1 | grep -E "silence_(start|end)" || true)
   DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$IN")
-  FIRST_END=$(echo "$SIL" | grep silence_end | head -1 | sed -E 's/.*silence_end: ([0-9.]+).*/\1/')
-  LAST_START=$(echo "$SIL" | grep silence_start | tail -1 | sed -E 's/.*silence_start: ([0-9.]+).*/\1/')
-  FIRST_SIL_START=$(echo "$SIL" | grep silence_start | head -1 | sed -E 's/.*silence_start: ([0-9.]+).*/\1/')
+  FIRST_END=$(echo "$SIL" | grep silence_end | head -1 | sed -E 's/.*silence_end: ([0-9.]+).*/\1/') || true
+  LAST_START=$(echo "$SIL" | grep silence_start | tail -1 | sed -E 's/.*silence_start: ([0-9.]+).*/\1/') || true
+  FIRST_SIL_START=$(echo "$SIL" | grep silence_start | head -1 | sed -E 's/.*silence_start: ([0-9.]+).*/\1/') || true
   START=0; END=$DUR
   # only trim head if the clip actually starts silent
   if [[ -n ${FIRST_SIL_START:-} ]] && python3 -c "exit(0 if float('$FIRST_SIL_START') < 0.5 else 1)"; then
