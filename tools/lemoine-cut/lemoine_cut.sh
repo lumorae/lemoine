@@ -56,8 +56,12 @@ if [[ $AUTOTRIM == 1 && -z $START ]]; then
   if [[ -n ${FIRST_SIL_START:-} ]] && python3 -c "exit(0 if float('$FIRST_SIL_START') < 0.5 else 1)"; then
     [[ -n ${FIRST_END:-} ]] && START=$(python3 -c "print(max(0, float('$FIRST_END') - 1.0))")
   fi
-  # only trim tail if the last silence runs to the end of the clip
-  if [[ -n ${LAST_START:-} ]] && python3 -c "exit(0 if float('$DUR') - float('$LAST_START') > 1.2 else 1)"; then
+  # trim the tail ONLY when the clip actually ENDS in silence — i.e. the last
+  # silence region never closed (more starts than ends). A quiet passage in the
+  # middle that resumes into playing must never be mistaken for the end.
+  NSTART=$(echo "$SIL" | grep -c silence_start || true)
+  NEND=$(echo "$SIL" | grep -c silence_end || true)
+  if [[ ${NSTART:-0} -gt ${NEND:-0} && -n ${LAST_START:-} ]]; then
     END=$(python3 -c "print(min(float('$DUR'), float('$LAST_START') + 1.0))")
   fi
   echo "auto-trim: $START -> $END (of $DUR)"

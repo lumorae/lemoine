@@ -80,8 +80,8 @@ if [[ ! -f $OUTRO ]]; then
 fi
 
 # 5) the two platform cuts
-bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${DATE}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO" -a
-bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${DATE}_${SLUG}_shorts.mp4" -l "$L3YT" -a
+bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${DATE}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO"
+bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${DATE}_${SLUG}_shorts.mp4" -l "$L3YT"
 
 echo ""
 echo "ready (also filed to Drive Cut/${LEMOINE_DRIVE_SUBFOLDER}/):"
