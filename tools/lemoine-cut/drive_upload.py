@@ -20,6 +20,7 @@ import json
 import mimetypes
 import os
 import time
+import urllib.parse
 import urllib.request
 
 DEFAULT_KEY = os.path.join(os.path.dirname(__file__), "gdrive-sa.json")
@@ -77,7 +78,29 @@ def get_token(key_path):
         return json.load(r)["access_token"]
 
 
+def ensure_folder(name, parent_id, token):
+    """Find (or create) a subfolder by name under parent_id; return its id."""
+    q = ("mimeType='application/vnd.google-apps.folder' and trashed=false "
+         f"and name='{name}' and '{parent_id}' in parents")
+    req = urllib.request.Request(
+        "https://www.googleapis.com/drive/v3/files?q=" + urllib.parse.quote(q) +
+        "&fields=files(id)&supportsAllDrives=true&includeItemsFromAllDrives=true",
+        headers={"Authorization": f"Bearer {token}"})
+    hits = json.load(urllib.request.urlopen(req)).get("files", [])
+    if hits:
+        return hits[0]["id"]
+    meta = json.dumps({"name": name, "parents": [parent_id],
+                       "mimeType": "application/vnd.google-apps.folder"}).encode()
+    req = urllib.request.Request(
+        "https://www.googleapis.com/drive/v3/files?supportsAllDrives=true",
+        data=meta, method="POST",
+        headers={"Authorization": f"Bearer {token}",
+                 "Content-Type": "application/json; charset=UTF-8"})
+    return json.load(urllib.request.urlopen(req))["id"]
+
+
 def upload(path, folder_id, token):
+    import urllib.parse  # noqa: F401 (used by ensure_folder callers)
     name = os.path.basename(path)
     mime = mimetypes.guess_type(name)[0] or "application/octet-stream"
     meta = json.dumps({"name": name, "parents": [folder_id]}).encode()
@@ -107,8 +130,14 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--file", required=True)
     ap.add_argument("--folder-id", default=CUT_FOLDER_ID)
+    ap.add_argument("--subfolder", default=os.environ.get("LEMOINE_DRIVE_SUBFOLDER", ""),
+                    help="month folder etc. — found or created under the Cut folder")
     ap.add_argument("--key", default=os.environ.get("GDRIVE_SA_JSON", DEFAULT_KEY))
     args = ap.parse_args()
     if not os.path.exists(args.key):
         raise SystemExit(f"no service-account key at {args.key} — see header comment for setup")
-    upload(args.file, args.folder_id, get_token(args.key))
+    token = get_token(args.key)
+    dest = args.folder_id
+    if args.subfolder:
+        dest = ensure_folder(args.subfolder, dest, token)
+    upload(args.file, dest, token)

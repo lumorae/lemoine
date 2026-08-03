@@ -160,5 +160,5 @@ echo "done: $OUT"
 
 # auto-save to Drive when a service-account key is configured
 if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
-  python3 "$HERE/drive_upload.py" --file "$OUT" || echo "drive upload failed (kept local)"
+  python3 "$HERE/drive_upload.py" --file "$OUT" ${LEMOINE_DRIVE_SUBFOLDER:+--subfolder "$LEMOINE_DRIVE_SUBFOLDER"} || echo "drive upload failed (kept local)"
 fi

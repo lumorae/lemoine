@@ -58,7 +58,9 @@ print(t.lower().strip())
 EOF
 )
 SLUG=$(python3 -c "import sys,re; print(re.sub(r'[^a-z0-9]+','-',sys.argv[1].lower()).strip('-'))" "$TITLE")
-echo "title: [ $TITLE ]   slug: $SLUG   tagline: $TAGLINE"
+DATE=$(date +%Y-%m-%d)
+export LEMOINE_DRIVE_SUBFOLDER=$(date +%Y-%m)   # cuts auto-file into Cut/YYYY-MM/
+echo "title: [ $TITLE ]   slug: $SLUG   tagline: $TAGLINE   date: $DATE"
 
 # 3) lower thirds for this title (standard + raised-for-Shorts)
 python3 "$HERE/make_lower3.py" --text "$TITLE" --orientation vertical --outdir . >/dev/null
@@ -78,10 +80,10 @@ if [[ ! -f $OUTRO ]]; then
 fi
 
 # 5) the two platform cuts
-bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${SLUG}-reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO" -a
-bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${SLUG}-shorts.mp4" -l "$L3YT" -a
+bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${DATE}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO" -a
+bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${DATE}_${SLUG}_shorts.mp4" -l "$L3YT" -a
 
 echo ""
-echo "ready:"
-echo "  ${SLUG}-reels.mp4   (instagram: intro + end-card '$TAGLINE')"
-echo "  ${SLUG}-shorts.mp4  (youtube shorts: clean loop, raised lower third)"
+echo "ready (also filed to Drive Cut/${LEMOINE_DRIVE_SUBFOLDER}/):"
+echo "  ${DATE}_${SLUG}_reels.mp4   (instagram: intro + end-card '$TAGLINE')"
+echo "  ${DATE}_${SLUG}_shorts.mp4  (youtube shorts: clean loop, raised lower third)"
