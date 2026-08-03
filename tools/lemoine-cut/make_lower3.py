@@ -42,6 +42,9 @@ GEOM = {
                       dot_dx=37, dot_r=4, text_dx=59, font_size=35, pad_right=36),
     "vertical": dict(size=(1080, 1920), box_x=64, box_bottom=1593, box_h=101,
                      dot_dx=41, dot_r=5, text_dx=69, font_size=42, pad_right=41),
+    # youtube shorts: raised clear of the title/channel overlay and UI chips
+    "vertical-yt": dict(size=(1080, 1920), box_x=64, box_bottom=1230, box_h=101,
+                        dot_dx=41, dot_r=5, text_dx=69, font_size=42, pad_right=41),
 }
 
 WIPE_IN = (0.2, 1.7)
@@ -226,7 +229,8 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
 
         frame.save(os.path.join(frame_dir, f"f{n:04d}.png"))
 
-    name = basename or f"lemoine-lower3-{text.replace(' ', '-')}-{W}x{H}-alpha"
+    tag = "-yt" if orientation == "vertical-yt" else ""
+    name = basename or f"lemoine-lower3-{text.replace(' ', '-')}-{W}x{H}{tag}-alpha"
     name = "".join(ch for ch in name if ch.isalnum() or ch in "-_")
     out_mov = os.path.join(outdir, name + ".mov")
     subprocess.run([
@@ -245,7 +249,7 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--text", required=True, help="lower-third text, without brackets")
-    ap.add_argument("--orientation", choices=["landscape", "vertical", "both"], default="both")
+    ap.add_argument("--orientation", choices=["landscape", "vertical", "vertical-yt", "both"], default="both")
     ap.add_argument("--font", default=os.path.join(os.path.dirname(__file__), "Outfit-300.ttf"))
     ap.add_argument("--outdir", default=".")
     ap.add_argument("--keep-frames", action="store_true")

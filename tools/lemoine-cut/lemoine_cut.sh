@@ -134,7 +134,7 @@ FILTER_V="$FV;[${CUR}]zscale=m=bt709:r=tv,format=yuv420p[vout]"
 TOTAL=$(python3 -c "print($CLIP_DUR + $OUTRO_DUR)")
 # audio stays silent over the intro card, fading in as the footage reveals
 # (reveal timing read from make_intro.py so the two can never drift apart)
-AFADE_IN=""
+AFADE_IN="afade=t=in:st=0:d=0.6:curve=qsin,"
 if [[ -n $INTRO ]]; then
   read -r REV_ST REV_EN < <(python3 -c "
 import sys; sys.path.insert(0, '$HERE')
