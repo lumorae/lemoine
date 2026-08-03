@@ -11,7 +11,7 @@
 #
 # Title defaults to the Drive file name (lowercased, dashes normalized).
 # Tagline (-g) picks the Reels end-card; default: brands ("brands that don't
-# blend in."). Uploads to the Drive Cut folder automatically when
+# blend in.") — override with -g brands. Uploads to the Drive Cut folder automatically when
 # gdrive-sa.json is configured (see drive_upload.py).
 set -euo pipefail
 
@@ -20,7 +20,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 if [[ ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
   echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
 fi
-SRC="" TAGLINE="brands" TITLE=""
+SRC="" TAGLINE="dontblend" TITLE=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -g) TAGLINE=$2; shift 2;;
