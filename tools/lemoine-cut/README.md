@@ -25,15 +25,19 @@ trim → brand lower third → hall reverb → loudness-normalized h264.
 
 ## Usage
 
-```bash
-# 1) make the lower third for a clip
-python3 make_lower3.py --text "high spirits – 432hz spanish cedar" \
-    --orientation vertical --outdir .
+One command from a Drive link to both platform cuts:
 
-# 2) cut the clip
-./lemoine_cut.sh -i raw.mov -o clip-lemoine-cut.mp4 \
-    -l lemoine-lower3-high-spirits-432hz-spanish-cedar-1080x1920-alpha.mov -a
+```bash
+./lemoine_publish.sh "https://drive.google.com/file/d/<id>/view" [-g brands|dontblend]
 ```
+
+Produces `<title>-reels.mp4` (intro + lower third + end-card outro) and
+`<title>-shorts.mp4` (clean loop: no intro/outro, raised lower third). The
+title comes from the Drive file name; the file must be link-shared.
+
+Lower-level pieces (`make_lower3.py`, `make_intro.py`, `make_outro.py`,
+`lemoine_cut.sh`) can also be run individually — see their headers.
+
 
 Requires: ffmpeg, python3 with pillow + numpy.
 
