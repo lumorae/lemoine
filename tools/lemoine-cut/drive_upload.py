@@ -42,12 +42,19 @@ def get_token(key_path):
     sa = json.load(open(key_path))
     now = int(time.time())
     header = b64url(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
-    claims = b64url(json.dumps({
+    # Service accounts have no storage of their own, so impersonate a real
+    # Workspace user (domain-wide delegation) — uploaded files are owned by
+    # them and use their Drive quota. Set GDRIVE_IMPERSONATE to override.
+    claim = {
         "iss": sa["client_email"],
         "scope": "https://www.googleapis.com/auth/drive",
         "aud": "https://oauth2.googleapis.com/token",
         "iat": now, "exp": now + 3600,
-    }).encode())
+    }
+    sub = os.environ.get("GDRIVE_IMPERSONATE", "hello@johnnylemoine.com")
+    if sub:
+        claim["sub"] = sub
+    claims = b64url(json.dumps(claim).encode())
     signing_input = f"{header}.{claims}".encode()
 
     with tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False) as kf:
