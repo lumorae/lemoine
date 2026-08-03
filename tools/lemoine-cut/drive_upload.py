@@ -31,25 +31,35 @@ def b64url(data: bytes) -> str:
 
 
 def get_token(key_path):
-    """OAuth2 JWT bearer flow for a service account (no SDK needed)."""
-    try:
-        from cryptography.hazmat.primitives import hashes, serialization
-        from cryptography.hazmat.primitives.asymmetric import padding
-    except ImportError:
-        raise SystemExit("pip install cryptography")
+    """OAuth2 JWT bearer flow for a service account (no SDK needed).
+
+    Signs with the openssl CLI to avoid depending on the cryptography wheel,
+    which can fail to load its Rust binding in some sandboxes.
+    """
+    import subprocess
+    import tempfile
 
     sa = json.load(open(key_path))
     now = int(time.time())
     header = b64url(json.dumps({"alg": "RS256", "typ": "JWT"}).encode())
     claims = b64url(json.dumps({
         "iss": sa["client_email"],
-        "scope": "https://www.googleapis.com/auth/drive.file",
+        "scope": "https://www.googleapis.com/auth/drive",
         "aud": "https://oauth2.googleapis.com/token",
         "iat": now, "exp": now + 3600,
     }).encode())
     signing_input = f"{header}.{claims}".encode()
-    key = serialization.load_pem_private_key(sa["private_key"].encode(), password=None)
-    sig = key.sign(signing_input, padding.PKCS1v15(), hashes.SHA256())
+
+    with tempfile.NamedTemporaryFile("w", suffix=".pem", delete=False) as kf:
+        kf.write(sa["private_key"])
+        key_file = kf.name
+    try:
+        proc = subprocess.run(
+            ["openssl", "dgst", "-sha256", "-sign", key_file],
+            input=signing_input, capture_output=True, check=True)
+        sig = proc.stdout
+    finally:
+        os.unlink(key_file)
     jwt = f"{header}.{claims}.{b64url(sig)}"
 
     body = ("grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer"
