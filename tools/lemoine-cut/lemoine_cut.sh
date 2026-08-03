@@ -32,6 +32,10 @@ done
 [[ -n $IN && -n $OUT && -n $LOWER3 ]] || { echo "need -i -o -l" >&2; exit 2; }
 
 HERE=$(cd "$(dirname "$0")" && pwd)
+# restore the Drive key from a persistent env var if the file is missing
+if [[ ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
+  echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
+fi
 IR="$HERE/ir-hall.wav"
 [[ -f $IR ]] || python3 "$HERE/make_ir.py" --out "$IR"
 WORK=$(mktemp -d)
