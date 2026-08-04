@@ -99,6 +99,33 @@ def ensure_folder(name, parent_id, token):
     return json.load(urllib.request.urlopen(req))["id"]
 
 
+
+def trash_exact(name, parent_id, token):
+    """Move files with an EXACT name (in one folder) to trash.
+
+    Never use loose `name contains` queries with permanent delete: Drive's
+    contains matching is token-based, so 'double-nova' also matches
+    'double nova ... .MOV' and files.delete bypasses the trash entirely.
+    This helper matches the full name, scopes to one parent, and trashes
+    (recoverable) instead of deleting.
+    """
+    q = f"name = '{name}' and '{parent_id}' in parents and trashed=false"
+    req = urllib.request.Request(
+        "https://www.googleapis.com/drive/v3/files?q=" + urllib.parse.quote(q) +
+        "&fields=files(id,name)&supportsAllDrives=true",
+        headers={"Authorization": f"Bearer {token}"})
+    out = []
+    for f in json.load(urllib.request.urlopen(req)).get("files", []):
+        r = urllib.request.Request(
+            f"https://www.googleapis.com/drive/v3/files/{f['id']}?supportsAllDrives=true",
+            data=json.dumps({"trashed": True}).encode(), method="PATCH",
+            headers={"Authorization": f"Bearer {token}",
+                     "Content-Type": "application/json; charset=UTF-8"})
+        urllib.request.urlopen(r)
+        out.append(f["name"])
+    return out
+
+
 def upload(path, folder_id, token):
     import urllib.parse  # noqa: F401 (used by ensure_folder callers)
     name = os.path.basename(path)
