@@ -49,6 +49,15 @@ GEOM = {
 
 WIPE_IN = (0.2, 1.7)
 WIPE_OUT = (5.6, 7.1)
+
+
+def set_duration(seconds):
+    """Fit the label to the clip: wipe in early, hold, wipe out at the very end."""
+    global DURATION, N_FRAMES, WIPE_OUT, SAFETY_FADE
+    DURATION = max(4.0, float(seconds))
+    N_FRAMES = int(round(FPS * DURATION))
+    WIPE_OUT = (DURATION - 1.9, DURATION - 0.4)
+    SAFETY_FADE = (DURATION - 0.5, DURATION - 0.1)
 SAFETY_FADE = (DURATION - 0.5, DURATION - 0.1)   # backstop before asset ends
 
 
@@ -252,8 +261,12 @@ if __name__ == "__main__":
     ap.add_argument("--orientation", choices=["landscape", "vertical", "vertical-yt", "both"], default="both")
     ap.add_argument("--font", default=os.path.join(os.path.dirname(__file__), "Outfit-300.ttf"))
     ap.add_argument("--outdir", default=".")
+    ap.add_argument("--duration", type=float, default=None,
+                    help="fit the label to a clip: holds the whole time, wipes out at the end")
     ap.add_argument("--keep-frames", action="store_true")
     args = ap.parse_args()
+    if args.duration:
+        set_duration(args.duration)
 
     todo = ["landscape", "vertical"] if args.orientation == "both" else [args.orientation]
     for o in todo:

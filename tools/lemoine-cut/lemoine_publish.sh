@@ -62,9 +62,14 @@ DATE=$(date +%Y-%m-%d)
 export LEMOINE_DRIVE_SUBFOLDER=$(date +%Y-%m)   # cuts auto-file into Cut/YYYY-MM/
 echo "title: [ $TITLE ]   slug: $SLUG   tagline: $TAGLINE   date: $DATE"
 
-# 3) lower thirds for this title (standard + raised-for-Shorts)
-python3 "$HERE/make_lower3.py" --text "$TITLE" --orientation vertical --outdir . >/dev/null
-python3 "$HERE/make_lower3.py" --text "$TITLE" --orientation vertical-yt --outdir . >/dev/null
+# 3) lower thirds for this title, fitted so the label holds the whole clip and
+#    wipes out only at the very end (reels label starts at ~4.5s after the
+#    intro; shorts label starts at ~0.8s). Duration = clip - that start offset.
+CLIP_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$SRC")
+L3DUR_REELS=$(python3 -c "print(max(4.0, $CLIP_DUR - 4.5))")
+L3DUR_SHORTS=$(python3 -c "print(max(4.0, $CLIP_DUR - 0.8))")
+python3 "$HERE/make_lower3.py" --text "$TITLE" --orientation vertical    --duration "$L3DUR_REELS"  --outdir . >/dev/null
+python3 "$HERE/make_lower3.py" --text "$TITLE" --orientation vertical-yt --duration "$L3DUR_SHORTS" --outdir . >/dev/null
 L3=$(ls -t lemoine-lower3-*-1080x1920-alpha.mov | head -1)
 L3YT=$(ls -t lemoine-lower3-*-1080x1920-yt-alpha.mov | head -1)
 
