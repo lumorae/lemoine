@@ -65,7 +65,7 @@ EOF
 SLUG=$(python3 -c "import sys,re; print(re.sub(r'[^a-z0-9]+','-',sys.argv[1].lower()).strip('-'))" "$TITLE")
 DATE=$(date +%Y-%m-%d)
 STAMP=$(date +%Y-%m-%d_%H%M)   # date+time in the filename: same flute, same day, no collisions
-export LEMOINE_DRIVE_SUBFOLDER=$(date +%Y-%m)   # cuts auto-file into Cut/YYYY-MM/
+export LEMOINE_DRIVE_SUBFOLDER="$(date +%Y-%m)/${DATE}"   # cuts auto-file into Cut/YYYY-MM/YYYY-MM-DD/
 echo "title: [ $TITLE ]   slug: $SLUG   tagline: $TAGLINE   stamp: $STAMP   platform: $PLATFORM"
 
 # 3) lower thirds for this title (standard + raised-for-Shorts)

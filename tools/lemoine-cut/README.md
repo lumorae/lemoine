@@ -54,3 +54,8 @@ a service-account key (one-time setup in its header comment). Once the key is
 in place, finished cuts get pushed to Drive automatically at the end of
 `lemoine_cut.sh`; until then they're committed to the repo's `renders/` and
 sent in chat.
+
+`lemoine_publish.sh` files each run into `Cut/YYYY-MM/YYYY-MM-DD/` (a fresh
+day folder per session) and stamps filenames with date+time — several clips
+of the same flute cut on the same day get their own folder and never collide
+on name.

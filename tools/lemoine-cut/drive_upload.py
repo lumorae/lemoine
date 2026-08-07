@@ -158,13 +158,14 @@ if __name__ == "__main__":
     ap.add_argument("--file", required=True)
     ap.add_argument("--folder-id", default=CUT_FOLDER_ID)
     ap.add_argument("--subfolder", default=os.environ.get("LEMOINE_DRIVE_SUBFOLDER", ""),
-                    help="month folder etc. — found or created under the Cut folder")
+                    help="path under the Cut folder, e.g. '2026-08/2026-08-07' — "
+                         "each segment is found or created in turn")
     ap.add_argument("--key", default=os.environ.get("GDRIVE_SA_JSON", DEFAULT_KEY))
     args = ap.parse_args()
     if not os.path.exists(args.key):
         raise SystemExit(f"no service-account key at {args.key} — see header comment for setup")
     token = get_token(args.key)
     dest = args.folder_id
-    if args.subfolder:
-        dest = ensure_folder(args.subfolder, dest, token)
+    for part in filter(None, args.subfolder.split("/")):
+        dest = ensure_folder(part, dest, token)
     upload(args.file, dest, token)
