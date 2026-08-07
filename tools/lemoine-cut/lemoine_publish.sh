@@ -63,6 +63,9 @@ print(t.lower().strip())
 EOF
 )
 SLUG=$(python3 -c "import sys,re; print(re.sub(r'[^a-z0-9]+','-',sys.argv[1].lower()).strip('-'))" "$TITLE")
+# the container clock runs UTC; dates/folders are filed on Johnny's local day
+# (San Diego, Pacific) so a session after ~5pm PT doesn't get stamped tomorrow
+export TZ="${LEMOINE_TZ:-America/Los_Angeles}"
 DATE=$(date +%Y-%m-%d)
 STAMP=$(date +%Y-%m-%d_%H%M)   # date+time in the filename: same flute, same day, no collisions
 export LEMOINE_DRIVE_SUBFOLDER="$(date +%Y-%m)/${DATE}"   # cuts auto-file into Cut/YYYY-MM/YYYY-MM-DD/

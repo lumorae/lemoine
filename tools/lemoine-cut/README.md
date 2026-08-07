@@ -58,4 +58,6 @@ sent in chat.
 `lemoine_publish.sh` files each run into `Cut/YYYY-MM/YYYY-MM-DD/` (a fresh
 day folder per session) and stamps filenames with date+time — several clips
 of the same flute cut on the same day get their own folder and never collide
-on name.
+on name. Dates are computed in Pacific time (`America/Los_Angeles`, override
+with `LEMOINE_TZ`) since the container's clock runs UTC and Johnny is in San
+Diego — otherwise a late-evening session gets stamped as tomorrow.
