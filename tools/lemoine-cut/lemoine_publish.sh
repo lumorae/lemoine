@@ -53,23 +53,38 @@ if [[ $SRC == http* ]]; then
   SRC=$FNAME
 fi
 
-# 2) title from filename unless overridden: lowercase, em/long dashes -> en dash
-BASE=$(basename "$SRC")
-BASE="${BASE%.*}"
-[[ -n $TITLE ]] || TITLE=$(python3 - "$BASE" <<'EOF'
-import sys
-t = sys.argv[1].replace("—", "–").replace(" - ", " – ")
-print(t.lower().strip())
+# 2) title from filename unless overridden: lowercase, em/long dashes -> en dash.
+#    A trailing take marker — "(02)", "[2]", "take 2", "#2" — identifies which
+#    take a clip is, so it belongs in the filename but never on screen; it is
+#    split off here and re-attached to the slug below. A bare trailing number
+#    is left alone: it's more likely part of the real title than a take.
+BASE=$(basename "$SRC"); BASE="${BASE%.*}"
+PARSED=$(python3 - "$BASE" "$TITLE" <<'EOF'
+import re, sys
+raw, override = sys.argv[1], sys.argv[2]
+t = raw.replace("—", "–").replace(" - ", " – ").lower().strip()
+m = re.search(r"[\s_-]*(?:\((?:take[\s_-]*)?#?(\d{1,2})\)"
+              r"|\[(?:take[\s_-]*)?#?(\d{1,2})\]"
+              r"|(?:take[\s_-]*|#)(\d{1,2}))\s*$", t)
+take = ""
+if m:
+    take = next(g for g in m.groups() if g).zfill(2)
+    t = t[:m.start()].strip(" –-_")
+print(override or t)
+print(take)
 EOF
 )
+TITLE=$(sed -n 1p <<<"$PARSED")
+TAKE=$(sed -n 2p <<<"$PARSED")
 SLUG=$(python3 -c "import sys,re; print(re.sub(r'[^a-z0-9]+','-',sys.argv[1].lower()).strip('-'))" "$TITLE")
+SLUG="${SLUG}${TAKE:+-take${TAKE}}"
 # the container clock runs UTC; dates/folders are filed on Johnny's local day
 # (San Diego, Pacific) so a session after ~5pm PT doesn't get stamped tomorrow
 export TZ="${LEMOINE_TZ:-America/Los_Angeles}"
 DATE=$(date +%Y-%m-%d)
 STAMP=$(date +%Y-%m-%d_%H%M)   # date+time in the filename: same flute, same day, no collisions
 export LEMOINE_DRIVE_SUBFOLDER="$(date +%Y-%m)/${DATE}"   # cuts auto-file into Cut/YYYY-MM/YYYY-MM-DD/
-echo "title: [ $TITLE ]   slug: $SLUG   tagline: $TAGLINE   stamp: $STAMP   platform: $PLATFORM"
+echo "title: [ $TITLE ]${TAKE:+   take: $TAKE}   slug: $SLUG   tagline: $TAGLINE   stamp: $STAMP   platform: $PLATFORM"
 
 # 3) lower thirds for this title (standard + raised-for-Shorts)
 python3 "$HERE/make_lower3.py" --text "$TITLE" --orientation vertical --outdir . >/dev/null
@@ -94,6 +109,11 @@ if [[ $PLATFORM == reels || $PLATFORM == both ]]; then
 fi
 if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
   bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_shorts.mp4" -l "$L3YT"
+fi
+
+# 6) refresh Cut/INDEX.md so the catalogue never drifts from what's on Drive
+if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
+  python3 "$HERE/drive_index.py" --out "$WORKDIR/INDEX.md" || echo "index rebuild failed (cuts are still uploaded)"
 fi
 
 echo ""

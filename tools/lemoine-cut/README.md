@@ -55,9 +55,39 @@ in place, finished cuts get pushed to Drive automatically at the end of
 `lemoine_cut.sh`; until then they're committed to the repo's `renders/` and
 sent in chat.
 
-`lemoine_publish.sh` files each run into `Cut/YYYY-MM/YYYY-MM-DD/` (a fresh
-day folder per session) and stamps filenames with date+time — several clips
-of the same flute cut on the same day get their own folder and never collide
-on name. Dates are computed in Pacific time (`America/Los_Angeles`, override
-with `LEMOINE_TZ`) since the container's clock runs UTC and Johnny is in San
-Diego — otherwise a late-evening session gets stamped as tomorrow.
+## How things are named and filed
+
+The whole scheme exists to answer three questions without opening any videos:
+what shipped today, which take is this, and where's that clip from weeks ago.
+
+```
+Inbox/                          raw clips off the phone
+Cut/YYYY-MM/YYYY-MM-DD/         finished cuts, one folder per shoot day
+Cut/INDEX.md                    every cut ever, with links + a "to cut" list
+```
+
+Cuts are named:
+
+```
+2026-08-08_1523_high-spirits-high-kestrel-in-d-take02_shorts.mp4
+└── date ──┘ └time┘ └────────── title slug ──────────┘ └take┘ └platform┘
+```
+
+- **Date + time.** The day folder already carries the date, but the name
+  repeats it so a downloaded file still says when it's from. The time keeps
+  several clips of the same flute on the same day from colliding.
+- **Take.** A trailing `(02)`, `[2]`, `take 2` or `#2` on the source file is
+  recognised as a take marker: it lands in the filename so takes are
+  distinguishable, and is stripped from the on-screen lower third, which
+  should only ever read the piece's name. A bare trailing number is left
+  alone — `Nova Drone 432` keeps its 432.
+- **Platform.** `reels` (intro + end-card) or `shorts` (clean loop).
+- Dates resolve in Pacific time (`America/Los_Angeles`, override with
+  `LEMOINE_TZ`); the container's clock is UTC, so without this an evening
+  session files itself under tomorrow.
+
+`drive_index.py` rebuilds `Cut/INDEX.md` — a dated table of every cut with
+direct links, plus a **To cut** list built by diffing `Inbox/` against the
+cuts that already exist, so anything filmed but not yet cut is visible. It
+runs automatically at the end of every `lemoine_publish.sh`; run it by hand
+(`--dry-run` to preview) after moving things around in Drive.
