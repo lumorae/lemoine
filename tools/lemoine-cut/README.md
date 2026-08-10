@@ -111,6 +111,11 @@ Cuts are named:
   should only ever read the piece's name. A bare trailing number is left
   alone — `Nova Drone 432` keeps its 432.
 - **Platform.** `reels` (intro + end-card) or `shorts` (clean loop).
+- **The key is capitalised on screen** — `in Gm`, `in A`, `in F#` — and only the
+  key letter: the mode stays lowercase (`Gm`, never `GM` or `G Minor`) and so
+  does the `in`. A key is only recognised when it ends the title or is followed
+  by a comma, which is what stops `in spanish cedar` or `in a church` from being
+  read as one. Filenames stay fully lowercase.
 - Dates resolve in Pacific time (`America/Los_Angeles`, override with
   `LEMOINE_TZ`); the container's clock is UTC, so without this an evening
   session files itself under tomorrow.

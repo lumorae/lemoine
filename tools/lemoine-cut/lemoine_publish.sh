@@ -73,7 +73,14 @@ take = ""
 if m:
     take = next(g for g in m.groups() if g).zfill(2)
     t = t[:m.start()].strip(" –-_")
-print(override or t)
+
+# The musical key is capitalised on screen — "in Gm", "in A", "in F#" — but only
+# the key letter itself: the mode stays lowercase ("Gm", not "GM" or "G Minor")
+# and so does the "in". The key is only recognised when it ends the title or is
+# followed by a comma, which is what keeps "in spanish cedar" and "in a church"
+# from being read as keys.
+KEY = re.compile(r"(?<=\bin )[a-g](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?(?=\s*(?:,|$))")
+print(KEY.sub(lambda m: m.group(0)[0].upper() + m.group(0)[1:], override or t))
 print(take)
 EOF
 )
