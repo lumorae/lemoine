@@ -17,15 +17,19 @@
 #   -O     pixel-explosion outro overlay (.mov with alpha); plays after the
 #          footage on a frozen last frame while the last note rings out
 #   -I     pixel-explosion intro overlay (.mov with alpha); plays at t=0
+#   -C     clean a noisy location recording: high-pass rumble, collapse to mono
+#          (centres the flute, rejects diffuse street noise), spectral denoise
+#   -n     denoise strength in dB for -C (default 14; 10 gentle, 18 aggressive)
 set -euo pipefail
 
-IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO=""
-while getopts "i:o:l:s:e:aw:t:kq:O:I:" opt; do
+IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO="" CLEAN=0 NR=14
+while getopts "i:o:l:s:e:aw:t:kq:O:I:Cn:" opt; do
   case $opt in
     i) IN=$OPTARG;; o) OUT=$OPTARG;; l) LOWER3=$OPTARG;;
     s) START=$OPTARG;; e) END=$OPTARG;; a) AUTOTRIM=1;;
     w) WET_DB=$OPTARG;; t) L3_AT=$OPTARG;; k) KEEP_RES=1;; q) CRF=$OPTARG;;
     O) OUTRO=$OPTARG;; I) INTRO=$OPTARG;;
+    C) CLEAN=1;; n) NR=$OPTARG;;
     *) exit 2;;
   esac
 done
@@ -84,7 +88,23 @@ INTRO_DUR=0
 
 # 1) extract trimmed audio (a:0 — iPhone spatial track is undecodable), reverb
 #    padded by the outro length; with an outro the final note rings out over it
-ffmpeg -y -v error "${TRIM_IN[@]}" -i "$IN" -map 0:a:0 -vn -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
+#
+#    -C cleans up a noisy location recording before any reverb is added, so the
+#    hall tail is built from flute and not from traffic:
+#      highpass  city rumble and handling live below ~120Hz, where these flutes
+#                have no fundamental — on the Mexico City clip that band measured
+#                1-3dB SNR, i.e. essentially pure noise
+#      mono      a phone's stereo pair captures the flute as correlated centre
+#                content and diffuse street noise as decorrelated sides, so
+#                collapsing to mono both centres the flute and drops the
+#                ambience; the reverb downstream restores the stereo image
+#      afftdn    spectral denoise for the broadband remainder
+#      treble    gives back the air the denoiser takes off the top
+CLEAN_AF=""
+if [[ $CLEAN -eq 1 ]]; then
+  CLEAN_AF="-af highpass=f=120:poles=2,pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1,afftdn=nr=${NR}:nf=-45:tn=1,treble=g=2:f=6000:width_type=q:w=0.7"
+fi
+ffmpeg -y -v error "${TRIM_IN[@]}" -i "$IN" -map 0:a:0 -vn $CLEAN_AF -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
 RING=()
 if [[ -n $OUTRO ]]; then
   [[ -f "$HERE/ir-ring.wav" ]] || python3 "$HERE/make_ir.py" --out "$HERE/ir-ring.wav" --t60 4.8

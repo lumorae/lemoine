@@ -24,15 +24,18 @@ if [[ ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
   echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
 fi
 SRC="" TAGLINE="dontblend" TITLE="" PLATFORM="both"
+CLEAN_ARGS=()   # -c / -n fill this; stays empty for a clean studio recording
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -g) TAGLINE=$2; shift 2;;
     -T) TITLE=$2; shift 2;;
     -p) PLATFORM=$2; shift 2;;
+    -c) CLEAN_ARGS=(-C); shift;;              # noisy location recording
+    -n) CLEAN_ARGS=(-C -n "$2"); shift 2;;    # ... with explicit denoise strength
     *) SRC=$1; shift;;
   esac
 done
-[[ -n $SRC ]] || { echo "usage: $0 <drive-url-or-file> [-g brands|dontblend] [-T title] [-p reels|shorts|both]" >&2; exit 2; }
+[[ -n $SRC ]] || { echo "usage: $0 <drive-url-or-file> [-g brands|dontblend] [-T title] [-p reels|shorts|both] [-c] [-n strength]" >&2; exit 2; }
 case "$PLATFORM" in reels|shorts|both) ;; *) echo "-p must be reels, shorts, or both" >&2; exit 2;; esac
 
 WORKDIR=${LEMOINE_WORKDIR:-$(pwd)}
@@ -105,10 +108,10 @@ fi
 
 # 5) the requested platform cut(s)
 if [[ $PLATFORM == reels || $PLATFORM == both ]]; then
-  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO"
+  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO" "${CLEAN_ARGS[@]}"
 fi
 if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
-  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_shorts.mp4" -l "$L3YT"
+  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_shorts.mp4" -l "$L3YT" "${CLEAN_ARGS[@]}"
 fi
 
 # 6) refresh Cut/INDEX.md so the catalogue never drifts from what's on Drive

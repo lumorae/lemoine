@@ -38,6 +38,35 @@ title comes from the Drive file name; the file must be link-shared.
 Lower-level pieces (`make_lower3.py`, `make_intro.py`, `make_outro.py`,
 `lemoine_cut.sh`) can also be run individually — see their headers.
 
+### Noisy location recordings (`-c`)
+
+```bash
+./lemoine_publish.sh "<drive-url>" -c        # clean up a noisy take
+./lemoine_publish.sh "<drive-url>" -n 18     # ... with a harder denoise
+```
+
+Filmed on a balcony over a city, the flute arrives buried in traffic, wind and
+room hiss. `-c` cleans the audio *before* the reverb, so the hall tail is built
+from flute rather than from street:
+
+1. **High-pass at 120 Hz.** These flutes have no fundamental down there — on
+   the Mexico City clip the sub-160 Hz band measured 1–3 dB SNR, i.e. pure
+   rumble — so cutting it is free.
+2. **Collapse to mono.** A phone's stereo pair records the flute as correlated
+   centre content and diffuse street noise as decorrelated sides. Summing to
+   mono centres the flute *and* cancels much of the ambience in one move; the
+   reverb downstream puts the stereo image back. This is why "clean" and
+   "centred" are the same operation here.
+3. **Spectral denoise** (`afftdn`) for the broadband remainder.
+4. **A gentle 6 kHz shelf** to give back the air the denoiser takes off.
+
+Measured on the Mexico City clip: noise down 7 dB below 160 Hz, ~9 dB at
+1–4 kHz and ~14 dB above 4 kHz, for 0.7 dB of flute in the core band. Tune with
+`-n` (10 gentle, 14 default, 18 aggressive) — spectral denoisers get watery if
+pushed, and sustained flute shows it sooner than speech would.
+
+Leave `-c` off for a clean studio take; it costs a little air for nothing.
+
 
 Requires: ffmpeg, python3 with pillow + numpy.
 
