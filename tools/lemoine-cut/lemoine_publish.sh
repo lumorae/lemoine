@@ -98,8 +98,12 @@ L3YT=$(ls -t lemoine-lower3-*-1080x1920-yt-alpha.mov | head -1)
 # 4) brand overlays (cached; regenerate only when missing)
 INTRO=lemoine-intro-pixel-1080x1920-alpha.mov
 OUTRO=lemoine-outro-pixel-${TAGLINE}-1080x1920-alpha.mov
+# the logo master ships with the repo; a stray copy in the workdir still wins so
+# a one-off variant can be dropped in, but a fresh workdir no longer breaks
+LOGO_MASTER=lemoine-outro-vertical-1080x1920-alpha-iphone.mov
+[[ -f $LOGO_MASTER ]] || LOGO_MASTER="$HERE/brand-assets/lemoine-outro-vertical-1080x1920-alpha-iphone.mov"
 [[ -f $INTRO ]] || PYTHONPATH="$HERE" python3 "$HERE/make_intro.py" \
-  --template "${LEMOINE_LOGO_TEMPLATE:-lemoine-outro-vertical-1080x1920-alpha-iphone.mov}" --outdir . >/dev/null
+  --template "${LEMOINE_LOGO_TEMPLATE:-$LOGO_MASTER}" --outdir . >/dev/null
 if [[ ! -f $OUTRO ]]; then
   EC=$([[ $TAGLINE == brands ]] && echo endcard-brands-that-dont-blend-in-1080x1920.png \
                                  || echo endcard-dont-blend-in-1080x1920.png)

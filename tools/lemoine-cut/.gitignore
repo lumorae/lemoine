@@ -2,6 +2,9 @@ ir-hall.wav
 ir-ring.wav
 frames-*/
 *.mov
+# ...but the hand-made brand master is not regenerable and must survive a
+# fresh container; every other .mov here is built from it on demand
+!brand-assets/*.mov
 *.mp4
 gdrive-sa.json
 __pycache__/
