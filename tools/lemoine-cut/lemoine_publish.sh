@@ -83,10 +83,16 @@ t = re.sub(r"\s*,\s*", ", ", t)
 
 # The musical key is capitalised on screen — "in Gm", "in A", "in F#" — but only
 # the key letter itself: the mode stays lowercase ("Gm", not "GM" or "G Minor")
-# and so does the "in". A key is only recognised where one actually falls in
-# these titles: at the end, or before the punctuation that starts an aside. That
-# is what keeps "in spanish cedar" and "in a church" from being read as keys.
-KEY = re.compile(r"(?<=\bin )[a-g](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?(?=\s*(?:[,(\[–-]|$))")
+# and so does the "in".
+#
+# What separates a key from an ordinary word after "in" is what comes next: a
+# key is the end of a thought, so it is followed by the end of the title or by
+# punctuation, never by another word. Listing the punctuation instead — comma,
+# bracket, dash — is what made "in A [San Diego]" slip through as lowercase, so
+# the test is the general one: end of string, or a character that is neither
+# space nor alphanumeric. "in a church" stays lowercase because "church" is a
+# word; "in spanish cedar" never matches at all, since "s" is not a key letter.
+KEY = re.compile(r"(?<=\bin )[a-g](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?(?=\s*$|\s*[^\sa-z0-9])")
 print(KEY.sub(lambda m: m.group(0)[0].upper() + m.group(0)[1:], override or t))
 print(take)
 EOF
