@@ -74,12 +74,19 @@ if m:
     take = next(g for g in m.groups() if g).zfill(2)
     t = t[:m.start()].strip(" –-_")
 
+# A bracketed aside in the file name — "Ebonized Walnut Flute in A [San Diego]"
+# — becomes a comma clause, because the lower third already draws its own
+# "[ ... ]" around the whole title and a second pair nests badly on screen.
+# This runs after the take split so a bracketed take like "[02]" is long gone.
+t = re.sub(r"\s*\[\s*([^\]]+?)\s*\]", r", \1", t).strip(" ,")
+t = re.sub(r"\s*,\s*", ", ", t)
+
 # The musical key is capitalised on screen — "in Gm", "in A", "in F#" — but only
 # the key letter itself: the mode stays lowercase ("Gm", not "GM" or "G Minor")
-# and so does the "in". The key is only recognised when it ends the title or is
-# followed by a comma, which is what keeps "in spanish cedar" and "in a church"
-# from being read as keys.
-KEY = re.compile(r"(?<=\bin )[a-g](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?(?=\s*(?:,|$))")
+# and so does the "in". A key is only recognised where one actually falls in
+# these titles: at the end, or before the punctuation that starts an aside. That
+# is what keeps "in spanish cedar" and "in a church" from being read as keys.
+KEY = re.compile(r"(?<=\bin )[a-g](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?(?=\s*(?:[,(\[–-]|$))")
 print(KEY.sub(lambda m: m.group(0)[0].upper() + m.group(0)[1:], override or t))
 print(take)
 EOF
