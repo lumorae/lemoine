@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Build a searchable index of every lemoine cut, and show what's still raw.
 
-Day folders are great for "what did I ship today" and useless for "where's
-that Spanish cedar clip from a few weeks ago". This walks the Drive tree and
-writes one INDEX.md at the top of Cut/ that answers both, plus a To cut list
-built by diffing Inbox against the cuts that already exist.
+Cuts are filed one folder per flute, so Drive already answers "every take of
+the Spanish cedar". This adds the view a folder tree cannot: one page listing
+every cut with its date and a direct link, plus a To cut list built by diffing
+Inbox against the cuts that already exist.
 
   python3 drive_index.py            # rebuild and upload Cut/INDEX.md
   python3 drive_index.py --dry-run  # print it, upload nothing
@@ -68,32 +68,27 @@ def norm(text):
 
 
 def collect(token):
-    """Walk Cut/YYYY-MM/YYYY-MM-DD/ and return one record per finished cut."""
+    """Walk Cut/<Flute>/ and return one record per finished cut."""
     cuts, strays = [], []
-    for month in children(CUT_FOLDER_ID, token):
-        if month["mimeType"] != FOLDER_MIME:
-            strays.append(month)
+    for flute in children(CUT_FOLDER_ID, token):
+        if flute["mimeType"] != FOLDER_MIME:
+            strays.append(flute)
             continue
-        for day in children(month["id"], token):
-            if day["mimeType"] != FOLDER_MIME:
-                strays.append(day)
+        for f in children(flute["id"], token):
+            m = CUT_RE.match(f["name"])
+            if not m:
+                strays.append(f)
                 continue
-            for f in children(day["id"], token):
-                m = CUT_RE.match(f["name"])
-                if not m:
-                    strays.append(f)
-                    continue
-                cuts.append(dict(
-                    **m.groupdict(), id=f["id"], name=f["name"],
-                    mb=int(f.get("size") or 0) / 1e6,
-                    month=month["name"], day=day["name"]))
+            cuts.append(dict(
+                **m.groupdict(), id=f["id"], name=f["name"],
+                mb=int(f.get("size") or 0) / 1e6, flute=flute["name"]))
     return cuts, strays
 
 
 def render(cuts, strays, uncut):
     """The index itself: newest first, one row per clip, links included."""
     lines = ["# lemoine cuts — index", ""]
-    lines += [f"{len(cuts)} cuts across {len({c['day'] for c in cuts})} shoot days. "
+    lines += [f"{len(cuts)} cuts across {len({c['flute'] for c in cuts})} flutes. "
               "Rebuild with `python3 drive_index.py`.", ""]
 
     if uncut:
@@ -101,25 +96,26 @@ def render(cuts, strays, uncut):
                   "Raw clips in Inbox with no matching cut yet.", ""]
         lines += [f"- {name}" for name in uncut] + [""]
 
-    # one section per day, newest first; clips grouped so takes sit together
+    # one section per flute, newest take first inside each
     lines += ["## Cuts", ""]
-    for day in sorted({c["day"] for c in cuts}, reverse=True):
-        lines += [f"### {day}", ""]
-        lines += ["| clip | take | platform | size | link |",
+    for flute in sorted({c["flute"] for c in cuts}):
+        rows = sorted((c for c in cuts if c["flute"] == flute),
+                      key=lambda c: (c["date"], c["time"] or "", c["platform"]),
+                      reverse=True)
+        lines += [f"### {flute}  ({len(rows)})", ""]
+        lines += ["| date | take | platform | size | link |",
                   "|---|---|---|---|---|"]
-        rows = sorted((c for c in cuts if c["day"] == day),
-                      key=lambda c: (c["slug"], c["take"] or "", c["platform"]))
         for c in rows:
-            title = c["slug"].replace("-", " ")
+            when = c["date"] + (f" {c['time'][:2]}:{c['time'][2:]}" if c["time"] else "")
             link = f"https://drive.google.com/file/d/{c['id']}/view"
-            lines.append(f"| {title} | {c['take'] or '—'} | {c['platform']} "
+            lines.append(f"| {when} | {c['take'] or '—'} | {c['platform']} "
                          f"| {c['mb']:.0f} MB | [open]({link}) |")
         lines.append("")
 
     if strays:
         lines += ["## Not filed", "",
-                  "Files that don't match the naming scheme or sit outside a "
-                  "day folder — worth a look.", ""]
+                  "Files that don't match the naming scheme or sit loose at "
+                  "the top of Cut/ — worth a look.", ""]
         lines += [f"- {f['name']}" for f in strays] + [""]
     return "\n".join(lines)
 

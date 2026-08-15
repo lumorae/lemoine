@@ -108,9 +108,22 @@ what shipped today, which take is this, and where's that clip from weeks ago.
 
 ```
 Inbox/                          raw clips off the phone
-Cut/YYYY-MM/YYYY-MM-DD/         finished cuts, one folder per shoot day
+Cut/<Flute>/                    finished cuts, one folder per instrument
 Cut/INDEX.md                    every cut ever, with links + a "to cut" list
 ```
+
+Cuts file **by flute**, not by shoot date — `Cut/Ebonized Walnut A/`,
+`Cut/Shakuhachi/`. There are only so many flutes, and the same instrument comes
+back under slightly different names week to week ("High Spirits — Ebonized
+Walnut in A", then "Ebonized Walnut Flute in A [San Diego]"); filing by
+instrument puts every take of one flute in one place. The date is still in every
+filename, so nothing is lost by dropping the date folders.
+
+`categories.py` maps a cut slug to its flute folder. That map is the authority,
+because only Johnny knows which names are the same physical instrument — "Drone
+in F#" and "Double Drone in F#" read like a typo apart and are two different
+flutes. An unmapped slug falls back to a derived name; to correct one, add it to
+`MAP` and re-run `drive_migrate.py`.
 
 Cuts are named:
 
@@ -119,9 +132,8 @@ Cuts are named:
 └── date ──┘ └time┘ └────────── title slug ──────────┘ └take┘ └platform┘
 ```
 
-- **Date + time.** The day folder already carries the date, but the name
-  repeats it so a downloaded file still says when it's from. The time keeps
-  several clips of the same flute on the same day from colliding.
+- **Date + time.** The folder is the flute, so the name is what carries the
+  date — and it keeps several takes of one flute on one day from colliding.
 - **Take.** A trailing `(02)`, `[2]`, `take 2` or `#2` on the source file is
   recognised as a take marker: it lands in the filename so takes are
   distinguishable, and is stripped from the on-screen lower third, which

@@ -9,6 +9,7 @@
 #   <slug>-shorts.mp4  YouTube Shorts: no intro/outro, raised lower third,
 #                      breath-to-breath trim + ambience-matched loop seam
 #
+# Cuts are filed in Drive under Cut/<Flute>/ — see categories.py.
 # Title defaults to the Drive file name (lowercased, dashes normalized).
 # Tagline (-g) picks the Reels end-card; default: brands ("brands that don't
 # blend in.") — override with -g brands. Uploads to the Drive Cut folder automatically when
@@ -108,7 +109,11 @@ SLUG="${SLUG}${TAKE:+-take${TAKE}}"
 export TZ="${LEMOINE_TZ:-America/Los_Angeles}"
 DATE=$(date +%Y-%m-%d)
 STAMP=$(date +%Y-%m-%d_%H%M)   # date+time in the filename: same flute, same day, no collisions
-export LEMOINE_DRIVE_SUBFOLDER="$(date +%Y-%m)/${DATE}"   # cuts auto-file into Cut/YYYY-MM/YYYY-MM-DD/
+# Cuts file by flute, not by date: there are only so many flutes, and every take
+# of one instrument belongs together. The date lives in the filename already.
+export LEMOINE_DRIVE_SUBFOLDER="$(python3 -c "
+import sys; sys.path.insert(0, '$HERE')
+from categories import folder_for; print(folder_for('$SLUG'))")"
 echo "title: [ $TITLE ]${TAKE:+   take: $TAKE}   slug: $SLUG   tagline: $TAGLINE   stamp: $STAMP   platform: $PLATFORM"
 
 # 3) lower thirds for this title (standard + raised-for-Shorts)
