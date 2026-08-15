@@ -20,16 +20,17 @@
 #   -C     clean a noisy location recording: high-pass rumble, collapse to mono
 #          (centres the flute, rejects diffuse street noise), spectral denoise
 #   -n     denoise strength in dB for -C (default 14; 10 gentle, 18 aggressive)
+#   -B     black and white footage; brand overlays stay in colour
 set -euo pipefail
 
-IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO="" CLEAN=0 NR=14
-while getopts "i:o:l:s:e:aw:t:kq:O:I:Cn:" opt; do
+IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO="" CLEAN=0 NR=14 BW=0
+while getopts "i:o:l:s:e:aw:t:kq:O:I:Cn:B" opt; do
   case $opt in
     i) IN=$OPTARG;; o) OUT=$OPTARG;; l) LOWER3=$OPTARG;;
     s) START=$OPTARG;; e) END=$OPTARG;; a) AUTOTRIM=1;;
     w) WET_DB=$OPTARG;; t) L3_AT=$OPTARG;; k) KEEP_RES=1;; q) CRF=$OPTARG;;
     O) OUTRO=$OPTARG;; I) INTRO=$OPTARG;;
-    C) CLEAN=1;; n) NR=$OPTARG;;
+    C) CLEAN=1;; n) NR=$OPTARG;; B) BW=1;;
     *) exit 2;;
   esac
 done
@@ -133,13 +134,24 @@ case "$SRC_TRC" in
     ;;
 esac
 
+# -B desaturates the FOOTAGE only, and does it here — before any overlay is
+# composited — so the lower third, intro and end-card keep the brand coral and
+# cream on top of a monochrome frame. Rec.709 luma weights, matching the BT.709
+# the footage has just been tone-mapped into; alpha is left alone.
+BW_F=""
+if [[ $BW -eq 1 ]]; then
+  BW_F=",colorchannelmixer=rr=0.2126:rg=0.7152:rb=0.0722\
+:gr=0.2126:gg=0.7152:gb=0.0722\
+:br=0.2126:bg=0.7152:bb=0.0722"
+fi
+
 # build the RGB compositing chain: footage (+freeze), lower3, outro, intro
 EXTRA_IN=()
 IDX=3
 if [[ -n $OUTRO ]]; then
-  FV="[0:v:0]${TOSDR},tpad=stop_mode=clone:stop_duration=${OUTRO_DUR}[sdr];"
+  FV="[0:v:0]${TOSDR}${BW_F},tpad=stop_mode=clone:stop_duration=${OUTRO_DUR}[sdr];"
 else
-  FV="[0:v:0]${TOSDR}[sdr];"
+  FV="[0:v:0]${TOSDR}${BW_F}[sdr];"
 fi
 FV+="[1:v]format=rgba,setpts=PTS+${L3_AT}/TB[l3];\
 [l3][sdr]scale2ref=w=iw:h=ih[l3s][base];\

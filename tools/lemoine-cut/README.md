@@ -65,7 +65,24 @@ Measured on the Mexico City clip: noise down 7 dB below 160 Hz, ~9 dB at
 `-n` (10 gentle, 14 default, 18 aggressive) — spectral denoisers get watery if
 pushed, and sustained flute shows it sooner than speech would.
 
-Leave `-c` off for a clean studio take; it costs a little air for nothing.
+Leave `-c` off for a clean studio take; it costs a little air for nothing. Two
+numbers decide it: the sub-160 Hz SNR (1–3 dB means that band is pure rumble and
+free to cut; 15 dB means the instrument is actually down there) and the gap
+between mid and side (a big gap means the take is already centred, so collapsing
+to mono buys nothing). The shakuhachi clips measured 15–18 dB and 24 dB and were
+cut without `-c`; the Mexico City balcony clips measured 1–3 dB and 9 dB and
+needed it.
+
+### Black and white (`-bw`)
+
+```bash
+./lemoine_publish.sh "<drive-url>" -bw
+```
+
+Desaturates the footage only. The lower third, intro and end-card composite
+*after* the conversion, so brand coral and cream sit on a monochrome frame.
+Rec.709 luma weights, matching the colour space the footage was just tone-mapped
+into.
 
 
 Requires: ffmpeg, python3 with pillow + numpy.
