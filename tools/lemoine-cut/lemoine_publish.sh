@@ -88,14 +88,21 @@ t = re.sub(r"\s*,\s*", ", ", t)
 # the key letter itself: the mode stays lowercase ("Gm", not "GM" or "G Minor")
 # and so does the "in".
 #
-# What separates a key from an ordinary word after "in" is what comes next: a
-# key is the end of a thought, so it is followed by the end of the title or by
-# punctuation, never by another word. Listing the punctuation instead — comma,
-# bracket, dash — is what made "in A [San Diego]" slip through as lowercase, so
-# the test is the general one: end of string, or a character that is neither
-# space nor alphanumeric. "in a church" stays lowercase because "church" is a
-# word; "in spanish cedar" never matches at all, since "s" is not a key letter.
-KEY = re.compile(r"(?<=\bin )[a-g](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?(?=\s*$|\s*[^\sa-z0-9])")
+# Earlier versions asked what FOLLOWS the key — end of title, then a comma, then
+# any punctuation — and each new title shape found the gap: "in A [San Diego]",
+# then "in G melancholic", where a plain word follows a real key.
+#
+# The actual distinction is in the letter. B through G are never English words,
+# so a standalone one after "in" is always a key, whatever follows it — that is
+# what makes "in G melancholic" work while "in bamboo" and "in berlin" do not,
+# since neither is a standalone letter. "A" is the exception, being also the
+# article, so it alone still has to be followed by punctuation or the end of the
+# title; that is what keeps "in a church" lowercase.
+KEY = re.compile(
+    r"(?<=\bin )(?:"
+    r"[b-g](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?\b"
+    r"|a(?:#|b)?(?:\s*(?:m|min|minor|maj|major))?\b(?=\s*$|\s*[^\sa-z0-9])"
+    r")")
 print(KEY.sub(lambda m: m.group(0)[0].upper() + m.group(0)[1:], override or t))
 print(take)
 EOF

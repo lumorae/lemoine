@@ -148,9 +148,16 @@ Cuts are named:
   own `[ ... ]` around the title, so a second pair nests badly on screen.
 - **The key is capitalised on screen** — `in Gm`, `in A`, `in F#` — and only the
   key letter: the mode stays lowercase (`Gm`, never `GM` or `G Minor`) and so
-  does the `in`. A key is only recognised when it ends the title or is followed
-  by punctuation that opens an aside, which is what stops `in spanish cedar` or
-  `in a church` from being read as one. Filenames stay fully lowercase.
+  does the `in`. What identifies a key is the *letter*, not what follows it:
+  B–G are never English words, so a standalone one after `in` is always a key —
+  which is why `in G melancholic` works while `in bamboo` and `in berlin` do
+  not. `A` is the exception, being also the article, so it alone must be
+  followed by punctuation or the end of the title; that keeps `in a church`
+  lowercase. (Consequence: `in A melancholic` won't capitalise — pass `-T` for
+  that one.) Filenames stay fully lowercase.
+- **A flute's folder name ends at the key.** `native drone in G melancholic`
+  files under `Native Drone G`: what follows the key describes the performance,
+  not the instrument.
 - Dates resolve in Pacific time (`America/Los_Angeles`, override with
   `LEMOINE_TZ`); the container's clock is UTC, so without this an evening
   session files itself under tomorrow.

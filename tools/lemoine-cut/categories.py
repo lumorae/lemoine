@@ -45,6 +45,8 @@ MAKERS = ("high-spirits", "stellar-flutes")
 # where only a slug is available, and it will always be missing somewhere.
 PLACES = ("san-diego", "mexico-city", "cdmx", "oaxaca", "massachusetts")
 NOTE = re.compile(r"^(?:[a-g](?:-sharp|-flat|b|#)?|\d+hz)$", re.I)
+# the key inside an already-capitalised title — the flute name ends here
+KEY_IN_TITLE = re.compile(r"\bin\s+[A-G](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?\b")
 
 
 def derive(slug):
@@ -91,12 +93,19 @@ def from_title(title):
     Better than deriving from the slug: the title still has the comma that
     separates the instrument from where it was filmed, so any location works
     without being on a list.
+
+    The name ends at the key. Anything after it describes the performance, not
+    the instrument — "native drone in G melancholic" is the Native Drone G
+    played a certain way, not a flute called "Native Drone G Melancholic".
     """
     head = title.split(",")[0].strip()
     for maker in MAKERS:
         pre = maker.replace("-", " ") + " –"
         if head.lower().startswith(pre):
             head = head[len(pre):].strip()
+    m = KEY_IN_TITLE.search(head)
+    if m:
+        head = head[:m.end()].strip()
     words = [w for w in head.split() if w.lower() != "in"]
     out = []
     for w in words:
