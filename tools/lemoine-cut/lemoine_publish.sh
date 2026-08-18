@@ -111,9 +111,13 @@ DATE=$(date +%Y-%m-%d)
 STAMP=$(date +%Y-%m-%d_%H%M)   # date+time in the filename: same flute, same day, no collisions
 # Cuts file by flute, not by date: there are only so many flutes, and every take
 # of one instrument belongs together. The date lives in the filename already.
-export LEMOINE_DRIVE_SUBFOLDER="$(python3 -c "
-import sys; sys.path.insert(0, '$HERE')
-from categories import folder_for; print(folder_for('$SLUG'))")"
+export LEMOINE_DRIVE_SUBFOLDER="$(python3 - "$SLUG" "$TITLE" <<PYEOF
+import sys
+sys.path.insert(0, "$HERE")
+from categories import folder_for
+print(folder_for(sys.argv[1], sys.argv[2]))
+PYEOF
+)"
 echo "title: [ $TITLE ]${TAKE:+   take: $TAKE}   slug: $SLUG   tagline: $TAGLINE   stamp: $STAMP   platform: $PLATFORM"
 
 # 3) lower thirds for this title (standard + raised-for-Shorts)

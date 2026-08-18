@@ -122,7 +122,10 @@ filename, so nothing is lost by dropping the date folders.
 `categories.py` maps a cut slug to its flute folder. That map is the authority,
 because only Johnny knows which names are the same physical instrument — "Drone
 in F#" and "Double Drone in F#" read like a typo apart and are two different
-flutes. An unmapped slug falls back to a derived name; to correct one, add it to
+flutes. An unmapped slug is derived from the title instead: everything before
+the comma is the instrument, everything after is where it was filmed, so a
+location the code has never seen ("[ Massachusetts ]") drops out on its own
+rather than leaking into the folder name. To correct a grouping, add the slug to
 `MAP` and re-run `drive_migrate.py`.
 
 Cuts are named:

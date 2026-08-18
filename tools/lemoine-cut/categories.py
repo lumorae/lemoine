@@ -40,7 +40,10 @@ MAP = {
 }
 
 MAKERS = ("high-spirits", "stellar-flutes")
-PLACES = ("san-diego", "mexico-city", "cdmx", "oaxaca")
+# Fallback only. The title carries its location after a comma, which is a far
+# better signal than guessing from the slug — this list exists for the case
+# where only a slug is available, and it will always be missing somewhere.
+PLACES = ("san-diego", "mexico-city", "cdmx", "oaxaca", "massachusetts")
 NOTE = re.compile(r"^(?:[a-g](?:-sharp|-flat|b|#)?|\d+hz)$", re.I)
 
 
@@ -82,11 +85,36 @@ def derive(slug):
     return " ".join(out) or slug
 
 
-def folder_for(slug):
-    return MAP.get(slug) or derive(slug)
+def from_title(title):
+    """Derive a flute name from a title, e.g. "double drone in G, massachusetts".
+
+    Better than deriving from the slug: the title still has the comma that
+    separates the instrument from where it was filmed, so any location works
+    without being on a list.
+    """
+    head = title.split(",")[0].strip()
+    for maker in MAKERS:
+        pre = maker.replace("-", " ") + " –"
+        if head.lower().startswith(pre):
+            head = head[len(pre):].strip()
+    words = [w for w in head.split() if w.lower() != "in"]
+    out = []
+    for w in words:
+        # a key already carries its own casing by the time it reaches here
+        out.append(w if any(c.isupper() or c == "#" for c in w) else w.capitalize())
+    return " ".join(out) or head
+
+
+def folder_for(slug, title=None):
+    if slug in MAP:
+        return MAP[slug]
+    return from_title(title) if title else derive(slug)
 
 
 if __name__ == "__main__":
     import sys
-    for s in sys.argv[1:]:
-        print(f"{s}  ->  {folder_for(s)}")
+    args = sys.argv[1:]
+    # "slug" or "slug::title"
+    for a in args:
+        slug, _, title = a.partition("::")
+        print(f"{a}  ->  {folder_for(slug, title or None)}")
