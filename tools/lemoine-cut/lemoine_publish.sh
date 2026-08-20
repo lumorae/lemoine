@@ -88,18 +88,20 @@ t = re.sub(r"\s*,\s*", ", ", t)
 # the key letter itself: the mode stays lowercase ("Gm", not "GM" or "G Minor")
 # and so does the "in".
 #
-# Earlier versions asked what FOLLOWS the key — end of title, then a comma, then
-# any punctuation — and each new title shape found the gap: "in A [San Diego]",
-# then "in G melancholic", where a plain word follows a real key.
+# Earlier versions asked what SURROUNDS the key — first what follows it (end of
+# title, then a comma, then any punctuation), then that it follows "in". Each
+# new title shape found the gap the last fix left: "in A [San Diego]", then
+# "in G melancholic", then "Double Drone, G", where a comma introduces the key
+# and there is no "in" at all.
 #
-# The actual distinction is in the letter. B through G are never English words,
-# so a standalone one after "in" is always a key, whatever follows it — that is
-# what makes "in G melancholic" work while "in bamboo" and "in berlin" do not,
-# since neither is a standalone letter. "A" is the exception, being also the
-# article, so it alone still has to be followed by punctuation or the end of the
-# title; that is what keeps "in a church" lowercase.
+# So neither side is the signal — the letter is. B through G are never English
+# words, so a standalone one anywhere in a title is a key, however it is
+# introduced and whatever follows. "in bamboo", "in berlin" and "in cedar" are
+# untouched because none of them contains a lone letter. "A" is the one
+# exception, being also the article, so it alone must still be followed by
+# punctuation or the end of the title; that keeps "in a church" lowercase.
 KEY = re.compile(
-    r"(?<=\bin )(?:"
+    r"\b(?:"
     r"[b-g](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?\b"
     r"|a(?:#|b)?(?:\s*(?:m|min|minor|maj|major))?\b(?=\s*$|\s*[^\sa-z0-9])"
     r")")

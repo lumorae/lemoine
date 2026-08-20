@@ -47,6 +47,8 @@ PLACES = ("san-diego", "mexico-city", "cdmx", "oaxaca", "massachusetts")
 NOTE = re.compile(r"^(?:[a-g](?:-sharp|-flat|b|#)?|\d+hz)$", re.I)
 # the key inside an already-capitalised title — the flute name ends here
 KEY_IN_TITLE = re.compile(r"\bin\s+[A-G](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?\b")
+# a key standing alone as its own comma field: "Double Drone, G, summer rain"
+BARE_KEY = re.compile(r"[A-G](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?")
 
 
 def derive(slug):
@@ -98,14 +100,20 @@ def from_title(title):
     the instrument — "native drone in G melancholic" is the Native Drone G
     played a certain way, not a flute called "Native Drone G Melancholic".
     """
-    head = title.split(",")[0].strip()
+    parts = [p.strip() for p in title.split(",")]
+    head = parts[0]
     for maker in MAKERS:
         pre = maker.replace("-", " ") + " –"
         if head.lower().startswith(pre):
             head = head[len(pre):].strip()
-    m = KEY_IN_TITLE.search(head)
-    if m:
-        head = head[:m.end()].strip()
+    if len(parts) > 1 and BARE_KEY.fullmatch(parts[1]):
+        # "Double Drone, G, summer rain" — the key is its own field, so the
+        # instrument name would otherwise lose it at the first comma
+        head = f"{head} {parts[1]}"
+    else:
+        m = KEY_IN_TITLE.search(head)
+        if m:
+            head = head[:m.end()].strip()
     words = [w for w in head.split() if w.lower() != "in"]
     out = []
     for w in words:
