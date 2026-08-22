@@ -22,7 +22,17 @@ MAP = {
     "double-flute-in-f-san-diego":           "Double Flute F#",
     # "Drone in F#" is a different instrument from "Double Drone in F#"
     "high-spirits-drone-in-f":               "Drone F#",
-    "high-spirits-double-nova-drone-in-g":   "Double Nova Drone G",
+    # One twin-bore drone in G, named five different ways across two trips —
+    # Johnny confirmed these are all the same instrument.
+    "high-spirits-double-nova-drone-in-g":       "Double Nova Drone G",
+    "double-drone-in-g-massachusetts":           "Double Nova Drone G",
+    "double-drone-g-summer-rain-in-new-england": "Double Nova Drone G",
+    "native-drone-in-g-massachusetts":           "Double Nova Drone G",
+    "native-drone-in-g-melancholic-massachusetts": "Double Nova Drone G",
+    # The New England drone flute in G — one flute, two states. The Mexico City
+    # Gm below is a DIFFERENT instrument and stays on its own.
+    "drone-flute-g-rainy-massachusetts":         "Drone Flute G",
+    "new-hampshire-drone-flute-in-g":            "Drone Flute G",
     # the untitled Mexico City drone measured G minor, same flute as the titled one
     "drone-flute-in-gm-mexico-city":         "Drone Flute Gm",
     "drone-in-mexico-city":                  "Drone Flute Gm",

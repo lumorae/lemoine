@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Refile Cut/ from shoot-date folders into one folder per flute.
+"""Refile every cut in Cut/ into the folder categories.py says it belongs in.
+
+Idempotent, and not tied to the old date-folder layout: it looks at where each
+cut currently is, works out where it should be, and moves only the ones that
+disagree. That makes it the tool for merging two flute folders as well as for
+the original date-to-flute migration — change MAP, re-run, done.
 
   python3 drive_migrate.py --dry-run   # show every move, change nothing
   python3 drive_migrate.py             # do it
@@ -74,25 +79,48 @@ def main():
             print(f"  + folder  {name}")
         return flute_dirs[name]
 
+    # every folder under Cut/ holds cuts: old date folders (month/day) and the
+    # flute folders themselves, which may need re-filing after a MAP change
+    holders = []
+    for f in top:
+        if f["mimeType"] != FOLDER:
+            continue
+        if DATE_DIR.match(f["name"]):
+            for day in children(f["id"], token):
+                if day["mimeType"] == FOLDER:
+                    holders.append((f"{f['name']}/{day['name']}", day["id"], True))
+            holders.append((f["name"], f["id"], True))
+        else:
+            holders.append((f["name"], f["id"], False))
+
     moved, skipped, date_dirs = 0, [], []
-    for month in [f for f in top if f["mimeType"] == FOLDER and DATE_DIR.match(f["name"])]:
-        for day in children(month["id"], token):
-            if day["mimeType"] != FOLDER:
+    for label, fid, is_date in holders:
+        if is_date:
+            date_dirs.append((label, fid, None))
+        for f in children(fid, token):
+            if f["mimeType"] == FOLDER:
                 continue
-            date_dirs.append((day["name"], day["id"], month["name"]))
-            for f in children(day["id"], token):
-                m = CUT_RE.match(f["name"])
-                if not m:
-                    skipped.append(f"{day['name']}/{f['name']}")
-                    continue
-                dest_name = folder_for(m.group(3))
-                dest = flute_dir(dest_name)
-                print(f"  {day['name']}/{f['name']}\n      -> {dest_name}/")
-                if not dry:
-                    api(f"files/{f['id']}", token, method="PATCH", body={},
-                        addParents=dest, removeParents=day["id"], fields="id")
-                moved += 1
-        date_dirs.append((month["name"], month["id"], None))
+            m = CUT_RE.match(f["name"])
+            if not m:
+                skipped.append(f"{label}/{f['name']}")
+                continue
+            dest_name = folder_for(m.group(3))
+            if dest_name == label:           # already where it belongs
+                continue
+            dest = flute_dir(dest_name)
+            print(f"  {label}/{f['name']}\n      -> {dest_name}/")
+            if not dry:
+                api(f"files/{f['id']}", token, method="PATCH", body={},
+                    addParents=dest, removeParents=fid, fields="id")
+            moved += 1
+
+    # a flute folder emptied by a merge should go too, not just old date folders
+    if not dry:
+        for f in top:
+            if f["mimeType"] == FOLDER and not children(f["id"], token):
+                api(f"files/{f['id']}", token, method="PATCH",
+                    body={"trashed": True}, fields="id")
+                print(f"  - emptied folder {f['name']}")
 
     # trash date folders that are now empty; keep any that still hold something
     emptied = 0
