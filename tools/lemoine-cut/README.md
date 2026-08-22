@@ -119,14 +119,26 @@ Walnut in A", then "Ebonized Walnut Flute in A [San Diego]"); filing by
 instrument puts every take of one flute in one place. The date is still in every
 filename, so nothing is lost by dropping the date folders.
 
-`categories.py` maps a cut slug to its flute folder. That map is the authority,
-because only Johnny knows which names are the same physical instrument — "Drone
-in F#" and "Double Drone in F#" read like a typo apart and are two different
-flutes. An unmapped slug is derived from the title instead: everything before
-the comma is the instrument, everything after is where it was filmed, so a
-location the code has never seen ("[ Massachusetts ]") drops out on its own
-rather than leaking into the folder name. To correct a grouping, add the slug to
-`MAP` and re-run `drive_migrate.py`.
+`categories.py` holds the **flute registry** — the actual instruments, not a
+rule for guessing names. That inversion is the point. Deriving a folder from
+each file name drifts, because the same flute gets typed differently every
+week: "Drone in F#", "Double Drone in F#" and "Double Flute in F#" are one
+instrument, and so are "Drone Flute Gm", "Drone Flute G" and "Double Nova
+Drone G". Deriving per clip meant each new phrasing silently invented a folder
+that had to be merged back by hand.
+
+A clip is matched against the registry by key first — each flute has one — and
+then by a distinguishing word where a key is shared (F# is both the Spirit
+Flute and the double; D is both the High Kestrel and the Stellar shaker).
+
+**Anything the registry cannot place goes to `Unsorted` and says so at the end
+of the run.** It never invents a folder. A clip in the wrong place is invisible;
+a clip in `Unsorted` is a two-line fix — add the flute to `FLUTES` and re-run
+`drive_migrate.py`, which is idempotent and only moves what disagrees.
+
+Match words are whole-phrase and word-bounded, learned the hard way: the maker
+is "High Spirits", so a bare `"spirit"` matches every title and would file the
+entire catalogue as the Spirit Flute.
 
 Cuts are named:
 

@@ -1,147 +1,154 @@
 #!/usr/bin/env python3
-"""Which flute a cut belongs to — the folder it gets filed under.
+"""Which flute a cut belongs to.
 
-Cuts used to be filed by shoot date, which answers "what shipped today" and
-nothing else. There are only so many flutes, so the same instrument comes back
-week after week under slightly different names: "High Spirits — Ebonized Walnut
-in A" one day, "Ebonized Walnut Flute in A [San Diego]" the next. Filing by
-flute puts every take of one instrument in one place.
+The first version derived a folder name from each file name. That reliably
+drifts, because the same instrument gets typed differently every week —
+"Drone in F#", "Double Drone in F#" and "Double Flute in F#" turned out to be
+one flute, and so did "Drone Flute Gm", "Drone Flute G" and "Double Nova Drone
+G". Deriving a name per clip meant every new phrasing silently invented a
+folder, and the mess had to be merged by hand afterwards.
 
-MAP is the authority, because only Johnny knows which names are the same
-physical flute — "Drone in F#" and "Double Drone in F#" look like a typo apart
-and are two different instruments. Anything not in MAP falls back to a derived
-name, which is a reasonable guess and easy to correct: add the slug to MAP and
-re-run the migration.
+So the flutes are listed here instead. There are only a handful of them, they
+change rarely, and Johnny is the only one who knows which name means which
+instrument. A clip is matched against the list; anything the list cannot
+place goes to UNSORTED and says so, rather than inventing a folder. A wrong
+guess is worse than an obvious question.
+
+Matching is by key first, since each flute has one, then by a distinguishing
+word where a key is shared — F# covers both the Spirit Flute and the double,
+and D covers both the High Kestrel and the Stellar shaker.
+
+    python3 categories.py "slug::title"     # what would this be filed as
+    python3 categories.py --audit           # check the list against Drive
 """
 import re
 
-# cut slug -> flute folder
+UNSORTED = "Unsorted"
+
+# key       — the key(s) this flute sounds in; mode is ignored, so G covers Gm
+# needs     — at least one of these words must appear (only where a key is shared)
+# not_      — any of these words rules it out
+FLUTES = [
+    {
+        "folder": "High Spirits Double F#",
+        "key": {"F#", "F"},   # a slug loses the "#", and there is no F natural
+        "not_": ["spirit flute"],
+        "note": "the crossbow-shaped traditional double — drone + melody chambers",
+    },
+    {
+        "folder": "Spirit Flute F#",
+        "key": {"F#", "F"},
+        "needs": ["spirit flute"],   # "spirit" alone also matches the maker
+        "note": "the other F#; not the double",
+    },
+    {
+        "folder": "High Spirits Nova G",
+        "key": {"G"},
+        "note": "Nova double — the only G flute, so every G and Gm lands here",
+    },
+    {
+        "folder": "Ebonized Walnut A",
+        "key": {"A"},
+        "note": "the only A flute",
+    },
+    {
+        "folder": "High Kestrel D",
+        "key": {"D"},
+        "needs": ["kestrel"],
+    },
+    {
+        "folder": "Shaker and Flute D",
+        "key": {"D"},
+        "needs": ["shaker", "stellar"],
+        "note": "Stellar Flutes, not High Spirits",
+    },
+    {
+        "folder": "Spanish Cedar 432Hz",
+        "keyless": ["spanish cedar", "432"],
+        "note": "tuned to 432Hz, so it carries no letter key",
+    },
+    {
+        "folder": "Shakuhachi",
+        "keyless": ["shakuhachi"],
+    },
+]
+
+# Last-resort overrides, for a clip whose file name simply lacks the
+# information a rule would need. "Drone in Mexico City" names no key; it was
+# identified as G minor by measuring the recording, and Johnny confirmed the
+# Gm clips are the Nova.
 MAP = {
-    "double-drone-flute-in-f-san-diego":     "Double Drone F#",
-    "high-spirits-double-drone-in-f":        "Double Drone F#",
-    "double-flute-in-f-san-diego":           "Double Flute F#",
-    # "Drone in F#" is a different instrument from "Double Drone in F#"
-    "high-spirits-drone-in-f":               "Drone F#",
-    # One twin-bore drone in G, named five different ways across two trips —
-    # Johnny confirmed these are all the same instrument.
-    "high-spirits-double-nova-drone-in-g":       "Double Nova Drone G",
-    "double-drone-in-g-massachusetts":           "Double Nova Drone G",
-    "double-drone-g-summer-rain-in-new-england": "Double Nova Drone G",
-    "native-drone-in-g-massachusetts":           "Double Nova Drone G",
-    "native-drone-in-g-melancholic-massachusetts": "Double Nova Drone G",
-    # The New England drone flute in G — one flute, two states. The Mexico City
-    # Gm below is a DIFFERENT instrument and stays on its own.
-    "drone-flute-g-rainy-massachusetts":         "Drone Flute G",
-    "new-hampshire-drone-flute-in-g":            "Drone Flute G",
-    # the untitled Mexico City drone measured G minor, same flute as the titled one
-    "drone-flute-in-gm-mexico-city":         "Drone Flute Gm",
-    "drone-in-mexico-city":                  "Drone Flute Gm",
-    "ebonized-walnut-flute-in-a-san-diego":  "Ebonized Walnut A",
-    "high-spirits-ebonized-walnut-in-a":     "Ebonized Walnut A",
-    "high-spirits-432hz-in-spanish-cedar":   "Spanish Cedar 432Hz",
-    "high-spirits-432hz-spanish-cedar":      "Spanish Cedar 432Hz",
-    "high-spirits-high-kestrel-in-d":        "High Kestrel D",
-    "high-spirits-spirit-flute-in-f":        "Spirit Flute F#",
-    "high-spirits-spirit-flute-in-f-sharp":  "Spirit Flute F#",
-    "stellar-flutes-shaker-and-flute-in-d":  "Shaker and Flute D",
-    "shakuhachi-in-san-diego":               "Shakuhachi",
-    "learning-the-shakuhachi":               "Shakuhachi",
-    "learning-shakuhachi-with-my-cat-sammy": "Shakuhachi",
+    "drone-in-mexico-city": "High Spirits Nova G",
 }
 
-MAKERS = ("high-spirits", "stellar-flutes")
-# Fallback only. The title carries its location after a comma, which is a far
-# better signal than guessing from the slug — this list exists for the case
-# where only a slug is available, and it will always be missing somewhere.
-PLACES = ("san-diego", "mexico-city", "cdmx", "oaxaca", "massachusetts")
-NOTE = re.compile(r"^(?:[a-g](?:-sharp|-flat|b|#)?|\d+hz)$", re.I)
-# the key inside an already-capitalised title — the flute name ends here
-KEY_IN_TITLE = re.compile(r"\bin\s+[A-G](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?\b")
-# a key standing alone as its own comma field: "Double Drone, G, summer rain"
-BARE_KEY = re.compile(r"[A-G](?:#|b)?(?:\s*(?:m|min|minor|maj|major))?")
+# The publish script capitalises the key and nothing else, so an uppercase
+# letter in a finished title IS the key — no guessing needed.
+KEY_IN_TITLE = re.compile(r"\b([A-G])(#|b)?")
+# Falling back to the slug, where "#" has been stripped: "...-in-f-sharp-..."
+KEY_IN_SLUG = re.compile(r"(?:^|-)(?:in-)?([a-g])(?:-(sharp|flat))?(?:m)?(?=-|$)")
 
 
-def derive(slug):
-    """Best guess at a flute name for a slug that is not in MAP."""
-    parts = [p for p in slug.split("-") if p]
-    for maker in MAKERS:                       # drop the maker prefix
-        m = maker.split("-")
-        if parts[:len(m)] == m:
-            parts = parts[len(m):]
-    for place in PLACES:                       # drop a trailing location
-        p = place.split("-")
-        if parts[-len(p):] == p:
-            parts = parts[:-len(p)]
-    if parts and parts[0] == "learning":       # "learning the shakuhachi"
-        parts = parts[1:]
-        if parts and parts[0] == "the":
-            parts = parts[1:]
-    parts = [p for p in parts if p != "in"]    # "... in D" -> "... D"
-    # slugify splits "F#" into either "f" or "f-sharp"; rejoin the latter
-    merged = []
-    for p in parts:
-        if p in ("sharp", "flat") and merged and len(merged[-1]) == 1:
-            merged[-1] += "#" if p == "sharp" else "b"
-        else:
-            merged.append(p)
-    parts = merged
-    out = []
-    for p in parts:
-        # a key or a tuning keeps musical casing: F#, Bb, 432Hz — never BB
-        if NOTE.match(p):
-            if p.lower().endswith("hz"):
-                out.append(p[:-2] + "Hz")
-            else:
-                n = p.replace("-sharp", "#").replace("-flat", "b")
-                out.append(n[0].upper() + n[1:].lower())
-        else:
-            out.append(p.capitalize())
-    return " ".join(out) or slug
+def _has(hay, phrase):
+    """Whole-word phrase test.
 
-
-def from_title(title):
-    """Derive a flute name from a title, e.g. "double drone in G, massachusetts".
-
-    Better than deriving from the slug: the title still has the comma that
-    separates the instrument from where it was filmed, so any location works
-    without being on a list.
-
-    The name ends at the key. Anything after it describes the performance, not
-    the instrument — "native drone in G melancholic" is the Native Drone G
-    played a certain way, not a flute called "Native Drone G Melancholic".
+    A plain substring test is not enough: the maker is "High Spirits", so
+    looking for "spirit" finds it in every title and would file the whole
+    catalogue as the Spirit Flute.
     """
-    parts = [p.strip() for p in title.split(",")]
-    head = parts[0]
-    for maker in MAKERS:
-        pre = maker.replace("-", " ") + " –"
-        if head.lower().startswith(pre):
-            head = head[len(pre):].strip()
-    if len(parts) > 1 and BARE_KEY.fullmatch(parts[1]):
-        # "Double Drone, G, summer rain" — the key is its own field, so the
-        # instrument name would otherwise lose it at the first comma
-        head = f"{head} {parts[1]}"
-    else:
-        m = KEY_IN_TITLE.search(head)
+    return re.search(rf"\b{re.escape(phrase)}\b", hay) is not None
+
+
+def key_of(slug, title=None):
+    """The flute's key, normalised — mode dropped, so Gm reads as G."""
+    if title:
+        m = KEY_IN_TITLE.search(title)
         if m:
-            head = head[:m.end()].strip()
-    words = [w for w in head.split() if w.lower() != "in"]
-    out = []
-    for w in words:
-        # a key already carries its own casing by the time it reaches here
-        out.append(w if any(c.isupper() or c == "#" for c in w) else w.capitalize())
-    return " ".join(out) or head
+            return m.group(1) + (m.group(2) or "")
+    m = KEY_IN_SLUG.search(slug)
+    if m:
+        acc = {"sharp": "#", "flat": "b"}.get(m.group(2) or "", "")
+        return m.group(1).upper() + acc
+    return None
 
 
 def folder_for(slug, title=None):
+    """The folder this cut belongs in, or UNSORTED if the list can't place it."""
     if slug in MAP:
         return MAP[slug]
-    return from_title(title) if title else derive(slug)
+    hay = f"{slug} {title or ''}".lower().replace("-", " ")
+
+    # a flute with no key is identified by name alone
+    for f in FLUTES:
+        if any(_has(hay, w) for w in f.get("keyless", [])):
+            return f["folder"]
+
+    key = key_of(slug, title)
+    if not key:
+        return UNSORTED
+
+    candidates = []
+    for f in FLUTES:
+        if key not in f.get("key", ()):
+            continue
+        if any(_has(hay, w) for w in f.get("not_", [])):
+            continue
+        needs = f.get("needs")
+        if needs and not any(_has(hay, w) for w in needs):
+            continue
+        candidates.append(f["folder"])
+
+    # exactly one flute fits, or we don't guess
+    return candidates[0] if len(candidates) == 1 else UNSORTED
 
 
 if __name__ == "__main__":
     import sys
     args = sys.argv[1:]
-    # "slug" or "slug::title"
+    if args and args[0] == "--audit":
+        for f in FLUTES:
+            k = "/".join(sorted(f.get("key", ()))) or "no key"
+            print(f"  {f['folder']:<26} {k:<8} {f.get('note','')}")
+        raise SystemExit
     for a in args:
         slug, _, title = a.partition("::")
-        print(f"{a}  ->  {folder_for(slug, title or None)}")
+        print(f"{a}\n    -> {folder_for(slug, title or None)}")

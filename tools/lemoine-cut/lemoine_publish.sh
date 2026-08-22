@@ -128,6 +128,12 @@ print(folder_for(sys.argv[1], sys.argv[2]))
 PYEOF
 )"
 echo "title: [ $TITLE ]${TAKE:+   take: $TAKE}   slug: $SLUG   tagline: $TAGLINE   stamp: $STAMP   platform: $PLATFORM"
+echo "flute: $LEMOINE_DRIVE_SUBFOLDER"
+if [[ $LEMOINE_DRIVE_SUBFOLDER == Unsorted ]]; then
+  echo "  ^ no flute in categories.py matches this title, so it is NOT being" >&2
+  echo "    filed under an invented folder. Add it to FLUTES (or MAP) and" >&2
+  echo "    re-run drive_migrate.py to put it where it belongs." >&2
+fi
 
 # 3) lower thirds for this title (standard + raised-for-Shorts)
 python3 "$HERE/make_lower3.py" --text "$TITLE" --orientation vertical --outdir . >/dev/null
