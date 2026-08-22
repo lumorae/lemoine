@@ -107,10 +107,28 @@ The whole scheme exists to answer three questions without opening any videos:
 what shipped today, which take is this, and where's that clip from weeks ago.
 
 ```
-Inbox/                          raw clips off the phone
+Inbox/                          clips still to cut — and nothing else
+Source/<Flute>/                 originals of everything already cut
 Cut/<Flute>/                    finished cuts, one folder per instrument
 Cut/INDEX.md                    every cut ever, with links + a "to cut" list
 ```
+
+`Inbox/` only works as a to-do list if finished work leaves it. It had grown to
+24 originals, every one of them already cut, so the single question it should
+answer — what still needs cutting — was the one it could not.
+`drive_tidy_inbox.py` moves any original that has a finished cut into
+`Source/<Flute>/`, mirroring the Cut layout, and leaves the rest behind. Run it
+whenever Inbox starts to look full:
+
+```bash
+python3 drive_tidy_inbox.py --dry-run   # show what would move
+python3 drive_tidy_inbox.py             # do it
+```
+
+A source is matched to its cut by normalising both to the same loose key, so
+`High Spirits — High Kestrel in D (01)` finds the cut it produced even though
+neither name matches the other exactly. Sources are never renamed — Johnny
+named them — and moves only change a parent, so shared links keep working.
 
 Cuts file **by flute**, not by shoot date — `Cut/Ebonized Walnut A/`,
 `Cut/Shakuhachi/`. There are only so many flutes, and the same instrument comes
