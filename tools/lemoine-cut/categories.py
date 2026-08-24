@@ -71,6 +71,17 @@ FLUTES = [
         "folder": "Shakuhachi",
         "keyless": ["shakuhachi"],
     },
+    {
+        "folder": "Quena",
+        "keyless": ["quena"],
+        # Measured, not yet confirmed by Johnny, so the folder stays keyless:
+        # pitch-tracking the three Massachusetts takes puts every sustained note
+        # ~33 cents flat of A440, which is A432 (-31.8 cents) almost exactly.
+        # Read against 432 they land on A -5c, B -1c, C -8c, with the lowest
+        # sustained note a G — G major pentatonic on a quena in G. Against 440
+        # nothing fits, which is why a first pass looked like "B something".
+        "note": "Andean notched flute; measures as G tuned to A432",
+    },
 ]
 
 # Last-resort overrides, for a clip whose file name simply lacks the
