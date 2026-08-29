@@ -17,6 +17,7 @@ import hashlib
 import math
 import os
 import random
+import sys
 import subprocess
 
 from PIL import Image, ImageDraw, ImageFont
@@ -36,6 +37,8 @@ PALETTE = [
     (82, 173, 133), (56, 143, 199), (122, 92, 199), (224, 122, 173),
     (199, 140, 115), (140, 166, 140), (242, 207, 200), (243, 239, 225),
 ]
+
+MIN_FONT = 30   # below this the lower third stops being readable on a phone
 
 GEOM = {
     "landscape": dict(size=(1920, 1080), box_x=96, box_bottom=993, box_h=85,
@@ -125,14 +128,42 @@ class Pixel:
         return x, y, fade
 
 
+def fit_font(label, font_path, g, W):
+    """Largest font size at which the box still clears the frame edge.
+
+    The box is sized to its text, and nothing used to stop it growing: long
+    titles ran the box to within ~16px of a 1080px frame, against a 64px inset
+    on the left. The title has to stay on one line — it names the piece, and
+    wrapping or truncating it would be worse than a point smaller — so the type
+    shrinks instead, and only when it has to. Short titles are untouched.
+    """
+    max_box = W - g["box_x"] * 2          # mirror the left inset on the right
+    size = g["font_size"]
+    while size >= MIN_FONT:
+        font = ImageFont.truetype(font_path, size)
+        bb = font.getbbox(label)
+        box_w = g["text_dx"] + (bb[2] - bb[0]) + g["pad_right"]
+        if box_w <= max_box:
+            return font, box_w, size
+        size -= 1
+    # Nothing sensible left to try: keep it legible and let the caller shout.
+    font = ImageFont.truetype(font_path, MIN_FONT)
+    bb = font.getbbox(label)
+    return font, g["text_dx"] + (bb[2] - bb[0]) + g["pad_right"], MIN_FONT
+
+
 def build(text, orientation, font_path, outdir, basename=None, keep_frames=False):
     g = GEOM[orientation]
     W, H = g["size"]
-    font = ImageFont.truetype(font_path, g["font_size"])
 
     label = f"[ {text} ]"
-    bb = font.getbbox(label)
-    box_w = g["text_dx"] + (bb[2] - bb[0]) + g["pad_right"]
+    font, box_w, size = fit_font(label, font_path, g, W)
+    if size < g["font_size"]:
+        print(f"  lower third: {g['font_size']}pt -> {size}pt so \"{text}\" "
+              f"stays on one line inside the frame", file=sys.stderr)
+    if g["box_x"] + box_w > W:
+        print(f"  WARNING: \"{text}\" still overflows at {MIN_FONT}pt — shorten it",
+              file=sys.stderr)
     box_h = g["box_h"]
     box_x, box_y = g["box_x"], g["box_bottom"] - box_h
     cy = box_y + box_h / 2

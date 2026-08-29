@@ -11,7 +11,12 @@ trim → brand lower third → hall reverb → loudness-normalized h264.
   `#CC3565` coral dot, Outfit Light text in brand cream `#F3EFE1`, blocky
   left-to-right pixel wipe in/out with digital-palette particles (same palette
   as the site's lemon-explosion effect). 5.4s @ 30fps, landscape (1920x1080)
-  and vertical (1080x1920).
+  and vertical (1080x1920). The title always stays on **one line inside the
+  frame**: the box is sized to its text, so a long title used to run it to
+  within ~16px of the right edge against a 64px inset on the left. The type now
+  shrinks a point or two when it has to and is left alone when it doesn't —
+  wrapping or truncating would be worse, since the title names the piece. Below
+  30pt it gives up and warns instead of shipping something unreadable.
 - `make_ir.py` — synthesizes the stereo hall impulse response (T60 ≈ 2.3s,
   25ms pre-delay, faster HF decay) used for the reverb.
 - `reverb.py` — convolution reverb (numpy FFT). The distro ffmpeg's `afir`
