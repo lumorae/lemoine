@@ -8,3 +8,4 @@ frames-*/
 *.mp4
 gdrive-sa.json
 __pycache__/
+yt-oauth.json
