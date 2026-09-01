@@ -63,6 +63,20 @@ FLUTES = [
         "note": "Stellar Flutes, not High Spirits",
     },
     {
+        "folder": "Sacral Chakra D",
+        "key": {"D"},
+        "needs": ["sacral", "chakra"],
+        # Named by its chakra rather than its maker or model, which is how
+        # Johnny refers to it. Single chamber, reddish wood, branded medallion
+        # near the foot — visibly not the double, the Nova or the walnut.
+        # PROVISIONAL: if this turns out to be the Kestrel or the Stellar under
+        # a different name, delete this entry and let it match there instead.
+        # Three folders for one flute is the exact drift this file exists to
+        # prevent, and drive_migrate.py will move the cuts without breaking
+        # their links.
+        "note": "third D flute; identified by name only, not yet confirmed",
+    },
+    {
         "folder": "Spanish Cedar 432Hz",
         "keyless": ["spanish cedar", "432"],
         "note": "tuned to 432Hz, so it carries no letter key",
