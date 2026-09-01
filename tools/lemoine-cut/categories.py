@@ -16,7 +16,10 @@ guess is worse than an obvious question.
 
 Matching is by key first, since each flute has one, then by a distinguishing
 word where a key is shared — F# covers both the Spirit Flute and the double,
-and D covers both the High Kestrel and the Stellar shaker.
+and D covers three: the High Kestrel, the Stellar shaker and the sacral
+chakra flute. A shared key is therefore never enough on its own; a clip whose
+name carries no distinguishing word goes to UNSORTED rather than to whichever
+flute happens to be listed first.
 
     python3 categories.py "slug::title"     # what would this be filed as
     python3 categories.py --audit           # check the list against Drive
@@ -68,13 +71,10 @@ FLUTES = [
         "needs": ["sacral", "chakra"],
         # Named by its chakra rather than its maker or model, which is how
         # Johnny refers to it. Single chamber, reddish wood, branded medallion
-        # near the foot — visibly not the double, the Nova or the walnut.
-        # PROVISIONAL: if this turns out to be the Kestrel or the Stellar under
-        # a different name, delete this entry and let it match there instead.
-        # Three folders for one flute is the exact drift this file exists to
-        # prevent, and drive_migrate.py will move the cuts without breaking
-        # their links.
-        "note": "third D flute; identified by name only, not yet confirmed",
+        # near the foot. Confirmed by Johnny as a separate instrument, not the
+        # Kestrel or the Stellar under another name — so D now needs a
+        # distinguishing word for all three.
+        "note": "third D flute, distinct from the Kestrel and the Stellar",
     },
     {
         "folder": "Spanish Cedar 432Hz",
