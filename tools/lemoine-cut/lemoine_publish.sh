@@ -170,7 +170,15 @@ if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
 fi
 
 echo ""
-echo "ready (also filed to Drive Cut/${LEMOINE_DRIVE_SUBFOLDER}/):"
+# Only claim the cuts reached Drive if there was a key to reach it with. The
+# upload step is skipped silently when gdrive-sa.json is absent — which happens
+# whenever the container is rebuilt, since the key is gitignored — and this
+# line used to announce a filing that never happened.
+if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
+  echo "ready (also filed to Drive Cut/${LEMOINE_DRIVE_SUBFOLDER}/):"
+else
+  echo "ready (LOCAL ONLY — no gdrive-sa.json, so nothing was uploaded):"
+fi
 if [[ $PLATFORM == reels || $PLATFORM == both ]]; then
   echo "  ${STAMP}_${SLUG}_reels.mp4   (instagram: intro + end-card '$TAGLINE')"
 fi
