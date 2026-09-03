@@ -203,7 +203,14 @@ def build(text, orientation, font_path, outdir, basename=None, keep_frames=False
                                 box_y + rng.uniform(box_h * 0.35, box_h),
                                 t_edge + rng.uniform(0, 0.2), chunky_bias=0.18))
 
-    frame_dir = os.path.join(outdir, f"frames-{orientation}")
+    # The frame directory is per-run, not per-orientation. It used to be just
+    # "frames-<orientation>", which two renders into the same outdir silently
+    # share: the second overwrites the first's PNGs mid-encode and both .mov
+    # files come out with whichever text won the race. That failure is
+    # invisible — it produces a valid video with the wrong words in it — so
+    # the name carries the slug and the pid to make collision impossible.
+    run_id = f"{hashlib.md5(text.encode()).hexdigest()[:8]}-{os.getpid()}"
+    frame_dir = os.path.join(outdir, f"frames-{orientation}-{run_id}")
     os.makedirs(frame_dir, exist_ok=True)
 
     for n in range(N_FRAMES):
