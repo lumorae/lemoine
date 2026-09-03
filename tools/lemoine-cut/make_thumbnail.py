@@ -131,12 +131,19 @@ def build(frame, eyebrow, lines, out, zoom=0.66, y_centre=0.40,
     widest = 0
     for i, line in enumerate(lines):
         b = d.textbbox((0, 0), line, font=fh)
-        d.text((MARGIN, y + i * lead - b[1]), line, font=fh, fill=OLD_LACE)
+        top = y + i * lead - b[1]
+        d.text((MARGIN, top), line, font=fh, fill=OLD_LACE)
         widest = max(widest, b[2] - b[0])
         if i == len(lines) - 1:
+            # Sit the period on the BASELINE, not on the bottom of the ink box.
+            # A word with a descender ("journey", "youtube") has an ink box that
+            # runs below the baseline, and a period aligned to that hangs
+            # visibly low. getmetrics is the only reliable anchor: text drawn
+            # at `top` has its baseline at top + ascent.
+            baseline = top + fh.getmetrics()[0]
             dr = max(7, int(hh * 0.15))
-            d.ellipse([MARGIN + (b[2] - b[0]) + dr, y + i * lead + hh - dr * 2,
-                       MARGIN + (b[2] - b[0]) + dr + dr * 2, y + i * lead + hh], fill=CORAL)
+            cx = MARGIN + (b[2] - b[0]) + dr * 2
+            d.ellipse([cx - dr, baseline - 2 * dr, cx + dr, baseline], fill=CORAL)
 
     if logo:
         im = im.convert("RGBA")
