@@ -22,12 +22,18 @@ INBOX_FOLDER_ID = "12kmLXP1WCXCw7qFOeR2GtjqzYb9uMcpn"
 FOLDER_MIME = "application/vnd.google-apps.folder"
 
 # YYYY-MM-DD[_HHMM]_slug[-takeNN]_platform.mp4
+#
+# "youtube" is the long-form landscape cut: a full 20-minute take at 1920x1080
+# rather than one of the vertical clips. It is listed here so a long-form
+# render counts as a cut instead of falling through to "Not filed" — the index
+# reports what is in Cut/, and a piece that took an hour to render should not
+# read as a stray file someone left lying around.
 CUT_RE = re.compile(
     r"^(?P<date>\d{4}-\d{2}-\d{2})"
     r"(?:_(?P<time>\d{4}))?"
     r"_(?P<slug>.+?)"
     r"(?:-take(?P<take>\d{2}))?"
-    r"_(?P<platform>reels|shorts)\.mp4$")
+    r"_(?P<platform>reels|shorts|youtube)\.mp4$")
 
 
 def api(path, token, **params):

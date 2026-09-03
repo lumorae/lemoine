@@ -9,3 +9,6 @@ frames-*/
 gdrive-sa.json
 __pycache__/
 yt-oauth.json
+# rebuilt from Drive by drive_index.py and uploaded there; running the script
+# from this directory drops a copy here, which is output, not source
+INDEX.md
