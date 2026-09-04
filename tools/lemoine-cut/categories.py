@@ -94,6 +94,13 @@ FLUTES = [
         # Read against 432 they land on A -5c, B -1c, C -8c, with the lowest
         # sustained note a G — G major pentatonic on a quena in G. Against 440
         # nothing fits, which is why a first pass looked like "B something".
+        #
+        # 2026-09-04: the San Diego garden take reproduces this independently —
+        # different day, different continent, best-fit reference A4=431.4 Hz and
+        # the lowest sustained note a G again (382.6 Hz, -7.9c). A quena's pitch
+        # bends a long way with embouchure, so one recording sitting flat could
+        # have been the player; two, weeks and a hemisphere apart, landing on the
+        # same reference is the instrument.
         "note": "Andean notched flute; measures as G tuned to A432",
     },
 ]
