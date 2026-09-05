@@ -38,6 +38,7 @@ glued together at grid size, which is what --fade exists to prevent.
 """
 import argparse
 import os
+import re
 import subprocess
 import tempfile
 
@@ -141,6 +142,56 @@ def grain(im, amount, seed=7):
     lum = a.mean(axis=2, keepdims=True) / 255.0
     weight = np.clip(1.0 - np.abs(lum - 0.45) * 1.35, 0.22, 1.0)
     return Image.fromarray(np.clip(a + n * weight, 0, 255).astype(np.uint8))
+
+
+def lines_from_title(title):
+    """Split a cut title into the two headline lines.
+
+    Titles are shaped "double drone flute in F#, san diego": an instrument, its
+    key, and often a place. The place is already in the picture, so the headline
+    keeps the instrument and the key and drops the rest. A title with no key
+    just splits evenly across two lines, because one long line auto-fits down to
+    a size nobody can read in a grid.
+    """
+    t = title.split(",")[0].strip()
+    m = re.search(r"\s+(in\s+[A-G](?:#|b)?m?)\s*$", t)
+    if m:
+        return [t[:m.start()].strip(), m.group(1)]
+    w = t.split()
+    if len(w) < 2:
+        return [t]
+    k = (len(w) + 1) // 2
+    return [" ".join(w[:k]), " ".join(w[k:])]
+
+
+def contact(video, out, every=2.0, cols=10, tile=150):
+    """A numbered sheet of every candidate frame, for choosing --at by eye.
+
+    Deliberately not automated. Sharpness, subject size and exposure are all
+    flat across a static one-take clip, so a score picks an arbitrary frame —
+    and on the first attempt at this it picked one shot straight up the chin.
+    Which second of a take a person looks good in is a judgement, so the script
+    lays the options out and a human makes it.
+    """
+    d = tempfile.mkdtemp()
+    subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf",
+                    f"{TONEMAP},fps=1/{every},scale={tile}:-1", os.path.join(d, "f_%03d.png")],
+                   check=True)
+    fs = sorted(f for f in os.listdir(d) if f.startswith("f_"))
+    if not fs:
+        return None
+    first = Image.open(os.path.join(d, fs[0]))
+    tw, th = first.size
+    rows = (len(fs) + cols - 1) // cols
+    sheet = Image.new("RGB", (cols * tw, rows * (th + 18)), (10, 10, 10))
+    sd = ImageDraw.Draw(sheet)
+    for i, f in enumerate(fs):
+        r, c = divmod(i, cols)
+        y = r * (th + 18)
+        sheet.paste(Image.open(os.path.join(d, f)), (c * tw, y + 18))
+        sd.text((c * tw + 4, y + 4), f"{i * every + every / 2:.1f}s", fill=(255, 220, 0))
+    sheet.save(out)
+    return out
 
 
 def _screen(base, layer, amount):
@@ -347,11 +398,16 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--video", required=True, help="the ORIGINAL clip, not the cut")
     ap.add_argument("--at", type=float, required=True, help="timestamp of the frame")
-    ap.add_argument("--eyebrow", required=True, help="lowercase, goes inside [ ]")
+    ap.add_argument("--eyebrow", default="a minute of stillness",
+                    help="lowercase, goes inside [ ]")
+    ap.add_argument("--title", default=None,
+                    help="derive the headline from a cut title, e.g. 'quena in G, san diego'")
+    ap.add_argument("--contact", default=None,
+                    help="also write a numbered sheet of candidate frames here")
     # The closing period is DRAWN, in coral, as part of the lockup. Typing one
     # into the headline gets you two: the black one you typed and the coral one
     # the layout adds after it.
-    ap.add_argument("--line1", required=True)
+    ap.add_argument("--line1", default=None)
     ap.add_argument("--line2", default=None)
     ap.add_argument("--out", default="short-thumb.jpg")
     ap.add_argument("--layout", choices=list(PRESETS), default="band")
@@ -367,7 +423,15 @@ if __name__ == "__main__":
     ap.add_argument("--zoom", type=float, default=1.0, help=">1 crops in")
     ap.add_argument("--no-logo", action="store_true")
     a = ap.parse_args()
-    lines = [l.rstrip(". ") for l in ([a.line1] + ([a.line2] if a.line2 else []))]
+    if a.line1:
+        lines = [a.line1] + ([a.line2] if a.line2 else [])
+    elif a.title:
+        lines = lines_from_title(a.title)
+    else:
+        ap.error("need --line1 or --title")
+    lines = [l.rstrip(". ") for l in lines]
+    if a.contact:
+        print(f"  candidate frames -> {contact(a.video, a.contact)}")
     build(grab(a.video, a.at), a.eyebrow, lines, a.out, layout=a.layout,
           subject_y=a.subject_y, zoom=a.zoom, logo=not a.no_logo,
           grade=a.grade, grain_amount=a.grain, solid=a.solid, fade=a.fade,

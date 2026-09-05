@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # lemoine_publish.sh — one command from a Drive link to platform-ready cuts.
 #
-#   ./lemoine_publish.sh <drive-url-or-local-file> [-g brands|dontblend] [-T "title"] [-p reels|shorts|both]
+#   ./lemoine_publish.sh <drive-url-or-local-file> [-g brands|dontblend] [-T "title"]
+#                        [-p reels|shorts|both] [-E "eyebrow"] [-F seconds]
 #
 # Produces, from one raw vertical clip:
 #   <slug>-reels.mp4   Instagram Reels: intro + lower third + outro end-card,
@@ -25,12 +26,16 @@ if [[ ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
   echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
 fi
 SRC="" TAGLINE="dontblend" TITLE="" PLATFORM="both"
+EYEBROW="a minute of stillness"   # the bracketed line on the Shorts thumbnail
+THUMB_AT=""                      # thumbnail frame, seconds into the ORIGINAL clip
 CLEAN_ARGS=()   # -c / -n fill this; stays empty for a clean studio recording
 BW_ARGS=()      # -bw fills this; footage goes monochrome, overlays stay branded
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -g) TAGLINE=$2; shift 2;;
     -T) TITLE=$2; shift 2;;
+    -E) EYEBROW=$2; shift 2;;                 # thumbnail eyebrow, inside [ ]
+    -F) THUMB_AT=$2; shift 2;;                # thumbnail frame, in seconds
     -p) PLATFORM=$2; shift 2;;
     -bw) BW_ARGS=(-B); shift;;                # monochrome footage, colour overlays
     -c) CLEAN_ARGS=(-C); shift;;              # noisy location recording
@@ -38,7 +43,7 @@ while [[ $# -gt 0 ]]; do
     *) SRC=$1; shift;;
   esac
 done
-[[ -n $SRC ]] || { echo "usage: $0 <drive-url-or-file> [-g brands|dontblend] [-T title] [-p reels|shorts|both] [-c] [-n strength] [-bw]" >&2; exit 2; }
+[[ -n $SRC ]] || { echo "usage: $0 <drive-url-or-file> [-g brands|dontblend] [-T title] [-p reels|shorts|both] [-E eyebrow] [-F seconds] [-c] [-n strength] [-bw]" >&2; exit 2; }
 case "$PLATFORM" in reels|shorts|both) ;; *) echo "-p must be reels, shorts, or both" >&2; exit 2;; esac
 
 WORKDIR=${LEMOINE_WORKDIR:-$(pwd)}
@@ -164,6 +169,29 @@ if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
   bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_shorts.mp4" -l "$L3YT" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}"
 fi
 
+# 5b) Shorts thumbnail, from the ORIGINAL clip rather than the cut: the cut has
+#     the lower third burned into its first seconds, and the source is 4K.
+#
+#     The frame is the one thing here a script should not decide. Sharpness,
+#     subject size and exposure are all flat across a static one-take clip, so
+#     a score picks arbitrarily — the first attempt at this chose a second shot
+#     straight up the chin, and no amount of grading rescued it. So this renders
+#     a default AND a numbered contact sheet, and -F re-renders on a chosen
+#     second in one command.
+if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
+  THUMB="${STAMP}_${SLUG}_thumb.jpg"
+  AT=${THUMB_AT:-$(python3 -c "
+import subprocess,sys
+d=float(subprocess.run(['ffprobe','-v','error','-show_entries','format=duration',
+                        '-of','csv=p=0',sys.argv[1]],capture_output=True,text=True).stdout)
+print(f'{d*0.55:.1f}')" "$SRC")}
+  python3 "$HERE/make_short_thumb.py" --video "$SRC" --at "$AT" \
+    --title "$TITLE" --eyebrow "$EYEBROW" \
+    --grain 9 --effect diffusion \
+    --contact "${STAMP}_${SLUG}_frames.png" --out "$THUMB" \
+    || echo "thumbnail failed (the cut is fine)"
+fi
+
 # 6) refresh Cut/INDEX.md so the catalogue never drifts from what's on Drive
 if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
   python3 "$HERE/drive_index.py" --out "$WORKDIR/INDEX.md" || echo "index rebuild failed (cuts are still uploaded)"
@@ -184,4 +212,8 @@ if [[ $PLATFORM == reels || $PLATFORM == both ]]; then
 fi
 if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
   echo "  ${STAMP}_${SLUG}_shorts.mp4  (youtube shorts: clean loop, raised lower third)"
+  if [[ -f ${STAMP}_${SLUG}_thumb.jpg ]]; then
+    echo "  ${STAMP}_${SLUG}_thumb.jpg   (thumbnail, frame at ${AT}s)"
+    echo "  ${STAMP}_${SLUG}_frames.png  (every candidate frame; re-run with -F <seconds> to change it)"
+  fi
 fi
