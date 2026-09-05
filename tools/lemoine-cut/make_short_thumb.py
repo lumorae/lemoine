@@ -213,9 +213,15 @@ def draw_type(im, y, eyebrow, lines, maxw, on_dark_photo=False):
     return bottom, fh.size
 
 
-PRESETS = {                       # solid ink to, faded out by, subject sits at
-    "band":  (0.20, 0.46, 0.52),
-    "bleed": (0.00, 0.46, 0.46),
+# solid ink to, faded out by, subject sits at.
+#
+# The fade endpoint is the one number worth being careful with. Too shallow and
+# the ink stops abruptly in open sky; too deep and it crosses the face, which
+# goes grey and stops reading as the subject. On this footage the face turns at
+# about 0.70, so the band stops well short of it.
+PRESETS = {
+    "band":  (0.20, 0.58, 0.52),
+    "bleed": (0.00, 0.58, 0.46),
 }
 
 
