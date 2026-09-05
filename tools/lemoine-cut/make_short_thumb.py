@@ -25,12 +25,16 @@ Pull the frame from the ORIGINAL clip, not the finished cut: the cut has the
 lower third burned into its first seconds and is 1080 wide, while the source is
 2160x3840 and has resolution to spare.
 
-Two layouts, because which one wins depends on where the subject's head is:
+The photo always runs full frame. What changes is how far down the ink stays
+solid before it dissolves into the picture:
 
-  band    a charcoal band across the top, photo below it. Unmissable at grid
-          size, costs about a fifth of the image.
-  bleed   photo full frame, darkened under the type by a soft gradient. Keeps
-          the whole picture, and needs real sky or shadow up top to work.
+  band    ink holds to 20% and is gone by 46%. Type sits on solid ground, and
+          the falloff keeps it from reading as a sticker over a photograph.
+  bleed   no solid at all, just a gradient. Keeps every pixel of the image,
+          and needs real sky or shadow up top for the type to survive.
+
+An earlier draft ended the band on a hard edge. It looked like two pictures
+glued together at grid size, which is what --fade exists to prevent.
 """
 import argparse
 import os
@@ -104,6 +108,65 @@ def _fit_lines(lines, path, start, maxw, floor=40):
     return ImageFont.truetype(path, floor)
 
 
+def film(im, strength=1.0):
+    """A restrained film grade: matte blacks, warm highlights, cool shadows.
+
+    Deliberately small numbers. The brand is clean and confident, and a heavy
+    preset would read as a filter rather than as a photograph that was graded.
+    """
+    if strength <= 0:
+        return im
+    a = np.asarray(im).astype(np.float32) / 255.0
+    lo, hi = 0.045 * strength, 1.0 - 0.018 * strength      # lift the black point
+    a = lo + a * (hi - lo)
+    lum = a.mean(axis=2, keepdims=True)
+    a += np.array([0.022, 0.005, -0.018]) * strength * lum          # warm highs
+    a += np.array([-0.012, -0.002, 0.016]) * strength * (1 - lum)   # cool shadows
+    a = lum + (a - lum) * (1 - 0.07 * strength)                     # ease saturation
+    return Image.fromarray(np.clip(a * 255, 0, 255).astype(np.uint8))
+
+
+def grain(im, amount, seed=7):
+    """Monochrome film grain, strongest in the midtones.
+
+    Real grain all but disappears in clipped highlights and deep shadow, so
+    flat noise across the frame reads as digital sensor noise instead. Seeded,
+    so re-rendering the same thumbnail gives the same grain.
+    """
+    if amount <= 0:
+        return im
+    a = np.asarray(im).astype(np.float32)
+    h, w = a.shape[:2]
+    n = np.random.default_rng(seed).normal(0.0, amount, (h, w, 1))
+    lum = a.mean(axis=2, keepdims=True) / 255.0
+    weight = np.clip(1.0 - np.abs(lum - 0.45) * 1.35, 0.22, 1.0)
+    return Image.fromarray(np.clip(a + n * weight, 0, 255).astype(np.uint8))
+
+
+def scrim(im, solid=0.0, fade=0.46):
+    """Ink over the top of the photo: opaque to `solid`, faded to nothing by `fade`.
+
+    One control instead of two layouts. A hard-edged band reads as a sticker
+    stuck over a photograph; carrying it down into the image on a smoothstep
+    makes it look like the picture darkens, which is what it should look like.
+    """
+    if fade <= solid:
+        return im
+    y0, y1 = int(H * solid), int(H * fade)
+    alpha = Image.new("L", (W, H), 0)
+    ad = ImageDraw.Draw(alpha)
+    for yy in range(y1):
+        if yy <= y0:
+            v = 255
+        else:
+            t = 1.0 - (yy - y0) / (y1 - y0)
+            v = int(255 * (t * t * (3 - 2 * t)))
+        ad.line([(0, yy), (W, yy)], fill=v)
+    blur = max(2, int(H * (fade - solid) * 0.06))
+    return Image.composite(Image.new("RGB", (W, H), INK), im,
+                           alpha.filter(ImageFilter.GaussianBlur(blur)))
+
+
 def photo(frame, height, subject_y=0.30, place_at=0.34, zoom=1.0):
     """Crop the source frame to 1080 x `height`, landing the subject sensibly.
 
@@ -150,36 +213,28 @@ def draw_type(im, y, eyebrow, lines, maxw, on_dark_photo=False):
     return bottom, fh.size
 
 
-def build(frame, eyebrow, lines, out, layout="band", band=0.24,
-          subject_y=0.30, zoom=1.0, logo=True):
-    im = Image.new("RGB", (W, H), INK)
+PRESETS = {                       # solid ink to, faded out by, subject sits at
+    "band":  (0.20, 0.46, 0.52),
+    "bleed": (0.00, 0.46, 0.46),
+}
+
+
+def build(frame, eyebrow, lines, out, layout="band", subject_y=0.30, zoom=1.0,
+          logo=True, grade=1.0, grain_amount=7.0, solid=None, fade=None):
     maxw = W - 2 * MARGIN
+    s, f, place = PRESETS[layout]
+    s = s if solid is None else solid
+    f = f if fade is None else fade
 
-    if layout == "band":
-        # Measure the type block first and size the band to it. A fixed
-        # fraction looks fine until the headline needs two lines, and then the
-        # words spill onto the photograph and read as a mistake rather than a
-        # layout.
-        probe = Image.new("RGB", (W, H), INK)
-        y0 = int(H * 0.05) + (64 + 46 if logo else 0)
-        block, _ = draw_type(probe, y0, eyebrow, lines, maxw)
-        top = min(int(H * 0.55), block + int(H * 0.035))
-        im.paste(photo(frame, H - top, subject_y=subject_y,
-                       place_at=0.30, zoom=zoom), (0, top))
-        y = int(H * 0.05)
-    else:
-        im = photo(frame, H, subject_y=subject_y, place_at=0.46, zoom=zoom)
-        # a soft top-down scrim so type has ground without a hard panel edge
-        alpha = Image.new("L", (W, H), 0)
-        ad = ImageDraw.Draw(alpha)
-        ys, ye = 0, int(H * 0.46)
-        for yy in range(H):
-            t = 0.0 if yy >= ye else 1.0 - (yy - ys) / (ye - ys)
-            ad.line([(0, yy), (W, yy)], fill=int(238 * (t * t * (3 - 2 * t))))
-        im = Image.composite(Image.new("RGB", (W, H), INK), im,
-                             alpha.filter(ImageFilter.GaussianBlur(24)))
-        y = int(H * 0.055)
+    im = photo(frame, H, subject_y=subject_y, place_at=place, zoom=zoom)
+    im = film(im, grade)
+    im = scrim(im, solid=s, fade=f)
+    # Grain goes on AFTER the scrim so the dark top is grained too — that is
+    # what makes it read as one photograph rather than as type over a picture —
+    # but BEFORE the type, so the letterforms stay clean.
+    im = grain(im, grain_amount)
 
+    y = int(H * 0.05)
     if logo:
         im = im.convert("RGBA")
         im.alpha_composite(lemon(64, OLD_LACE), (MARGIN, y))
@@ -220,8 +275,13 @@ if __name__ == "__main__":
     ap.add_argument("--line1", required=True)
     ap.add_argument("--line2", default=None)
     ap.add_argument("--out", default="short-thumb.jpg")
-    ap.add_argument("--layout", choices=["band", "bleed"], default="band")
-    ap.add_argument("--band", type=float, default=0.24, help="band height, 0-1")
+    ap.add_argument("--layout", choices=list(PRESETS), default="band")
+    ap.add_argument("--solid", type=float, default=None,
+                    help="fraction of the height held fully ink (overrides the preset)")
+    ap.add_argument("--fade", type=float, default=None,
+                    help="fraction by which the ink has faded to nothing")
+    ap.add_argument("--grade", type=float, default=1.0, help="film grade, 0 = off")
+    ap.add_argument("--grain", type=float, default=7.0, help="grain sigma, 0 = off")
     ap.add_argument("--subject-y", type=float, default=0.30,
                     help="where the head sits in the source frame, 0-1")
     ap.add_argument("--zoom", type=float, default=1.0, help=">1 crops in")
@@ -229,4 +289,5 @@ if __name__ == "__main__":
     a = ap.parse_args()
     lines = [l.rstrip(". ") for l in ([a.line1] + ([a.line2] if a.line2 else []))]
     build(grab(a.video, a.at), a.eyebrow, lines, a.out, layout=a.layout,
-          band=a.band, subject_y=a.subject_y, zoom=a.zoom, logo=not a.no_logo)
+          subject_y=a.subject_y, zoom=a.zoom, logo=not a.no_logo,
+          grade=a.grade, grain_amount=a.grain, solid=a.solid, fade=a.fade)
