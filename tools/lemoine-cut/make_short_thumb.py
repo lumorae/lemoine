@@ -143,6 +143,74 @@ def grain(im, amount, seed=7):
     return Image.fromarray(np.clip(a + n * weight, 0, 255).astype(np.uint8))
 
 
+def _screen(base, layer, amount):
+    """Screen blend — how light actually adds, rather than clipping like sum."""
+    b = base.astype(np.float32)
+    l = np.clip(layer.astype(np.float32) * amount, 0, 255)
+    return 255.0 - (255.0 - b) * (255.0 - l) / 255.0
+
+
+def diffusion(im, strength=0.55):
+    """A Pro-Mist in front of the lens: highlights bloom into a soft veil.
+
+    This is the one cinematographers actually reach for when they want calm.
+    It lowers apparent contrast without touching the black point, so the
+    picture goes gentle rather than grey.
+    """
+    a = np.asarray(im).astype(np.float32)
+    lum = a.mean(axis=2, keepdims=True) / 255.0
+    mask = np.clip((lum - 0.55) / 0.45, 0, 1) ** 1.5
+    hi = Image.fromarray(np.clip(a * mask, 0, 255).astype(np.uint8))
+    glow = np.asarray(hi.filter(ImageFilter.GaussianBlur(H * 0.018)))
+    return Image.fromarray(np.clip(_screen(a, glow, strength), 0, 255).astype(np.uint8))
+
+
+def halation(im, strength=0.5):
+    """The red bleed film gets where a highlight burns back off the base.
+
+    Deliberately only in the red and a little green: neutral bloom is
+    diffusion, and the warmth is the whole reason halation looks like film.
+    """
+    a = np.asarray(im).astype(np.float32)
+    lum = a.mean(axis=2, keepdims=True) / 255.0
+    mask = np.clip((lum - 0.68) / 0.32, 0, 1) ** 2
+    hi = Image.fromarray(np.clip(a * mask, 0, 255).astype(np.uint8))
+    glow = np.asarray(hi.filter(ImageFilter.GaussianBlur(H * 0.030))).astype(np.float32)
+    glow *= np.array([1.0, 0.42, 0.22])                   # burn it warm
+    return Image.fromarray(np.clip(_screen(a, glow, strength), 0, 255).astype(np.uint8))
+
+
+def vignette(im, strength=0.35):
+    """Corners fall away, so the eye goes to the middle and stays there."""
+    yy, xx = np.mgrid[0:H, 0:W]
+    r = np.sqrt(((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2)
+    k = 1.0 - strength * np.clip((r - 0.55) / 0.75, 0, 1) ** 1.6
+    a = np.asarray(im).astype(np.float32) * k[:, :, None]
+    return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
+
+
+def duotone(im, mix=1.0, dark=INK, light=OLD_LACE):
+    """Map luminance across the brand's own two colours.
+
+    Not a colour cast over the photograph — the photograph is rebuilt out of
+    #191919 and #f3efe1, which is why it sits inside the palette instead of
+    beside it.
+    """
+    lum = (np.asarray(im.convert("L")).astype(np.float32) / 255.0)[:, :, None]
+    duo = np.array(dark) + (np.array(light) - np.array(dark)) * lum
+    a = np.asarray(im).astype(np.float32)
+    return Image.fromarray(np.clip(a * (1 - mix) + duo * mix, 0, 255).astype(np.uint8))
+
+
+EFFECTS = {
+    "none": lambda im: im,
+    "diffusion": diffusion,
+    "halation": halation,
+    "vignette": vignette,
+    "duotone": duotone,
+}
+
+
 def scrim(im, solid=0.0, fade=0.46):
     """Ink over the top of the photo: opaque to `solid`, faded to nothing by `fade`.
 
@@ -226,7 +294,8 @@ PRESETS = {
 
 
 def build(frame, eyebrow, lines, out, layout="band", subject_y=0.30, zoom=1.0,
-          logo=True, grade=1.0, grain_amount=7.0, solid=None, fade=None):
+          logo=True, grade=1.0, grain_amount=7.0, solid=None, fade=None,
+          effect="none"):
     maxw = W - 2 * MARGIN
     s, f, place = PRESETS[layout]
     s = s if solid is None else solid
@@ -234,6 +303,10 @@ def build(frame, eyebrow, lines, out, layout="band", subject_y=0.30, zoom=1.0,
 
     im = photo(frame, H, subject_y=subject_y, place_at=place, zoom=zoom)
     im = film(im, grade)
+    # The effect goes on the photograph, before the ink. Applying it after
+    # would drag the flat #191919 into whatever the effect does, and a bloomed
+    # or duotoned brand colour is a mistake rather than a texture.
+    im = EFFECTS[effect](im)
     im = scrim(im, solid=s, fade=f)
     # Grain goes on AFTER the scrim so the dark top is grained too — that is
     # what makes it read as one photograph rather than as type over a picture —
@@ -288,6 +361,7 @@ if __name__ == "__main__":
                     help="fraction by which the ink has faded to nothing")
     ap.add_argument("--grade", type=float, default=1.0, help="film grade, 0 = off")
     ap.add_argument("--grain", type=float, default=7.0, help="grain sigma, 0 = off")
+    ap.add_argument("--effect", choices=list(EFFECTS), default="none")
     ap.add_argument("--subject-y", type=float, default=0.30,
                     help="where the head sits in the source frame, 0-1")
     ap.add_argument("--zoom", type=float, default=1.0, help=">1 crops in")
@@ -296,4 +370,5 @@ if __name__ == "__main__":
     lines = [l.rstrip(". ") for l in ([a.line1] + ([a.line2] if a.line2 else []))]
     build(grab(a.video, a.at), a.eyebrow, lines, a.out, layout=a.layout,
           subject_y=a.subject_y, zoom=a.zoom, logo=not a.no_logo,
-          grade=a.grade, grain_amount=a.grain, solid=a.solid, fade=a.fade)
+          grade=a.grade, grain_amount=a.grain, solid=a.solid, fade=a.fade,
+          effect=a.effect)
