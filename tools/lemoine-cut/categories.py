@@ -60,10 +60,21 @@ FLUTES = [
         "needs": ["kestrel"],
     },
     {
-        "folder": "Shaker and Flute D",
+        "folder": "Stellar Flute D",
         "key": {"D"},
         "needs": ["shaker", "stellar"],
-        "note": "Stellar Flutes, not High Spirits",
+        # Was "Shaker and Flute D". Johnny confirmed the August shaker clips are
+        # this same flute with a shaker added, not a second instrument, so the
+        # two folders became one. "shaker" stays in `needs`: it is how those
+        # clips name themselves and it now points here.
+        #
+        # 2026-09-10: measured from the indoor take. Lowest sustained note D4,
+        # and the scale played is root, minor third, fourth, fifth with a light
+        # major sixth. The whole instrument sounds about 30 cents sharp of
+        # concert D, near an A=447 reference, so it is neither a 440 nor a 432
+        # flute. One recording cannot separate the instrument from breath
+        # pressure; a second take would, as it did for the quena.
+        "note": "Stellar Flutes, not High Spirits; the shaker clips are this flute too",
     },
     {
         "folder": "Sacral Chakra D",
