@@ -62,6 +62,25 @@ MARGIN = 72
 SAFE_BOTTOM = 0.18               # view-count overlay lives here; keep type out
 TILE = 180                       # a Shorts grid tile, roughly, for the test sheet
 
+# THE TYPE SIZE IS FIXED. It is not fitted to the words.
+#
+# The first version auto-shrank the headline until it fitted the column, which
+# meant every flute name got its own point size: "stellar flute" set at 176pt,
+# "double drone flute" at 110pt, "ebonized walnut" at 122pt. Seen one at a time
+# that is invisible. Seen as a channel grid it reads as sloppy, because the type
+# scale is the most obvious thing a row of tiles has in common.
+#
+# So the size is a constant and the words wrap to it. A long name costs an extra
+# LINE, never a smaller letter. 140pt was chosen by measuring every flute name
+# in categories.py: it is close to the size most of them already used, so the
+# existing grid stays coherent, and only the four longest names need a third
+# line. If a name cannot fit even one word per line at this size, the script
+# says so instead of quietly scaling — that is a naming decision, not a
+# layout one.
+HEADLINE_PT = 140
+EYEBROW_PT = 46
+MAX_LINES = 3
+
 TONEMAP = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
            "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv")
 
@@ -85,28 +104,30 @@ def lemon(height, tint):
     return solid.resize((int(solid.width * k), height), Image.LANCZOS)
 
 
-def _fit(text, path, start, maxw, floor=24):
+def _width(text, font):
     d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    size = start
-    while size > floor:
-        f = ImageFont.truetype(path, size)
-        b = d.textbbox((0, 0), text, font=f)
-        if b[2] - b[0] <= maxw:
-            return f, b
-        size -= 2
-    f = ImageFont.truetype(path, floor)
-    return f, d.textbbox((0, 0), text, font=f)
+    b = d.textbbox((0, 0), text, font=font)
+    return b[2] - b[0]
 
 
-def _fit_lines(lines, path, start, maxw, floor=40):
-    d = ImageDraw.Draw(Image.new("RGB", (8, 8)))
-    size = start
-    while size > floor:
-        f = ImageFont.truetype(path, size)
-        if max(d.textbbox((0, 0), l, font=f)[2] for l in lines) <= maxw:
-            return f
-        size -= 3
-    return ImageFont.truetype(path, floor)
+def wrap(phrase, font, maxw):
+    """Greedy word wrap at a FIXED font size. Never rescales.
+
+    A word too long for the column on its own is still emitted on its own line
+    and reported by the caller, because silently shrinking it is the behaviour
+    this replaced.
+    """
+    out, cur = [], ""
+    for w in phrase.split():
+        trial = f"{cur} {w}".strip()
+        if cur and _width(trial, font) > maxw:
+            out.append(cur)
+            cur = w
+        else:
+            cur = trial
+    if cur:
+        out.append(cur)
+    return out
 
 
 def film(im, strength=1.0):
@@ -307,8 +328,14 @@ def photo(frame, height, subject_y=0.30, place_at=0.34, zoom=1.0):
 def draw_type(im, y, eyebrow, lines, maxw, on_dark_photo=False):
     """The brand lockup: coral dot, bracketed eyebrow, headline, coral period."""
     d = ImageDraw.Draw(im)
-    fe, be = _fit(f"[ {eyebrow} ]", FONT_LIGHT, 46, maxw)
-    fh = _fit_lines(lines, FONT_BOLD, 200, maxw)
+    fe = ImageFont.truetype(FONT_LIGHT, EYEBROW_PT)
+    fh = ImageFont.truetype(FONT_BOLD, HEADLINE_PT)
+    be = d.textbbox((0, 0), f"[ {eyebrow} ]", font=fe)
+    # The key ("in A") always keeps its own last line; only the name wraps.
+    wrapped = []
+    for i, phrase in enumerate(lines):
+        wrapped += [phrase] if i == len(lines) - 1 else wrap(phrase, fh, maxw)
+    lines = wrapped
     he = be[3] - be[1]
     lead = int(fh.size * 0.96)
 
@@ -329,7 +356,8 @@ def draw_type(im, y, eyebrow, lines, maxw, on_dark_photo=False):
             dr = max(9, int(fh.size * 0.11))
             cx = MARGIN + (b[2] - b[0]) + dr * 2
             d.ellipse([cx - dr, baseline - 2 * dr, cx + dr, baseline], fill=CORAL)
-    return bottom, fh.size
+    widest = max(_width(l, fh) for l in lines)
+    return bottom, fh.size, len(lines), widest
 
 
 # solid ink to, faded out by, subject sits at.
@@ -371,13 +399,19 @@ def build(frame, eyebrow, lines, out, layout="band", subject_y=0.30, zoom=1.0,
         im = im.convert("RGB")
         y += 64 + 46
 
-    bottom, hsize = draw_type(im, y, eyebrow, lines, maxw)
+    bottom, hsize, nlines, widest = draw_type(im, y, eyebrow, lines, maxw)
     im.save(out, quality=94, optimize=True)
 
     clear = H * (1 - SAFE_BOTTOM) - bottom
     print(f"{out}  {os.path.getsize(out)//1024} KB   layout {layout}   "
-          f"headline {hsize}pt ({round(hsize/H*100)}% of height)   "
+          f"headline {hsize}pt FIXED, {nlines} line(s)   "
           f"clear of the view-count band by {clear:.0f}px")
+    if nlines > MAX_LINES:
+        print(f"  WARNING: {nlines} lines. The headline is too long for the fixed "
+              f"type size. Shorten the name rather than expecting it to shrink.")
+    if widest > maxw:
+        print(f"  WARNING: a single word is {widest - maxw}px wider than the column. "
+              f"It will run past the margin. Use a shorter name.")
     if clear < 0:
         print("  WARNING: type runs into the bottom of the tile, where YouTube "
               "prints the view count. Shorten the headline or raise the block.")
