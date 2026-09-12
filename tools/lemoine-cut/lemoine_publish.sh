@@ -15,7 +15,10 @@
 # Tagline (-g) picks the Reels end-card; default: brands ("brands that don't
 # blend in.") — override with -g brands. Uploads to the Drive Cut folder automatically when
 # gdrive-sa.json is configured (see drive_upload.py).
-# -p limits which platform cut(s) get rendered (default: both).
+# -p limits which platform cut(s) get rendered. DEFAULT IS SHORTS: Johnny asked
+# for shorts automatically and reels only when he says so, and the reels pass is
+# the expensive one (intro, outro, end-card, ring-out). Pass -p reels or
+# -p both when he asks for the Instagram cut.
 # Filenames are stamped with date+time (not just date) since the same flute
 # often gets several clips cut on the same day, which used to collide.
 set -euo pipefail
@@ -25,7 +28,7 @@ HERE=$(cd "$(dirname "$0")" && pwd)
 if [[ ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
   echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
 fi
-SRC="" TAGLINE="dontblend" TITLE="" PLATFORM="both"
+SRC="" TAGLINE="dontblend" TITLE="" PLATFORM="shorts"
 EYEBROW="a minute of stillness"   # the bracketed line on the Shorts thumbnail
 THUMB_AT=""                      # thumbnail frame, seconds into the ORIGINAL clip
 CLEAN_ARGS=()   # -c / -n fill this; stays empty for a clean studio recording
