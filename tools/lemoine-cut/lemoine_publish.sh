@@ -193,6 +193,12 @@ print(f'{d*0.55:.1f}')" "$SRC")}
     --grain 9 --effect diffusion \
     --contact "${STAMP}_${SLUG}_frames.png" --out "$THUMB" \
     || echo "thumbnail failed (the cut is fine)"
+  # File the thumbnail beside its cut. Without this it only ever existed in the
+  # workdir, which is thrown away when the container is reclaimed.
+  if [[ -f $THUMB && ( -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ) ]]; then
+    python3 "$HERE/drive_upload.py" --file "$THUMB" >/dev/null 2>&1 \
+      || echo "thumbnail upload failed (it is still in $WORKDIR)"
+  fi
 fi
 
 # 6) refresh Cut/INDEX.md so the catalogue never drifts from what's on Drive
