@@ -170,10 +170,16 @@ def grain(im, amount, seed=7):
 # ancient — the classical sources use seed syllables, not pitches — but the
 # flutes are built to it and it is what the audience searches for.
 #
-# Accidentals get no entry on purpose. The mapping has seven notes and F# is
-# not one of them, so inventing a chakra for it would be making something up.
-CHAKRA = {"C": "root chakra", "D": "sacral chakra", "E": "solar plexus",
-          "F": "heart chakra", "G": "throat chakra", "A": "third eye",
+# F# is in here because the practice genuinely puts it there: sound-healing
+# makers sell heart-chakra instruments as "F / F#", and Johnny already titles
+# his F# double drone as heart chakra. Some sources split the hair and call F#
+# the higher heart, which is a distinction for a description, not a thumbnail.
+#
+# The other accidentals stay out. They have no settled assignment, and
+# inventing one would be making something up.
+CHAKRA = {"C": "root chakra", "C#": None, "D": "sacral chakra", "D#": None,
+          "E": "solar plexus", "F": "heart chakra", "F#": "heart chakra",
+          "G": "throat chakra", "G#": None, "A": "third eye", "A#": None,
           "B": "crown chakra"}
 NO_CHAKRA = "meditation"
 
@@ -199,7 +205,7 @@ def lines_from_title(title):
     m = re.search(r"\s+in\s+([A-G])(#|b)?(m?)\s*$", t)
     if m:
         letter, acc, mode = m.group(1), m.group(2) or "", m.group(3) or ""
-        name = CHAKRA[letter] if not acc else NO_CHAKRA
+        name = CHAKRA.get(letter + acc) or NO_CHAKRA
         return [name, f"in {letter}{acc}{mode}"]
     w = t.split()
     if len(w) < 2:
