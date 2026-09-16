@@ -165,19 +165,42 @@ def grain(im, amount, seed=7):
     return Image.fromarray(np.clip(a + n * weight, 0, 255).astype(np.uint8))
 
 
-def lines_from_title(title):
-    """Split a cut title into the two headline lines.
+# The chakra a key is assigned in the common Western mapping. Worth being clear
+# that this pairing is a twentieth-century Western idea rather than anything
+# ancient — the classical sources use seed syllables, not pitches — but the
+# flutes are built to it and it is what the audience searches for.
+#
+# Accidentals get no entry on purpose. The mapping has seven notes and F# is
+# not one of them, so inventing a chakra for it would be making something up.
+CHAKRA = {"C": "root chakra", "D": "sacral chakra", "E": "solar plexus",
+          "F": "heart chakra", "G": "throat chakra", "A": "third eye",
+          "B": "crown chakra"}
+NO_CHAKRA = "meditation"
 
-    Titles are shaped "double drone flute in F#, san diego": an instrument, its
-    key, and often a place. The place is already in the picture, so the headline
-    keeps the instrument and the key and drops the rest. A title with no key
-    just splits evenly across two lines, because one long line auto-fits down to
-    a size nobody can read in a grid.
+
+def lines_from_title(title):
+    """Headline lines for a cut title: the CHAKRA and the key, not the wood.
+
+    Titles are shaped "spanish cedar in Em, san diego": an instrument, its key,
+    and often a place. Leading with the instrument put "ebonized walnut" on a
+    thumbnail, and nobody searches for a wood. Johnny's own numbers made the
+    case: the take he titled by its chakra pulled 346 views, the one titled by
+    its timber pulled 6. So the key is mapped to its chakra and that leads.
+
+    The instrument name is not lost — it is still in the lower third, the
+    filename, and the folder it files into. It is just not the thing doing the
+    work on a grid tile.
+
+    Every chakra name fits the fixed 140pt on one line. A key outside the
+    seven-note mapping falls back to a word that also fits, rather than to
+    "flute meditation", which wraps and leaves "flute" orphaned on a line.
     """
     t = title.split(",")[0].strip()
-    m = re.search(r"\s+(in\s+[A-G](?:#|b)?m?)\s*$", t)
+    m = re.search(r"\s+in\s+([A-G])(#|b)?(m?)\s*$", t)
     if m:
-        return [t[:m.start()].strip(), m.group(1)]
+        letter, acc, mode = m.group(1), m.group(2) or "", m.group(3) or ""
+        name = CHAKRA[letter] if not acc else NO_CHAKRA
+        return [name, f"in {letter}{acc}{mode}"]
     w = t.split()
     if len(w) < 2:
         return [t]
