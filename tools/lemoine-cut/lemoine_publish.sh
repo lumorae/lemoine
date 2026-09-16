@@ -183,6 +183,10 @@ fi
 #     second in one command.
 if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
   THUMB="${STAMP}_${SLUG}_thumb.jpg"
+  # A colour thumbnail on a black-and-white cut is a mismatch the viewer sees
+  # before they see anything else, so -bw carries through to the still.
+  THUMB_FX=diffusion
+  [[ ${#BW_ARGS[@]} -gt 0 ]] && THUMB_FX=mono
   AT=${THUMB_AT:-$(python3 -c "
 import subprocess,sys
 d=float(subprocess.run(['ffprobe','-v','error','-show_entries','format=duration',
@@ -190,7 +194,7 @@ d=float(subprocess.run(['ffprobe','-v','error','-show_entries','format=duration'
 print(f'{d*0.55:.1f}')" "$SRC")}
   python3 "$HERE/make_short_thumb.py" --video "$SRC" --at "$AT" \
     --title "$TITLE" --eyebrow "$EYEBROW" \
-    --grain 9 --effect diffusion \
+    --grain 9 --effect "${THUMB_FX}" \
     --contact "${STAMP}_${SLUG}_frames.png" --out "$THUMB" \
     || echo "thumbnail failed (the cut is fine)"
   # File the thumbnail beside its cut. Without this it only ever existed in the

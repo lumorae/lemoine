@@ -261,6 +261,18 @@ def vignette(im, strength=0.35):
     return Image.fromarray(np.clip(a, 0, 255).astype(np.uint8))
 
 
+def mono(im):
+    """Neutral greyscale on the Rec.709 luma coefficients.
+
+    The same numbers lemoine_cut.sh uses for its -B pass, so a thumbnail for a
+    black-and-white cut matches the footage exactly rather than being a
+    different grey.
+    """
+    a = np.asarray(im).astype(np.float32)
+    y = a @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    return Image.fromarray(np.clip(np.dstack([y] * 3), 0, 255).astype(np.uint8))
+
+
 def duotone(im, mix=1.0, dark=INK, light=OLD_LACE):
     """Map luminance across the brand's own two colours.
 
@@ -280,6 +292,7 @@ EFFECTS = {
     "halation": halation,
     "vignette": vignette,
     "duotone": duotone,
+    "mono": mono,
 }
 
 

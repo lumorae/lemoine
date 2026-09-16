@@ -90,7 +90,17 @@ FLUTES = [
     {
         "folder": "Spanish Cedar 432Hz",
         "keyless": ["spanish cedar", "432"],
-        "note": "tuned to 432Hz, so it carries no letter key",
+        # 2026-09-16: measured at last, and it does have a letter key — E minor.
+        # Best-fit reference A4=433.0 Hz, four cents off A432 and 27 cents flat
+        # of A440, so the 432 label is real rather than marketing. The scale is
+        # E minor pentatonic: root, 315c, 520c, 725c, 995c above E. The folder
+        # stays keyless because "432" and "spanish cedar" already identify it
+        # and renaming would move every existing cut for no gain.
+        #
+        # Identified against the August cut rather than assumed: same honey
+        # wood, same block and leather binding, same concentric-arc maker's
+        # mark on the body.
+        "note": "tuned to 432Hz; measures E minor pentatonic at A433",
     },
     {
         "folder": "Shakuhachi",
