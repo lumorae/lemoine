@@ -1,0 +1,74 @@
+name: Weekly Etsy pin refresh
+
+on:
+  schedule:
+    # Every Monday at 09:00 UTC (02:00 Pacific)
+    - cron: "0 9 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Pull Etsy listings
+        env:
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+          ETSY_SHARED_SECRET: ${{ secrets.ETSY_SHARED_SECRET }}
+        run: python3 etsy-audit/pull_etsy.py
+
+      - name: Generate pin descriptions
+        run: python3 etsy-audit/generate_pins.py
+
+      - name: Build issue body
+        id: build
+        run: |
+          COUNT=$(python3 -c "import json; print(json.load(open('etsy-audit/listings.json'))['count'])")
+          TITLE="Etsy pin refresh — $(date +'%Y-%m-%d') — $COUNT active listings"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "Weekly automated refresh from the \`Weekly Etsy pin refresh\` workflow."
+            echo ""
+            echo "**Shop:** [johnnylemoine](https://www.etsy.com/shop/johnnylemoine) · **Active listings:** $COUNT"
+            echo ""
+            echo "## Top 5 by views"
+            python3 -c "
+          import json
+          d = json.load(open('etsy-audit/listings.json'))['results']
+          for l in sorted(d, key=lambda x: -x['views'])[:5]:
+              price = l['price']['amount'] / l['price']['divisor']
+              print(f\"- **{l['views']}v** · {l['num_favorers']}♥ · \${price:.2f} — [{l['title'][:80]}]({l['url']})\")
+          "
+            echo ""
+            echo "## Pin content"
+            echo ""
+            echo "Full pin content bank attached below (paste-ready — title, description, board, link for every pin)."
+            echo ""
+            echo "<details><summary>Click to expand full pins.md</summary>"
+            echo ""
+            cat etsy-audit/pins.md
+            echo ""
+            echo "</details>"
+          } > /tmp/issue-body.md
+
+      - name: Open refresh issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "${{ steps.build.outputs.title }}" \
+            --body-file /tmp/issue-body.md \
+            --label "etsy-refresh" || \
+          gh issue create \
+            --title "${{ steps.build.outputs.title }}" \
+            --body-file /tmp/issue-body.md
