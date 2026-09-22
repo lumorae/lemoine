@@ -390,9 +390,16 @@ def draw_type(im, y, eyebrow, lines, maxw, on_dark_photo=False):
 
     y += he + 54
     bottom = y
+    # One ink-top offset for the whole block, measured from the first line.
+    # Taking it per line aligned each line by where its ink happened to start,
+    # so a line with an ascender ("regulation") sat differently from one
+    # without ("nervous") and the leading came out uneven — 161px then 139px
+    # on a three-line headline. Type is spaced by its baselines, so the offset
+    # optically seats the block and `lead` alone sets the spacing.
+    ink_top = d.textbbox((0, 0), lines[0], font=fh)[1]
     for i, line in enumerate(lines):
         b = d.textbbox((0, 0), line, font=fh)
-        top = y + i * lead - b[1]
+        top = y + i * lead - ink_top
         d.text((MARGIN, top), line, font=fh, fill=OLD_LACE)
         baseline = top + fh.getmetrics()[0]
         bottom = baseline
