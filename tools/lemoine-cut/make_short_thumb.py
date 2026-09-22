@@ -374,9 +374,12 @@ def draw_type(im, y, eyebrow, lines, maxw, on_dark_photo=False):
     fh = ImageFont.truetype(FONT_BOLD, HEADLINE_PT)
     be = d.textbbox((0, 0), f"[ {eyebrow} ]", font=fe)
     # The key ("in A") always keeps its own last line; only the name wraps.
+    # That holds only when there IS a key: a headline given on its own is the
+    # last phrase too, and left unwrapped it runs straight off the margin.
     wrapped = []
     for i, phrase in enumerate(lines):
-        wrapped += [phrase] if i == len(lines) - 1 else wrap(phrase, fh, maxw)
+        keeps_own_line = len(lines) > 1 and i == len(lines) - 1
+        wrapped += [phrase] if keeps_own_line else wrap(phrase, fh, maxw)
     lines = wrapped
     he = be[3] - be[1]
     lead = int(fh.size * 0.96)
