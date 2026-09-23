@@ -74,6 +74,12 @@ FLUTES = [
         # concert D, near an A=447 reference, so it is neither a 440 nor a 432
         # flute. One recording cannot separate the instrument from breath
         # pressure; a second take would, as it did for the quena.
+        #
+        # 2026-09-23: two takes of the Sacral Chakra D, identified visually,
+        # measure the same way — D dorian, ~30c sharp, A=447. So this reading
+        # may belong to that flute instead; the indoor take it came from was
+        # never identified by sight. Treat the tuning above as unconfirmed
+        # until a clip showing this instrument is measured.
         "note": "Stellar Flutes, not High Spirits; the shaker clips are this flute too",
     },
     {
@@ -85,7 +91,23 @@ FLUTES = [
         # near the foot. Confirmed by Johnny as a separate instrument, not the
         # Kestrel or the Stellar under another name — so D now needs a
         # distinguishing word for all three.
-        "note": "third D flute, distinct from the Kestrel and the Stellar",
+        #
+        # 2026-09-23: measured from two garden takes, and identified visually
+        # from the frames rather than the file name — the svadhisthana
+        # medallion is branded near the foot. Both takes give the same absolute
+        # note peaks: 296, 354, 398.5, 449, 506, 532 Hz. Against concert pitch
+        # that is D +14c, F +23c, G +28c, A +35c, B +42c, C +29c, so the scale
+        # is D dorian (minor third, major sixth) and the instrument sits about
+        # 30 cents sharp, near an A=447 reference. Neither a 440 nor a 432
+        # flute.
+        #
+        # That reading is the same as the one recorded on the Stellar below,
+        # which was taken from a single indoor take. Either that take was this
+        # flute, or both D flutes sit near 447. One of the two notes is
+        # probably misattributed, and nothing here can say which, so both
+        # stand until a take of the Stellar is identified visually the way
+        # these were.
+        "note": "third D flute; measures D dorian ~30c sharp, near A=447",
     },
     {
         "folder": "Spanish Cedar 432Hz",
