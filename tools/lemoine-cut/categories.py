@@ -85,7 +85,11 @@ FLUTES = [
     {
         "folder": "Sacral Chakra D",
         "key": {"D"},
-        "needs": ["sacral", "chakra"],
+        # "svadhisthana" is the sacral chakra's Sanskrit name, which Johnny has
+        # started using interchangeably with "sacral" in titles. Without it, a
+        # title that names only the Sanskrit term matches no D flute at all and
+        # the clip goes to UNSORTED.
+        "needs": ["sacral", "chakra", "svadhisthana"],
         # Named by its chakra rather than its maker or model, which is how
         # Johnny refers to it. Single chamber, reddish wood, branded medallion
         # near the foot. Confirmed by Johnny as a separate instrument, not the
