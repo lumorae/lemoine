@@ -164,9 +164,46 @@ class Shard:
         return True
 
 
-def build(template, outdir, keep_frames=False):
+
+def reframe_logo(logo_im, logo_mask, size, fill=0.34):
+    """Re-centre the extracted logo on a canvas of another shape.
+
+    The logo is lifted from the brand outro master, which is 1080x1920, so the
+    intro inherits that shape unless told otherwise. Nothing about the mark is
+    vertical though — only the frame is. This crops to the logo itself, scales
+    it once, and re-centres it on the requested canvas, so a landscape intro is
+    the same artwork in a wider frame rather than a redrawn one.
+
+    `fill` is the logo height as a fraction of the canvas. It is lower than the
+    end-card's because the intro logo stands alone with nothing beneath it.
+    """
+    W, H = size
+    ys, xs = np.where(logo_mask)
+    x0, y0, x1, y1 = xs.min(), ys.min(), xs.max() + 1, ys.max() + 1
+    cw, ch = x1 - x0, y1 - y0
+
+    scale = (H * fill) / ch
+    if cw * scale > W * 0.46:
+        scale = (W * 0.46) / cw
+    nw, nh = max(1, int(round(cw * scale))), max(1, int(round(ch * scale)))
+
+    crop = logo_im.crop((x0, y0, x1, y1)).resize((nw, nh), Image.LANCZOS)
+    m = Image.fromarray((logo_mask[y0:y1, x0:x1] * 255).astype(np.uint8)
+                        ).resize((nw, nh), Image.LANCZOS)
+
+    canvas = Image.new("RGB", (W, H), CHARCOAL)
+    newmask = Image.new("L", (W, H), 0)
+    ox, oy = (W - nw) // 2, (H - nh) // 2
+    canvas.paste(crop, (ox, oy))
+    newmask.paste(m, (ox, oy))
+    return canvas, np.asarray(newmask) > 128
+
+
+def build(template, outdir, keep_frames=False, size=None):
     work = tempfile.mkdtemp()
     logo_im, logo_mask = extract_logo(template, work)
+    if size and tuple(size) != logo_im.size:
+        logo_im, logo_mask = reframe_logo(logo_im, logo_mask, size)
     W, H = logo_im.size
     logo_px = np.asarray(logo_im)
 
@@ -290,5 +327,11 @@ if __name__ == "__main__":
     ap.add_argument("--template", required=True, help="brand outro .mov (logo source)")
     ap.add_argument("--outdir", default=".")
     ap.add_argument("--keep-frames", action="store_true")
+    ap.add_argument("--size", default=None,
+                    help="target canvas WxH, e.g. 1920x1080; default is the "
+                         "template's own shape")
     args = ap.parse_args()
-    print(build(args.template, args.outdir, keep_frames=args.keep_frames))
+    sz = None
+    if args.size:
+        sz = tuple(int(v) for v in args.size.lower().split("x"))
+    print(build(args.template, args.outdir, keep_frames=args.keep_frames, size=sz))

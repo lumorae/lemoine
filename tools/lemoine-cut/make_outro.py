@@ -40,7 +40,13 @@ GATHER = (1.3, 3.6)        # particles -> lemon + wordmark
 LOGO_SOLID = 3.7
 TAG_REVEAL = (3.5, 4.05)   # tagline pixelates in
 PILL_REVEAL = (3.85, 4.4)  # url pill pixelates in
-LAYER_SPLIT_TAG = 1050     # y boundaries between end-card layers
+# y boundaries between end-card layers (logo | tagline | url pill), in the
+# 1080x1920 card these were measured from. A card of another shape puts its
+# bands somewhere else, so they are defaults rather than constants: the
+# landscape card passes its own, carried through the same transform that
+# re-framed the artwork. Getting these wrong does not error, it just animates
+# the wrong slice of the card, so they travel with the card that needs them.
+LAYER_SPLIT_TAG = 1050
 LAYER_SPLIT_PILL = 1250
 
 
@@ -139,16 +145,17 @@ def blocky_reveal(frame, layer_img, cells, p, n, acell):
     frame.alpha_composite(part)
 
 
-def build(endcard, outdir, name, keep_frames=False):
+def build(endcard, outdir, name, keep_frames=False,
+          split_tag=LAYER_SPLIT_TAG, split_pill=LAYER_SPLIT_PILL):
     card = Image.open(endcard).convert("RGB")
     W, H = card.size
     px = np.asarray(card)
     bg = np.array(CHARCOAL)
     mask = (np.abs(px.astype(int) - bg).sum(axis=2) > 30)
 
-    logo_img, logo_mask = layer_image(px, mask, W, H, 0, LAYER_SPLIT_TAG)
-    tag_img, tag_mask = layer_image(px, mask, W, H, LAYER_SPLIT_TAG, LAYER_SPLIT_PILL)
-    pill_img, pill_mask = layer_image(px, mask, W, H, LAYER_SPLIT_PILL, H)
+    logo_img, logo_mask = layer_image(px, mask, W, H, 0, split_tag)
+    tag_img, tag_mask = layer_image(px, mask, W, H, split_tag, split_pill)
+    pill_img, pill_mask = layer_image(px, mask, W, H, split_pill, H)
 
     # particle targets for the lemon + wordmark gather
     rng = random.Random(1919)
@@ -156,7 +163,7 @@ def build(endcard, outdir, name, keep_frames=False):
     ys, xs = np.where(logo_mask)
     cx, cy = xs.mean(), ys.mean()
     targets = []
-    for y in range(0, LAYER_SPLIT_TAG, step):
+    for y in range(0, split_tag, step):
         for x in range(0, W, step):
             if logo_mask[y:y + step, x:x + step].mean() > 0.3:
                 c = tuple(int(v) for v in px[min(y + step // 2, H - 1), min(x + step // 2, W - 1)])
@@ -280,5 +287,10 @@ if __name__ == "__main__":
     ap.add_argument("--name", required=True, help="variant name for the output file")
     ap.add_argument("--outdir", default=".")
     ap.add_argument("--keep-frames", action="store_true")
+    ap.add_argument("--split-tag", type=int, default=LAYER_SPLIT_TAG,
+                    help="y where the tagline band starts in this end-card")
+    ap.add_argument("--split-pill", type=int, default=LAYER_SPLIT_PILL,
+                    help="y where the url pill band starts in this end-card")
     args = ap.parse_args()
-    print(build(args.endcard, args.outdir, args.name, keep_frames=args.keep_frames))
+    print(build(args.endcard, args.outdir, args.name, keep_frames=args.keep_frames,
+                split_tag=args.split_tag, split_pill=args.split_pill))

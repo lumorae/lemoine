@@ -60,26 +60,73 @@ FLUTES = [
         "needs": ["kestrel"],
     },
     {
-        "folder": "Shaker and Flute D",
+        "folder": "Stellar Flute D",
         "key": {"D"},
         "needs": ["shaker", "stellar"],
-        "note": "Stellar Flutes, not High Spirits",
+        # Was "Shaker and Flute D". Johnny confirmed the August shaker clips are
+        # this same flute with a shaker added, not a second instrument, so the
+        # two folders became one. "shaker" stays in `needs`: it is how those
+        # clips name themselves and it now points here.
+        #
+        # 2026-09-10: measured from the indoor take. Lowest sustained note D4,
+        # and the scale played is root, minor third, fourth, fifth with a light
+        # major sixth. The whole instrument sounds about 30 cents sharp of
+        # concert D, near an A=447 reference, so it is neither a 440 nor a 432
+        # flute. One recording cannot separate the instrument from breath
+        # pressure; a second take would, as it did for the quena.
+        #
+        # 2026-09-23: two takes of the Sacral Chakra D, identified visually,
+        # measure the same way — D dorian, ~30c sharp, A=447. So this reading
+        # may belong to that flute instead; the indoor take it came from was
+        # never identified by sight. Treat the tuning above as unconfirmed
+        # until a clip showing this instrument is measured.
+        "note": "Stellar Flutes, not High Spirits; the shaker clips are this flute too",
     },
     {
         "folder": "Sacral Chakra D",
         "key": {"D"},
-        "needs": ["sacral", "chakra"],
+        # "svadhisthana" is the sacral chakra's Sanskrit name, which Johnny has
+        # started using interchangeably with "sacral" in titles. Without it, a
+        # title that names only the Sanskrit term matches no D flute at all and
+        # the clip goes to UNSORTED.
+        "needs": ["sacral", "chakra", "svadhisthana"],
         # Named by its chakra rather than its maker or model, which is how
         # Johnny refers to it. Single chamber, reddish wood, branded medallion
         # near the foot. Confirmed by Johnny as a separate instrument, not the
         # Kestrel or the Stellar under another name — so D now needs a
         # distinguishing word for all three.
-        "note": "third D flute, distinct from the Kestrel and the Stellar",
+        #
+        # 2026-09-23: measured from two garden takes, and identified visually
+        # from the frames rather than the file name — the svadhisthana
+        # medallion is branded near the foot. Both takes give the same absolute
+        # note peaks: 296, 354, 398.5, 449, 506, 532 Hz. Against concert pitch
+        # that is D +14c, F +23c, G +28c, A +35c, B +42c, C +29c, so the scale
+        # is D dorian (minor third, major sixth) and the instrument sits about
+        # 30 cents sharp, near an A=447 reference. Neither a 440 nor a 432
+        # flute.
+        #
+        # That reading is the same as the one recorded on the Stellar below,
+        # which was taken from a single indoor take. Either that take was this
+        # flute, or both D flutes sit near 447. One of the two notes is
+        # probably misattributed, and nothing here can say which, so both
+        # stand until a take of the Stellar is identified visually the way
+        # these were.
+        "note": "third D flute; measures D dorian ~30c sharp, near A=447",
     },
     {
         "folder": "Spanish Cedar 432Hz",
         "keyless": ["spanish cedar", "432"],
-        "note": "tuned to 432Hz, so it carries no letter key",
+        # 2026-09-16: measured at last, and it does have a letter key — E minor.
+        # Best-fit reference A4=433.0 Hz, four cents off A432 and 27 cents flat
+        # of A440, so the 432 label is real rather than marketing. The scale is
+        # E minor pentatonic: root, 315c, 520c, 725c, 995c above E. The folder
+        # stays keyless because "432" and "spanish cedar" already identify it
+        # and renaming would move every existing cut for no gain.
+        #
+        # Identified against the August cut rather than assumed: same honey
+        # wood, same block and leather binding, same concentric-arc maker's
+        # mark on the body.
+        "note": "tuned to 432Hz; measures E minor pentatonic at A433",
     },
     {
         "folder": "Shakuhachi",
@@ -94,6 +141,13 @@ FLUTES = [
         # Read against 432 they land on A -5c, B -1c, C -8c, with the lowest
         # sustained note a G — G major pentatonic on a quena in G. Against 440
         # nothing fits, which is why a first pass looked like "B something".
+        #
+        # 2026-09-04: the San Diego garden take reproduces this independently —
+        # different day, different continent, best-fit reference A4=431.4 Hz and
+        # the lowest sustained note a G again (382.6 Hz, -7.9c). A quena's pitch
+        # bends a long way with embouchure, so one recording sitting flat could
+        # have been the player; two, weeks and a hemisphere apart, landing on the
+        # same reference is the instrument.
         "note": "Andean notched flute; measures as G tuned to A432",
     },
 ]

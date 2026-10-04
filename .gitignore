@@ -1,0 +1,22 @@
+# The publish script runs from the repo root, so its working files land here.
+# tools/lemoine-cut/.gitignore only covers that directory, which left every
+# render, download and generated overlay untracked-but-not-ignored at the top
+# of the repo. These are all reproducible or already in Drive.
+#
+# Rooted patterns (leading /) so they apply here only and leave the rules in
+# tools/lemoine-cut/ — including the brand-assets/*.mov exception — untouched.
+
+# finished cuts, uploaded to Drive Cut/ by the publish script
+/*.mp4
+
+# raw clips pulled down from Drive Inbox, filed back to Drive Source/ by the tidy
+/*.MOV
+/*.mov
+
+# rebuilt from the brand master on every run
+/lemoine-intro-pixel-*
+/lemoine-lower3-*
+/lemoine-outro-pixel-*
+
+# regenerated and uploaded to Drive by drive_index.py
+/INDEX.md
