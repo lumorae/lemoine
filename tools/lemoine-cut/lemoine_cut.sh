@@ -182,7 +182,32 @@ import make_intro
 print(make_intro.DISSOLVE[0], make_intro.DISSOLVE[1])")
   AFADE_IN="afade=t=in:st=${REV_ST}:d=$(python3 -c "print(max(0.8, $REV_EN - $REV_ST - 0.3))"):curve=qsin,"
 fi
-FILTER_A="[2:a]loudnorm=I=-14:TP=-1.5:LRA=11,${AFADE_IN}afade=t=out:st=$(python3 -c "print($TOTAL-0.6)"):d=0.6[aout]"
+# Loudness: ONE fixed gain for the whole clip, never a gain that moves.
+#
+# This used to be single-pass loudnorm, which is an automatic gain control: it
+# turns quiet passages UP. Before Johnny plays there is nothing in the clip but
+# room, so it raised that room by ~33dB — measured on the 2026-10-04 Nova, the
+# opening went from -50dBFS in the source to -16dBFS in the short, as loud as
+# the flute, then dropped away the moment the first note arrived. Same pumping
+# in every pause between phrases. When he starts playing varies clip to clip,
+# so a timed fade could never fix it; a constant gain does, for any start.
+#
+# loudnorm's own two-pass "linear" mode is not used on purpose: when the gain
+# would push a peak over its ceiling it silently falls back to the dynamic
+# mode, which would bring this bug back on exactly the clips with a loud note.
+# So the gain is computed here and applied as a plain volume, and a limiter
+# with auto-level OFF catches the few peaks that land over -2dBFS. A limiter
+# only ever turns peaks down; it cannot raise the room.
+LOUD=$(ffmpeg -hide_banner -nostats -i "$WORK/wetmix.wav" -af loudnorm=I=-14:TP=-1.5:print_format=json -f null - 2>&1 \
+  | python3 -c "import sys,json; t=sys.stdin.read(); print(json.loads(t[t.rindex('{'):t.rindex('}')+1])['input_i'])")
+GAIN=$(python3 -c "
+i = float('$LOUD')
+# silent or near-silent input reads -inf / -70: leave it alone rather than
+# amplify nothing into noise; cap the boost so a very quiet take is lifted
+# sensibly, not by 40dB of hiss
+print(0.0 if i < -60 else round(max(-20.0, min(20.0, -14.0 - i)), 2))")
+echo "loudness: ${LOUD} LUFS -> fixed gain ${GAIN} dB"
+FILTER_A="[2:a]volume=${GAIN}dB,alimiter=limit=0.794:attack=5:release=50:level=0:latency=1,${AFADE_IN}afade=t=out:st=$(python3 -c "print($TOTAL-0.6)"):d=0.6[aout]"
 
 ffmpeg -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${EXTRA_IN[@]}" \
   -filter_complex "$FILTER_V;$FILTER_A" \
