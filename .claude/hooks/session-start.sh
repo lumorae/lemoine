@@ -59,7 +59,37 @@ if [ ! -f "$CUT/gdrive-sa.json" ] && [ -n "${GDRIVE_SA_JSON_B64:-}" ]; then
   fi
 fi
 
-# 4) say plainly whether Drive is connected, so a broken upload is never a surprise
+# 4) work that never reached the default branch
+#
+# Each session commits to its own claude/* branch, and a fresh container is
+# cloned from the default branch. So anything left unmerged is simply absent
+# from the next session: on 2026-10-04 a container came up without the Shorts
+# thumbnail template and three weeks of pipeline fixes, all of it sitting on
+# an unmerged branch. Nothing failed loudly; the work was just not there.
+#
+# This cannot merge anything, and should not. It makes the gap impossible to
+# miss, at the start of the session rather than halfway through a cut.
+if git -C "$HERE" rev-parse --git-dir >/dev/null 2>&1; then
+  timeout 30 git -C "$HERE" fetch -q origin 2>/dev/null || true
+  BASE=$(git -C "$HERE" symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null || echo origin/main)
+  # Only branches that change the pipeline. The repo also holds unrelated
+  # sessions' work (newsletters, shop, outreach), and a warning that fires
+  # about all of it every session is one that stops being read.
+  for ref in $(git -C "$HERE" for-each-ref --format='%(refname:short)' refs/remotes/origin/claude); do
+    n=$(git -C "$HERE" rev-list --count "$BASE..$ref" 2>/dev/null || echo 0)
+    [ "$n" -gt 0 ] || continue
+    git -C "$HERE" diff --quiet "$BASE...$ref" -- tools/lemoine-cut .claude 2>/dev/null && continue
+    echo "session-start: WARNING — $ref has $n commit(s) of pipeline work not in $BASE."
+    echo "               Merge it, or the next fresh session will not have them."
+  done
+fi
+
+# 5) the pipeline itself is all here — a missing piece is named, not discovered mid-cut
+for f in lemoine_publish.sh make_short_thumb.py make_lower3.py categories.py drive_upload.py; do
+  [ -f "$CUT/$f" ] || echo "session-start: WARNING — tools/lemoine-cut/$f is missing from this checkout"
+done
+
+# 6) say plainly whether Drive is connected, so a broken upload is never a surprise
 if [ -f "$CUT/gdrive-sa.json" ]; then
   echo "session-start: ready — Drive connected, cuts will be filed automatically"
 else
