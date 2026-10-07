@@ -158,12 +158,15 @@ FLUTES = [
 # Gm clips are the Nova.
 MAP = {
     "drone-in-mexico-city": "High Spirits Nova G",
-    # 2026-10-07: a second quena, bought in Mexico City. Dark wood with pale
-    # rings at the mouthpiece and foot, unlike the bamboo one, but it is also
-    # centred on G (measured best fit A4~430), so neither the key nor the word
-    # "quena" can tell the two apart and the keyless Quena rule would file it
-    # with the bamboo flute. Routed by slug until Johnny says what he calls
-    # it, at which point it gets a proper FLUTES entry with its own word.
+    # 2026-10-07: a second quena, bought at a market in Mexico City. Johnny
+    # describes it as walnut with pale tips and an engraving (maker not yet
+    # checked). It is also centred on G (measured best fit A4~430), so neither
+    # the key nor the word "quena" separates it from the bamboo one, and the
+    # keyless Quena rule would file it there. Routed by slug for now.
+    #
+    # He bought TWO dark quenas at that market. "Quena CDMX" holds only this
+    # walnut one; the other must not land here by default. Once both have
+    # names, each gets its own FLUTES entry and this override goes.
     "nervous-system-reset-new-quena-in-g": "Quena CDMX",
 }
 
