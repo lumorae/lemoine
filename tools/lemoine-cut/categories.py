@@ -133,6 +133,25 @@ FLUTES = [
         "keyless": ["shakuhachi"],
     },
     {
+        # Must sit BEFORE "Quena": keyless rules are tried in order, and the
+        # bamboo flute's rule matches the bare word "quena".
+        "folder": "Quena Jayras",
+        "keyless": ["jayras"],
+        # Bought at a market in Mexico City, October 2026. Branded "QUENAS
+        # JAYRAS" with a burned stamp and an underline flourish; a pale chakana
+        # (stepped Andean cross) inlaid near the top, black cloth wrap with a
+        # tab over two woven blue-and-white bands, pale U-notch mouthpiece,
+        # dark wood Johnny reads as walnut. Centred on G like the bamboo quena,
+        # sitting flat of concert (best fit A4 ~428-434 across four takes), so
+        # neither key nor the word "quena" tells the two apart.
+        #
+        # Titles usually lead with the theme and never say "jayras", so cuts
+        # are filed with LEMOINE_FLUTE="Quena Jayras" on the publish run. The
+        # second dark quena from the same market is a different instrument and
+        # must not be filed here.
+        "note": "dark wood, chakana inlay, stamped QUENAS JAYRAS; G, ~A430",
+    },
+    {
         "folder": "Quena",
         "keyless": ["quena"],
         # Measured, not yet confirmed by Johnny, so the folder stays keyless:
@@ -158,16 +177,9 @@ FLUTES = [
 # Gm clips are the Nova.
 MAP = {
     "drone-in-mexico-city": "High Spirits Nova G",
-    # 2026-10-07: a second quena, bought at a market in Mexico City. Johnny
-    # describes it as walnut with pale tips and an engraving (maker not yet
-    # checked). It is also centred on G (measured best fit A4~430), so neither
-    # the key nor the word "quena" separates it from the bamboo one, and the
-    # keyless Quena rule would file it there. Routed by slug for now.
-    #
-    # He bought TWO dark quenas at that market. "Quena CDMX" holds only this
-    # walnut one; the other must not land here by default. Once both have
-    # names, each gets its own FLUTES entry and this override goes.
-    "nervous-system-reset-new-quena-in-g": "Quena CDMX",
+    # 2026-10-07: the first cut of the Quenas Jayras quena, made before the
+    # flute had a name. Kept so a re-run of that cut still files correctly.
+    "nervous-system-reset-new-quena-in-g": "Quena Jayras",
 }
 
 # The publish script capitalises the key and nothing else, so an uppercase

@@ -128,13 +128,26 @@ DATE=$(date +%Y-%m-%d)
 STAMP=$(date +%Y-%m-%d_%H%M)   # date+time in the filename: same flute, same day, no collisions
 # Cuts file by flute, not by date: there are only so many flutes, and every take
 # of one instrument belongs together. The date lives in the filename already.
-export LEMOINE_DRIVE_SUBFOLDER="$(python3 - "$SLUG" "$TITLE" <<PYEOF
+#
+# LEMOINE_FLUTE names the flute outright, for when the title rightly leads with
+# the theme ("nervous system reset in G") and says nothing about which of two
+# same-key flutes is playing. It must name a folder categories.py already
+# knows, so a typo fails loudly instead of quietly creating a stray folder.
+export LEMOINE_DRIVE_SUBFOLDER="$(python3 - "$SLUG" "$TITLE" "${LEMOINE_FLUTE:-}" <<PYEOF
 import sys
 sys.path.insert(0, "$HERE")
-from categories import folder_for
-print(folder_for(sys.argv[1], sys.argv[2]))
+from categories import folder_for, FLUTES, MAP
+slug, title, override = sys.argv[1], sys.argv[2], sys.argv[3]
+if override:
+    known = {f["folder"] for f in FLUTES} | set(MAP.values())
+    if override not in known:
+        sys.exit(f"LEMOINE_FLUTE={override!r} is not a flute in categories.py: "
+                 + ", ".join(sorted(known)))
+    print(override)
+else:
+    print(folder_for(slug, title))
 PYEOF
-)"
+)" || exit 2
 echo "title: [ $TITLE ]${TAKE:+   take: $TAKE}   slug: $SLUG   tagline: $TAGLINE   stamp: $STAMP   platform: $PLATFORM"
 echo "flute: $LEMOINE_DRIVE_SUBFOLDER"
 if [[ $LEMOINE_DRIVE_SUBFOLDER == Unsorted ]]; then
