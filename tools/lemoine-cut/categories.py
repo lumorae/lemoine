@@ -158,6 +158,13 @@ FLUTES = [
 # Gm clips are the Nova.
 MAP = {
     "drone-in-mexico-city": "High Spirits Nova G",
+    # 2026-10-07: a second quena, bought in Mexico City. Dark wood with pale
+    # rings at the mouthpiece and foot, unlike the bamboo one, but it is also
+    # centred on G (measured best fit A4~430), so neither the key nor the word
+    # "quena" can tell the two apart and the keyless Quena rule would file it
+    # with the bamboo flute. Routed by slug until Johnny says what he calls
+    # it, at which point it gets a proper FLUTES entry with its own word.
+    "nervous-system-reset-new-quena-in-g": "Quena CDMX",
 }
 
 # The publish script capitalises the key and nothing else, so an uppercase
