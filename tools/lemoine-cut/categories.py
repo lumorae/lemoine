@@ -150,6 +150,7 @@ FLUTES = [
         # second dark quena from the same market is a different instrument and
         # must not be filed here.
         "note": "dark wood, chakana inlay, stamped QUENAS JAYRAS; G, ~A430",
+        "lowcut": 200,   # lowest note G4 ~385Hz; see LOWCUT below
     },
     {
         "folder": "Quena",
@@ -168,6 +169,7 @@ FLUTES = [
         # have been the player; two, weeks and a hemisphere apart, landing on the
         # same reference is the instrument.
         "note": "Andean notched flute; measures as G tuned to A432",
+        "lowcut": 200,   # lowest sustained note G4 ~383Hz, measured three times
     },
 ]
 
@@ -210,6 +212,20 @@ def key_of(slug, title=None):
         acc = {"sharp": "#", "flat": "b"}.get(m.group(2) or "", "")
         return m.group(1).upper() + acc
     return None
+
+
+# LOWCUT: a high-pass, in Hz, applied to a flute's audio before reverb. It
+# removes traffic, wind and handling rumble the flute itself never reaches.
+# Set only where the flute's lowest note has been MEASURED, and keep it about
+# an octave below that note so no fundamental is touched. Flutes without a
+# measured low end get none; a guessed cutoff on a drone flute would thin the
+# drone, which is the whole point of the instrument.
+def lowcut_for(folder):
+    """The low cut for a flute folder, or 0 when none has been set."""
+    for f in FLUTES:
+        if f["folder"] == folder:
+            return int(f.get("lowcut", 0))
+    return 0
 
 
 def folder_for(slug, title=None):

@@ -148,8 +148,12 @@ else:
     print(folder_for(slug, title))
 PYEOF
 )" || exit 2
+# the flute's own low cut (0 when categories.py has none measured for it)
+LOWCUT=$(python3 -c "import sys; sys.path.insert(0, '$HERE'); from categories import lowcut_for; print(lowcut_for(sys.argv[1]))" "$LEMOINE_DRIVE_SUBFOLDER")
+LOWCUT_ARGS=()
+(( LOWCUT > 0 )) && LOWCUT_ARGS=(-H "$LOWCUT")
 echo "title: [ $TITLE ]${TAKE:+   take: $TAKE}   slug: $SLUG   tagline: $TAGLINE   stamp: $STAMP   platform: $PLATFORM"
-echo "flute: $LEMOINE_DRIVE_SUBFOLDER"
+echo "flute: $LEMOINE_DRIVE_SUBFOLDER${LOWCUT_ARGS[*]:+   low cut: ${LOWCUT}Hz}"
 if [[ $LEMOINE_DRIVE_SUBFOLDER == Unsorted ]]; then
   echo "  ^ no flute in categories.py matches this title, so it is NOT being" >&2
   echo "    filed under an invented folder. Add it to FLUTES (or MAP) and" >&2
@@ -179,10 +183,10 @@ fi
 
 # 5) the requested platform cut(s)
 if [[ $PLATFORM == reels || $PLATFORM == both ]]; then
-  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}"
+  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}" "${LOWCUT_ARGS[@]}"
 fi
 if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
-  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_shorts.mp4" -l "$L3YT" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}"
+  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_shorts.mp4" -l "$L3YT" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}" "${LOWCUT_ARGS[@]}"
 fi
 
 # 5b) Shorts thumbnail, from the ORIGINAL clip rather than the cut: the cut has
