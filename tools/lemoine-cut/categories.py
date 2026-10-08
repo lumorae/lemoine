@@ -145,6 +145,13 @@ FLUTES = [
         # sitting flat of concert (best fit A4 ~428-434 across four takes), so
         # neither key nor the word "quena" tells the two apart.
         #
+        # What the name is, as researched 2026-10-08: no maker, workshop or
+        # shop called "Jayras" turned up anywhere. "Los Jayras" is a real,
+        # published spelling of Los Jairas, the 1960s La Paz folk group whose
+        # quena player was Gilbert Favre (Los Tiempos, 19 Nov 2016, which also
+        # translates it "the lazy ones", from Aymara "jayra", lazy). That the
+        # flute is named after them is a guess, not a finding.
+        #
         # Titles usually lead with the theme and never say "jayras", so cuts
         # are filed with LEMOINE_FLUTE="Quena Jayras" on the publish run. The
         # second dark quena from the same market is a different instrument and
