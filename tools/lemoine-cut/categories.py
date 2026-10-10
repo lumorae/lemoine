@@ -115,7 +115,10 @@ FLUTES = [
     },
     {
         "folder": "Spanish Cedar 432Hz",
-        "keyless": ["spanish cedar", "432"],
+        # "432hz" as well as "432": the match is whole-word, so the bare number
+        # does not match inside "432hz", which is how Johnny writes it. A title
+        # like "solar plexus flute in E, 432hz" went to Unsorted until this.
+        "keyless": ["spanish cedar", "432", "432hz"],
         # 2026-09-16: measured at last, and it does have a letter key — E minor.
         # Best-fit reference A4=433.0 Hz, four cents off A432 and 27 cents flat
         # of A440, so the 432 label is real rather than marketing. The scale is
@@ -126,7 +129,13 @@ FLUTES = [
         # Identified against the August cut rather than assumed: same honey
         # wood, same block and leather binding, same concentric-arc maker's
         # mark on the body.
+        #
+        # 2026-10-10: San Diego garden take reproduces it independently: best
+        # fit A4=430.6 Hz, E 51%, A 28%, G 13%, B 7% (E minor pentatonic), the
+        # lowest sustained notes ~312-322 Hz, i.e. E4 bent slightly flat. Two
+        # takes agree, so the low cut below is set from a measured low end.
         "note": "tuned to 432Hz; measures E minor pentatonic at A433",
+        "lowcut": 150,   # lowest note E4 ~320Hz; an octave clear of it
     },
     {
         "folder": "Shakuhachi",
