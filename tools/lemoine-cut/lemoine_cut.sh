@@ -21,16 +21,19 @@
 #          (centres the flute, rejects diffuse street noise), spectral denoise
 #   -n     denoise strength in dB for -C (default 14; 10 gentle, 18 aggressive)
 #   -B     black and white footage; brand overlays stay in colour
+#   -H     low cut in Hz, below the flute's lowest note (0 = none). Set per
+#          flute in categories.py, never globally: a quena bottoms out near
+#          385Hz, a drone flute's drone can sit under 200Hz.
 set -euo pipefail
 
-IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO="" CLEAN=0 NR=14 BW=0
-while getopts "i:o:l:s:e:aw:t:kq:O:I:Cn:B" opt; do
+IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO="" CLEAN=0 NR=14 BW=0 LOWCUT=0
+while getopts "i:o:l:s:e:aw:t:kq:O:I:Cn:BH:" opt; do
   case $opt in
     i) IN=$OPTARG;; o) OUT=$OPTARG;; l) LOWER3=$OPTARG;;
     s) START=$OPTARG;; e) END=$OPTARG;; a) AUTOTRIM=1;;
     w) WET_DB=$OPTARG;; t) L3_AT=$OPTARG;; k) KEEP_RES=1;; q) CRF=$OPTARG;;
     O) OUTRO=$OPTARG;; I) INTRO=$OPTARG;;
-    C) CLEAN=1;; n) NR=$OPTARG;; B) BW=1;;
+    C) CLEAN=1;; n) NR=$OPTARG;; B) BW=1;; H) LOWCUT=$OPTARG;;
     *) exit 2;;
   esac
 done
@@ -101,9 +104,18 @@ INTRO_DUR=0
 #                ambience; the reverb downstream restores the stereo image
 #      afftdn    spectral denoise for the broadband remainder
 #      treble    gives back the air the denoiser takes off the top
+#
+#    -H is the flute's own low cut, applied with or without -C. It goes in
+#    here, before the reverb, so the hall is never fed traffic rumble. On the
+#    2026-10-07 Mexico City rooftop takes over half the noise before the first
+#    note sat under 150Hz; a 200Hz cut on the quena dropped it ~5dB while the
+#    playing moved by 0.2dB.
 CLEAN_AF=""
 if [[ $CLEAN -eq 1 ]]; then
-  CLEAN_AF="-af highpass=f=120:poles=2,pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1,afftdn=nr=${NR}:nf=-45:tn=1,treble=g=2:f=6000:width_type=q:w=0.7"
+  HP=$(( LOWCUT > 120 ? LOWCUT : 120 ))
+  CLEAN_AF="-af highpass=f=${HP}:poles=2,pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1,afftdn=nr=${NR}:nf=-45:tn=1,treble=g=2:f=6000:width_type=q:w=0.7"
+elif (( LOWCUT > 0 )); then
+  CLEAN_AF="-af highpass=f=${LOWCUT}:poles=2"
 fi
 ffmpeg -y -v error "${TRIM_IN[@]}" -i "$IN" -map 0:a:0 -vn $CLEAN_AF -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
 RING=()

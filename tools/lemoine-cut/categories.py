@@ -115,7 +115,10 @@ FLUTES = [
     },
     {
         "folder": "Spanish Cedar 432Hz",
-        "keyless": ["spanish cedar", "432"],
+        # "432hz" as well as "432": the match is whole-word, so the bare number
+        # does not match inside "432hz", which is how Johnny writes it. A title
+        # like "solar plexus flute in E, 432hz" went to Unsorted until this.
+        "keyless": ["spanish cedar", "432", "432hz"],
         # 2026-09-16: measured at last, and it does have a letter key — E minor.
         # Best-fit reference A4=433.0 Hz, four cents off A432 and 27 cents flat
         # of A440, so the 432 label is real rather than marketing. The scale is
@@ -126,11 +129,44 @@ FLUTES = [
         # Identified against the August cut rather than assumed: same honey
         # wood, same block and leather binding, same concentric-arc maker's
         # mark on the body.
+        #
+        # 2026-10-10: San Diego garden take reproduces it independently: best
+        # fit A4=430.6 Hz, E 51%, A 28%, G 13%, B 7% (E minor pentatonic), the
+        # lowest sustained notes ~312-322 Hz, i.e. E4 bent slightly flat. Two
+        # takes agree, so the low cut below is set from a measured low end.
         "note": "tuned to 432Hz; measures E minor pentatonic at A433",
+        "lowcut": 150,   # lowest note E4 ~320Hz; an octave clear of it
     },
     {
         "folder": "Shakuhachi",
         "keyless": ["shakuhachi"],
+    },
+    {
+        # Must sit BEFORE "Quena": keyless rules are tried in order, and the
+        # bamboo flute's rule matches the bare word "quena".
+        "folder": "Quena Jayras",
+        "keyless": ["jayras"],
+        # Bought at a market in Mexico City, October 2026. Branded "QUENAS
+        # JAYRAS" with a burned stamp and an underline flourish; a pale chakana
+        # (stepped Andean cross) inlaid near the top, black cloth wrap with a
+        # tab over two woven blue-and-white bands, pale U-notch mouthpiece,
+        # dark wood Johnny reads as walnut. Centred on G like the bamboo quena,
+        # sitting flat of concert (best fit A4 ~428-434 across four takes), so
+        # neither key nor the word "quena" tells the two apart.
+        #
+        # What the name is, as researched 2026-10-08: no maker, workshop or
+        # shop called "Jayras" turned up anywhere. "Los Jayras" is a real,
+        # published spelling of Los Jairas, the 1960s La Paz folk group whose
+        # quena player was Gilbert Favre (Los Tiempos, 19 Nov 2016, which also
+        # translates it "the lazy ones", from Aymara "jayra", lazy). That the
+        # flute is named after them is a guess, not a finding.
+        #
+        # Titles usually lead with the theme and never say "jayras", so cuts
+        # are filed with LEMOINE_FLUTE="Quena Jayras" on the publish run. The
+        # second dark quena from the same market is a different instrument and
+        # must not be filed here.
+        "note": "dark wood, chakana inlay, stamped QUENAS JAYRAS; G, ~A430",
+        "lowcut": 200,   # lowest note G4 ~385Hz; see LOWCUT below
     },
     {
         "folder": "Quena",
@@ -149,6 +185,7 @@ FLUTES = [
         # have been the player; two, weeks and a hemisphere apart, landing on the
         # same reference is the instrument.
         "note": "Andean notched flute; measures as G tuned to A432",
+        "lowcut": 200,   # lowest sustained note G4 ~383Hz, measured three times
     },
 ]
 
@@ -158,16 +195,9 @@ FLUTES = [
 # Gm clips are the Nova.
 MAP = {
     "drone-in-mexico-city": "High Spirits Nova G",
-    # 2026-10-07: a second quena, bought at a market in Mexico City. Johnny
-    # describes it as walnut with pale tips and an engraving (maker not yet
-    # checked). It is also centred on G (measured best fit A4~430), so neither
-    # the key nor the word "quena" separates it from the bamboo one, and the
-    # keyless Quena rule would file it there. Routed by slug for now.
-    #
-    # He bought TWO dark quenas at that market. "Quena CDMX" holds only this
-    # walnut one; the other must not land here by default. Once both have
-    # names, each gets its own FLUTES entry and this override goes.
-    "nervous-system-reset-new-quena-in-g": "Quena CDMX",
+    # 2026-10-07: the first cut of the Quenas Jayras quena, made before the
+    # flute had a name. Kept so a re-run of that cut still files correctly.
+    "nervous-system-reset-new-quena-in-g": "Quena Jayras",
 }
 
 # The publish script capitalises the key and nothing else, so an uppercase
@@ -198,6 +228,20 @@ def key_of(slug, title=None):
         acc = {"sharp": "#", "flat": "b"}.get(m.group(2) or "", "")
         return m.group(1).upper() + acc
     return None
+
+
+# LOWCUT: a high-pass, in Hz, applied to a flute's audio before reverb. It
+# removes traffic, wind and handling rumble the flute itself never reaches.
+# Set only where the flute's lowest note has been MEASURED, and keep it about
+# an octave below that note so no fundamental is touched. Flutes without a
+# measured low end get none; a guessed cutoff on a drone flute would thin the
+# drone, which is the whole point of the instrument.
+def lowcut_for(folder):
+    """The low cut for a flute folder, or 0 when none has been set."""
+    for f in FLUTES:
+        if f["folder"] == folder:
+            return int(f.get("lowcut", 0))
+    return 0
 
 
 def folder_for(slug, title=None):
