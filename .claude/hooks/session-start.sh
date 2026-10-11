@@ -78,6 +78,9 @@ if git -C "$HERE" rev-parse --git-dir >/dev/null 2>&1; then
   for ref in $(git -C "$HERE" for-each-ref --format='%(refname:short)' refs/remotes/origin/claude); do
     n=$(git -C "$HERE" rev-list --count "$BASE..$ref" 2>/dev/null || echo 0)
     [ "$n" -gt 0 ] || continue
+    # CLAUDE.md is deliberately not watched: another session's branch adds a
+    # CLAUDE.md of its own (a writing playbook), and this warning must never
+    # tell Claude to merge work that is not the pipeline's.
     git -C "$HERE" diff --quiet "$BASE...$ref" -- tools/lemoine-cut .claude 2>/dev/null && continue
     echo "session-start: WARNING — $ref has $n commit(s) of pipeline work not in $BASE."
     echo "               Claude: open a PR for it and merge it yourself now, before other work."
@@ -86,7 +89,8 @@ if git -C "$HERE" rev-parse --git-dir >/dev/null 2>&1; then
 fi
 
 # 5) the pipeline itself is all here — a missing piece is named, not discovered mid-cut
-for f in lemoine_publish.sh make_short_thumb.py make_lower3.py categories.py drive_upload.py; do
+for f in lemoine_publish.sh lemoine_cut.sh batch_publish.sh fetch_inbox.py measure.py make_short_thumb.py \
+         make_lower3.py categories.py drive_upload.py drive_put.py drive_tidy_inbox.py drive_index.py; do
   [ -f "$CUT/$f" ] || echo "session-start: WARNING — tools/lemoine-cut/$f is missing from this checkout"
 done
 
@@ -98,3 +102,4 @@ else
   echo "               Set GDRIVE_SA_JSON_B64 in the environment settings:"
   echo "               base64 -w0 gdrive-sa.json"
 fi
+[ -f "$HERE/CLAUDE.md" ] || echo "session-start: WARNING — CLAUDE.md (the runbook) is missing from this checkout"
