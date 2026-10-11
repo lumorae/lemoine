@@ -153,13 +153,41 @@ def upload(path, folder_id, token):
     return info["id"]
 
 
+def replace_in_place(file_id, path, token):
+    """Overwrite an existing Drive file's content. Its id, and so every link
+    Johnny has pasted anywhere, stays the same. Returns (id, sizes_match)."""
+    name = os.path.basename(path)
+    mime = mimetypes.guess_type(name)[0] or "application/octet-stream"
+    with open(path, "rb") as f:
+        data = f.read()
+    req = urllib.request.Request(
+        f"https://www.googleapis.com/upload/drive/v3/files/{file_id}"
+        "?uploadType=media&supportsAllDrives=true&fields=id,size",
+        data=data, method="PATCH",
+        headers={"Authorization": f"Bearer {token}", "Content-Type": mime})
+    with urllib.request.urlopen(req) as r:
+        info = json.load(r)
+    return info["id"], int(info.get("size", -1)) == len(data)
+
+
+def trash_id(file_id, token):
+    """Move one file, by id, to Drive's trash (recoverable for 30 days)."""
+    req = urllib.request.Request(
+        f"https://www.googleapis.com/drive/v3/files/{file_id}?supportsAllDrives=true",
+        data=json.dumps({"trashed": True}).encode(), method="PATCH",
+        headers={"Authorization": f"Bearer {token}",
+                 "Content-Type": "application/json; charset=UTF-8"})
+    urllib.request.urlopen(req).close()
+
+
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--file", required=True)
     ap.add_argument("--folder-id", default=CUT_FOLDER_ID)
     ap.add_argument("--subfolder", default=os.environ.get("LEMOINE_DRIVE_SUBFOLDER", ""),
-                    help="path under the Cut folder, e.g. '2026-08/2026-08-07' — "
-                         "each segment is found or created in turn")
+                    help="flute folder under Cut/, e.g. 'Stellar Flute D' (found or "
+                         "created). Without it the file lands loose at the top of "
+                         "Cut/, which is where stray upload sheets came from")
     ap.add_argument("--key", default=os.environ.get("GDRIVE_SA_JSON", DEFAULT_KEY))
     args = ap.parse_args()
     if not os.path.exists(args.key):

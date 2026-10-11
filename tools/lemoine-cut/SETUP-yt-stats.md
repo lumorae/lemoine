@@ -28,8 +28,10 @@ https://console.cloud.google.com/auth/overview?project=analytics-501817
 
 Leave it in Testing. It is only ever you signing in. The one consequence is
 that the refresh token expires every 7 days in Testing mode; if you would
-rather not redo step 5 weekly, press **Publish app** on that screen. It asks
-for no review, because the scopes here are read-only.
+rather not redo step 5 weekly, press **Publish app** on that screen. Google
+may still ask for verification even though the scopes are read-only
+(`youtube.readonly` is a "sensitive" scope); if it does, staying in Testing
+and redoing step 5 weekly is the simpler path.
 
 ## 3. Create the OAuth client
 

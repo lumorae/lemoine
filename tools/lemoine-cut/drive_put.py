@@ -16,27 +16,28 @@ second file with the same name.
 
 --trash PREFIX moves every file in the folder whose name starts with PREFIX
 to Drive's trash (recoverable for 30 days), for superseded first versions.
+The prefix must be at least a full YYYY-MM-DD_HHMM_ stamp; a file this same
+call just replaced or uploaded is never trashed (an empty prefix once meant
+"the whole folder", and a replaced thumbnail could be trashed straight after
+its replacement); and nothing is trashed if any replace came back wrong.
+
+Cut/INDEX.md is rebuilt afterwards whenever anything changed.
 
 Safe to repeat: running it twice changes nothing the second time.
 """
 import argparse
-import json
-import mimetypes
 import os
+import re
+import subprocess
 import sys
-import urllib.request
+import tempfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import drive_index as d  # noqa: E402
-from drive_upload import CUT_FOLDER_ID, DEFAULT_KEY, get_token, upload  # noqa: E402
+from drive_upload import CUT_FOLDER_ID, DEFAULT_KEY, get_token, replace_in_place, trash_id, upload  # noqa: E402
 
-
-def api(url, token, data=None, method="GET", ctype="application/json"):
-    req = urllib.request.Request(url, data=data, method=method,
-                                 headers={"Authorization": f"Bearer {token}", "Content-Type": ctype})
-    with urllib.request.urlopen(req) as r:
-        return json.load(r)
+STAMP = re.compile(r"^\d{4}-\d{2}-\d{2}_\d{4}_")
 
 
 def main():
@@ -45,6 +46,9 @@ def main():
     ap.add_argument("--trash", action="append", default=[], help="trash files starting with this")
     ap.add_argument("files", nargs="*")
     a = ap.parse_args()
+    for p in a.trash:
+        if not STAMP.match(p):
+            sys.exit(f"--trash {p!r}: give at least a full YYYY-MM-DD_HHMM_ stamp")
 
     token = get_token(DEFAULT_KEY)
     folder = next((f for f in d.children(CUT_FOLDER_ID, token) if f["name"] == a.flute), None)
@@ -54,32 +58,43 @@ def main():
     for g in d.children(folder["id"], token):
         have.setdefault(g["name"], []).append(g)
 
-    bad = 0
+    bad, changed, mine = 0, False, set()
     for path in a.files:
         name = os.path.basename(path)
-        data = open(path, "rb").read()
+        mine.add(name)
         existing = have.get(name, [])
         if len(existing) > 1:
             print(f"  WARNING {name}: {len(existing)} files share this name; replacing the first, check the rest")
         if existing:
-            mime = mimetypes.guess_type(name)[0] or "application/octet-stream"
-            r = api(f"https://www.googleapis.com/upload/drive/v3/files/{existing[0]['id']}"
-                    "?uploadType=media&supportsAllDrives=true&fields=id,size",
-                    token, data=data, method="PATCH", ctype=mime)
-            ok = int(r["size"]) == len(data)
+            fid, ok = replace_in_place(existing[0]["id"], path, token)
             bad += not ok
             print(f"  {'replaced' if ok else 'SIZE MISMATCH'}  {name}  "
-                  f"https://drive.google.com/file/d/{r['id']}/view")
+                  f"https://drive.google.com/file/d/{fid}/view")
         else:
+            # new on Drive: fine when the run's own thumbnail never got made
+            # or filed, but check the name against the log's stamp and slug
             upload(path, folder["id"], token)
+        changed = True
 
-    for prefix in a.trash:
-        for name, gs in have.items():
-            if name.startswith(prefix):
+    if a.trash and bad:
+        print("  NOT trashing anything: a replace above came back the wrong size")
+    elif a.trash:
+        for prefix in a.trash:
+            for name, gs in have.items():
+                if not name.startswith(prefix):
+                    continue
+                if name in mine:
+                    print(f"  kept      {name}  (just put there by this call)")
+                    continue
                 for g in gs:
-                    api(f"https://www.googleapis.com/drive/v3/files/{g['id']}?supportsAllDrives=true",
-                        token, data=json.dumps({"trashed": True}).encode(), method="PATCH")
+                    trash_id(g["id"], token)
                     print(f"  trashed   {name}")
+                    changed = True
+
+    if changed:
+        with tempfile.TemporaryDirectory() as tmp:
+            subprocess.run([sys.executable, os.path.join(HERE, "drive_index.py"),
+                            "--out", os.path.join(tmp, "INDEX.md")], check=False)
     sys.exit(1 if bad else 0)
 
 

@@ -6,12 +6,27 @@ cut currently is, works out where it should be, and moves only the ones that
 disagree. That makes it the tool for merging two flute folders as well as for
 the original date-to-flute migration — change MAP, re-run, done.
 
-  python3 drive_migrate.py --dry-run   # show every move, change nothing
-  python3 drive_migrate.py             # do it
+  python3 drive_migrate.py            # show every move, change nothing
+  python3 drive_migrate.py --apply    # do it
 
 Moves only ever change a file's parent, never its id, so every link already
 handed out keeps working. Emptied date folders are trashed (recoverable), and a
 date folder that still holds something is left alone and reported.
+
+A cut that already sits in a folder categories.py knows is NEVER moved. This
+script can only see a cut's slug, and most cuts are now filed by the flute
+Johnny named (LEMOINE_FLUTE), not by their title: "nervous system reset in
+D" says nothing about which of three D flutes played it. Refiling those by
+slug would scatter every Jayras, Stellar and Sacral cut into the wrong folder
+or Unsorted. So it only rescues cuts from places no flute owns: old date
+folders, Unsorted, and folders since dropped from categories.py. Their
+thumbnails are not moved (they do not parse as cuts); move those by hand.
+
+To move one misfiled cut between two real flute folders, change its parent
+(addParents/removeParents), with its _thumb.jpg and its source, as was done
+for the Jayras take filed into "Quena Red Band" on 2026-10-10.
+
+Dry run is the default because it once was not.
 """
 import argparse
 import json
@@ -20,7 +35,7 @@ import re
 import urllib.parse
 import urllib.request
 
-from categories import folder_for
+from categories import FLUTES, UNSORTED, folder_for
 from drive_upload import CUT_FOLDER_ID, DEFAULT_KEY, get_token
 
 FOLDER = "application/vnd.google-apps.folder"
@@ -57,10 +72,11 @@ def children(fid, token):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--key", default=os.environ.get("GDRIVE_SA_JSON", DEFAULT_KEY))
-    ap.add_argument("--dry-run", action="store_true")
+    ap.add_argument("--apply", action="store_true", help="actually move (default: dry run)")
     args = ap.parse_args()
     token = get_token(args.key)
-    dry = args.dry_run
+    dry = not args.apply
+    owned = {f["folder"] for f in FLUTES}
 
     # existing flute folders at the top of Cut/, so a re-run is a no-op
     top = children(CUT_FOLDER_ID, token)
@@ -90,6 +106,8 @@ def main():
                 if day["mimeType"] == FOLDER:
                     holders.append((f"{f['name']}/{day['name']}", day["id"], True))
             holders.append((f["name"], f["id"], True))
+        elif f["name"] in owned:
+            continue    # filed on purpose, often by LEMOINE_FLUTE: never second-guessed
         else:
             holders.append((f["name"], f["id"], False))
 
@@ -105,7 +123,10 @@ def main():
                 skipped.append(f"{label}/{f['name']}")
                 continue
             dest_name = folder_for(m.group(3))
-            if dest_name == label:           # already where it belongs
+            if dest_name == label or dest_name == UNSORTED:
+                # already there, or the slug alone cannot say: leave it and say so
+                if dest_name == UNSORTED and label != UNSORTED:
+                    skipped.append(f"{label}/{f['name']} (slug names no flute)")
                 continue
             dest = flute_dir(dest_name)
             print(f"  {label}/{f['name']}\n      -> {dest_name}/")
@@ -114,10 +135,12 @@ def main():
                     addParents=dest, removeParents=fid, fields="id")
             moved += 1
 
-    # a flute folder emptied by a merge should go too, not just old date folders
+    # a folder no flute owns, emptied by the moves above, goes too (a real
+    # flute's folder stays even when empty: its first cut may be today's)
     if not dry:
         for f in top:
-            if f["mimeType"] == FOLDER and not children(f["id"], token):
+            if (f["mimeType"] == FOLDER and f["name"] not in owned
+                    and not children(f["id"], token)):
                 api(f"files/{f['id']}", token, method="PATCH",
                     body={"trashed": True}, fields="id")
                 print(f"  - emptied folder {f['name']}")

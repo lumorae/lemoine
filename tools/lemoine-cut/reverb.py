@@ -42,8 +42,8 @@ def main():
     ap.add_argument("--in", dest="inp", required=True)
     ap.add_argument("--ir", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--wet-db", type=float, default=-12.0,
-                    help="wet level relative to dry RMS (default -12)")
+    ap.add_argument("--wet-db", type=float, default=-9.0,
+                    help="wet level relative to dry RMS (default -9, as lemoine_cut.sh)")
     ap.add_argument("--pad-sec", type=float, default=0.0,
                     help="silence appended so the reverb tail rings out (e.g. outro length)")
     ap.add_argument("--ring-ir", default=None,

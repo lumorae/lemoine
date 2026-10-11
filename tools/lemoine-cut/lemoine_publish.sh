@@ -8,13 +8,18 @@
 #   <slug>-reels.mp4   Instagram Reels: intro + lower third + outro end-card,
 #                      reverb, ring-out, silent-until-reveal audio
 #   <slug>-shorts.mp4  YouTube Shorts: no intro/outro, raised lower third,
-#                      breath-to-breath trim + ambience-matched loop seam
+#                      plus a branded thumbnail (make_short_thumb.py)
 #
 # Cuts are filed in Drive under Cut/<Flute>/ — see categories.py.
-# Title defaults to the Drive file name (lowercased, dashes normalized).
-# Tagline (-g) picks the Reels end-card; default: brands ("brands that don't
-# blend in.") — override with -g brands. Uploads to the Drive Cut folder automatically when
-# gdrive-sa.json is configured (see drive_upload.py).
+# Title defaults to the Drive file name (lowercased, dashes made commas).
+# Tagline (-g) picks the Reels end-card; default: dontblend ("don't blend
+# in."); -g brands gives "brands that don't blend in." Uploads to the Drive
+# Cut folder automatically when gdrive-sa.json is configured (drive_upload.py).
+#
+# The LAST line of a run that delivered everything asked of it is
+#   PUBLISH_COMPLETE <stamp>_<slug>
+# and anything short of that ends PUBLISH_INCOMPLETE with the reason, exit 3.
+# batch_publish.sh decides what is finished from that line alone.
 # -p limits which platform cut(s) get rendered. DEFAULT IS SHORTS: Johnny asked
 # for shorts automatically and reels only when he says so, and the reels pass is
 # the expensive one (intro, outro, end-card, ring-out). Pass -p reels or
@@ -76,14 +81,25 @@ BASE=$(basename "$SRC"); BASE="${BASE%.*}"
 PARSED=$(python3 - "$BASE" "$TITLE" <<'EOF'
 import re, sys
 raw, override = sys.argv[1], sys.argv[2]
-t = raw.replace("—", "–").replace(" - ", " – ").lower().strip()
+t = raw.lower().strip()
 m = re.search(r"[\s_-]*(?:\((?:take[\s_-]*)?#?(\d{1,2})\)"
               r"|\[(?:take[\s_-]*)?#?(\d{1,2})\]"
               r"|(?:take[\s_-]*|#)(\d{1,2}))\s*$", t)
 take = ""
 if m:
     take = next(g for g in m.groups() if g).zfill(2)
-    t = t[:m.start()].strip(" –-_")
+    t = t[:m.start()].strip(" —–-_")
+
+# Johnny's rule: no em dashes, ever, and no hyphens used as dashes. This used
+# to turn them into an en dash, which is still a dash on screen, and it only
+# ever touched titles taken from the file name; a -T title, which is how every
+# batch cut gets its title, went on screen exactly as typed. Now any dash used
+# as punctuation becomes a comma, in both. A hyphen inside a word stays.
+def undash(s):
+    s = re.sub(r"\s*[—–]\s*|\s+-\s+", ", ", s)
+    return re.sub(r"(,\s*)+", ", ", s).strip(" ,")
+t = undash(t)
+override = undash(override)
 
 # A bracketed aside in the file name — "Ebonized Walnut Flute in A [San Diego]"
 # — becomes a comma clause, because the lower third already draws its own
@@ -133,7 +149,12 @@ STAMP=$(date +%Y-%m-%d_%H%M)   # date+time in the filename: same flute, same day
 # the theme ("nervous system reset in G") and says nothing about which of two
 # same-key flutes is playing. It must name a folder categories.py already
 # knows, so a typo fails loudly instead of quietly creating a stray folder.
-export LEMOINE_DRIVE_SUBFOLDER="$(python3 - "$SLUG" "$TITLE" "${LEMOINE_FLUTE:-}" <<PYEOF
+#
+# Assigned and THEN exported: `export X="$(cmd)" || exit 2` never exits,
+# because export's own status (always 0) hides the command's. That is how an
+# unknown flute name used to print its error and carry on, uploading the cut
+# loose into the top of Cut/ with no low cut.
+LEMOINE_DRIVE_SUBFOLDER="$(python3 - "$SLUG" "$TITLE" "${LEMOINE_FLUTE:-}" <<PYEOF
 import sys
 sys.path.insert(0, "$HERE")
 from categories import folder_for, FLUTES, MAP
@@ -148,6 +169,8 @@ else:
     print(folder_for(slug, title))
 PYEOF
 )" || exit 2
+[[ -n $LEMOINE_DRIVE_SUBFOLDER ]] || { echo "no flute folder resolved" >&2; exit 2; }
+export LEMOINE_DRIVE_SUBFOLDER
 # the flute's own low cut (0 when categories.py has none measured for it)
 LOWCUT=$(python3 -c "import sys; sys.path.insert(0, '$HERE'); from categories import lowcut_for; print(lowcut_for(sys.argv[1]))" "$LEMOINE_DRIVE_SUBFOLDER")
 LOWCUT_ARGS=()
@@ -156,8 +179,9 @@ echo "title: [ $TITLE ]${TAKE:+   take: $TAKE}   slug: $SLUG   tagline: $TAGLINE
 echo "flute: $LEMOINE_DRIVE_SUBFOLDER${LOWCUT_ARGS[*]:+   low cut: ${LOWCUT}Hz}"
 if [[ $LEMOINE_DRIVE_SUBFOLDER == Unsorted ]]; then
   echo "  ^ no flute in categories.py matches this title, so it is NOT being" >&2
-  echo "    filed under an invented folder. Add it to FLUTES (or MAP) and" >&2
-  echo "    re-run drive_migrate.py to put it where it belongs." >&2
+  echo "    filed under an invented folder. Re-run with LEMOINE_FLUTE set, or" >&2
+  echo "    move the cut on Drive by changing its parent (never drive_migrate.py," >&2
+  echo "    which refiles by slug alone and undoes every LEMOINE_FLUTE filing)." >&2
 fi
 
 # 3) lower thirds for this title (standard + raised-for-Shorts)
@@ -181,12 +205,28 @@ if [[ ! -f $OUTRO ]]; then
   python3 "$HERE/make_outro.py" --endcard "$HERE/endcards/$EC" --name "$TAGLINE" --outdir . >/dev/null
 fi
 
-# 5) the requested platform cut(s)
+HAVE_KEY=0
+[[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]] && HAVE_KEY=1
+MISSING=()   # anything asked for that did not get made or filed
+
+# 5) the requested platform cut(s). lemoine_cut.sh exits 3 when the render is
+#    fine but the upload failed, so a cut that never reached Drive is never
+#    reported as filed.
 if [[ $PLATFORM == reels || $PLATFORM == both ]]; then
-  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}" "${LOWCUT_ARGS[@]}"
+  rc=0; bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_reels.mp4"  -l "$L3"   -I "$INTRO" -O "$OUTRO" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}" "${LOWCUT_ARGS[@]}" || rc=$?
+  case $rc in
+    0) ;;
+    3) MISSING+=("reels cut not uploaded") ;;
+    *) echo "PUBLISH_INCOMPLETE: reels render failed (exit $rc)"; exit 3 ;;
+  esac
 fi
 if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
-  bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_shorts.mp4" -l "$L3YT" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}" "${LOWCUT_ARGS[@]}"
+  rc=0; bash "$HERE/lemoine_cut.sh" -i "$SRC" -o "${STAMP}_${SLUG}_shorts.mp4" -l "$L3YT" "${CLEAN_ARGS[@]}" "${BW_ARGS[@]}" "${LOWCUT_ARGS[@]}" || rc=$?
+  case $rc in
+    0) ;;
+    3) MISSING+=("shorts cut not uploaded") ;;
+    *) echo "PUBLISH_INCOMPLETE: shorts render failed (exit $rc)"; exit 3 ;;
+  esac
 fi
 
 # 5b) Shorts thumbnail, from the ORIGINAL clip rather than the cut: the cut has
@@ -213,17 +253,18 @@ print(f'{d*0.55:.1f}')" "$SRC")}
     --title "$TITLE" --eyebrow "$EYEBROW" \
     --grain 9 --effect "${THUMB_FX}" \
     --contact "${STAMP}_${SLUG}_frames.png" --out "$THUMB" \
-    || echo "thumbnail failed (the cut is fine)"
+    || { echo "thumbnail failed (the cut is fine)"; MISSING+=("thumbnail not rendered"); }
   # File the thumbnail beside its cut. Without this it only ever existed in the
-  # workdir, which is thrown away when the container is reclaimed.
-  if [[ -f $THUMB && ( -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ) ]]; then
-    python3 "$HERE/drive_upload.py" --file "$THUMB" >/dev/null 2>&1 \
-      || echo "thumbnail upload failed (it is still in $WORKDIR)"
+  # workdir, which is thrown away when the container is reclaimed. Its
+  # "uploaded:" line goes to the log like the cut's, so it can be checked.
+  if [[ -f $THUMB ]] && (( HAVE_KEY )); then
+    python3 "$HERE/drive_upload.py" --file "$THUMB" \
+      || { echo "thumbnail upload failed (it is still in $WORKDIR)"; MISSING+=("thumbnail not uploaded"); }
   fi
 fi
 
 # 6) refresh Cut/INDEX.md so the catalogue never drifts from what's on Drive
-if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
+if (( HAVE_KEY )); then
   python3 "$HERE/drive_index.py" --out "$WORKDIR/INDEX.md" || echo "index rebuild failed (cuts are still uploaded)"
 fi
 
@@ -232,8 +273,10 @@ echo ""
 # upload step is skipped silently when gdrive-sa.json is absent — which happens
 # whenever the container is rebuilt, since the key is gitignored — and this
 # line used to announce a filing that never happened.
-if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
+if (( HAVE_KEY )) && (( ${#MISSING[@]} == 0 )); then
   echo "ready (also filed to Drive Cut/${LEMOINE_DRIVE_SUBFOLDER}/):"
+elif (( HAVE_KEY )); then
+  echo "ready, but NOT everything reached Drive Cut/${LEMOINE_DRIVE_SUBFOLDER}/:"
 else
   echo "ready (LOCAL ONLY — no gdrive-sa.json, so nothing was uploaded):"
 fi
@@ -247,3 +290,8 @@ if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
     echo "  ${STAMP}_${SLUG}_frames.png  (every candidate frame; re-run with -F <seconds> to change it)"
   fi
 fi
+if (( ${#MISSING[@]} )); then
+  echo "PUBLISH_INCOMPLETE: $(IFS=';'; echo "${MISSING[*]}")"
+  exit 3
+fi
+echo "PUBLISH_COMPLETE ${STAMP}_${SLUG}$( (( HAVE_KEY )) || echo "  (LOCAL ONLY, nothing uploaded)")"

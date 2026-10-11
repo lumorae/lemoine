@@ -2,8 +2,9 @@
 """Generate a stereo impulse response for flute-friendly hall reverb.
 
 Exponentially decaying noise with faster high-frequency decay, sparse early
-reflections, ~25ms pre-delay and decorrelated channels. Used by lemoine_cut.sh
-via ffmpeg's afir convolution (tail only — the dry path is mixed separately).
+reflections, ~25ms pre-delay and decorrelated channels. lemoine_cut.sh
+convolves with it through reverb.py, not ffmpeg's afir, which output silence
+in this container's ffmpeg build (the dry path is mixed separately).
 """
 import argparse
 import struct

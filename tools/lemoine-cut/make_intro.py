@@ -310,7 +310,7 @@ def build(template, outdir, keep_frames=False, size=None):
 
     out_mov = os.path.join(outdir, f"lemoine-intro-pixel-{W}x{H}-alpha.mov")
     subprocess.run([
-        "ffmpeg", "-y", "-v", "error", "-framerate", str(FPS),
+        "ffmpeg", "-nostdin", "-y", "-v", "error", "-framerate", str(FPS),
         "-i", os.path.join(frame_dir, "f%04d.png"),
         "-c:v", "prores_ks", "-profile:v", "4444", "-pix_fmt", "yuva444p10le",
         out_mov,

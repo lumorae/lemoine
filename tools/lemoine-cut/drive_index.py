@@ -16,7 +16,7 @@ import re
 import urllib.parse
 import urllib.request
 
-from drive_upload import CUT_FOLDER_ID, DEFAULT_KEY, get_token, upload
+from drive_upload import CUT_FOLDER_ID, DEFAULT_KEY, get_token, replace_in_place, trash_id, upload
 
 INBOX_FOLDER_ID = "12kmLXP1WCXCw7qFOeR2GtjqzYb9uMcpn"
 FOLDER_MIME = "application/vnd.google-apps.folder"
@@ -49,7 +49,7 @@ def children(folder_id, token):
     out, page = [], None
     while True:
         kw = dict(q=f"'{folder_id}' in parents and trashed=false",
-                  fields="nextPageToken,files(id,name,mimeType,size)",
+                  fields="nextPageToken,files(id,name,mimeType,size,createdTime)",
                   pageSize=200, orderBy="name")
         if page:
             kw["pageToken"] = page
@@ -147,10 +147,18 @@ def main():
           f"{len(cuts)} cuts, {len(uncut)} still to cut, {len(strays)} unfiled")
 
     if not args.dry_run:
-        # replace the previous index rather than piling up copies
-        from drive_upload import trash_exact
-        trash_exact(os.path.basename(args.out), CUT_FOLDER_ID, token)
-        upload(args.out, CUT_FOLDER_ID, token)
+        # Overwrite the index in place, so its link never changes and there is
+        # never a moment with no index (this used to trash it, then upload a
+        # new file: a new link every rebuild, and none at all if the container
+        # died in between). Duplicates left by the old way are trashed.
+        name = os.path.basename(args.out)
+        same = [f for f in children(CUT_FOLDER_ID, token) if f["name"] == name]
+        if same:
+            replace_in_place(same[0]["id"], args.out, token)
+            for extra in same[1:]:
+                trash_id(extra["id"], token)
+        else:
+            upload(args.out, CUT_FOLDER_ID, token)
 
 
 if __name__ == "__main__":
