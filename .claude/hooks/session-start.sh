@@ -80,7 +80,8 @@ if git -C "$HERE" rev-parse --git-dir >/dev/null 2>&1; then
     [ "$n" -gt 0 ] || continue
     git -C "$HERE" diff --quiet "$BASE...$ref" -- tools/lemoine-cut .claude 2>/dev/null && continue
     echo "session-start: WARNING — $ref has $n commit(s) of pipeline work not in $BASE."
-    echo "               Merge it, or the next fresh session will not have them."
+    echo "               Claude: open a PR for it and merge it yourself now, before other work."
+    echo "               Johnny has asked never to be asked to merge (see CLAUDE.md)."
   done
 fi
 
