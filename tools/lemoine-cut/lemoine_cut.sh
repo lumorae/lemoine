@@ -46,20 +46,30 @@ done
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 # restore the Drive key from a persistent env var if the file is missing
-if [[ ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
+# (never under LEMOINE_LOCAL_ONLY=1, the switch every test runs with)
+if [[ ${LEMOINE_LOCAL_ONLY:-0} != 1 && ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
   echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
 fi
 IR="$HERE/ir-hall.wav"
 [[ -f $IR ]] || python3 "$HERE/make_ir.py" --out "$IR"
-WORK=$(mktemp -d)
+# Scratch lives under LEMOINE_TMP when batch_publish.sh sets it (inside the
+# day's workdir, cleared at the start of every batch): a container kill skips
+# the EXIT trap, and a dry.wav + wetmix.wav left in /tmp per kill adds up.
+mkdir -p "${LEMOINE_TMP:-${TMPDIR:-/tmp}}"
+WORK=$(mktemp -d -p "${LEMOINE_TMP:-${TMPDIR:-/tmp}}")
 trap 'rm -rf "$WORK"' EXIT
+
+# Every ffmpeg here runs with -nostdin. ffmpeg otherwise reads keystrokes from
+# stdin while it encodes, and under batch_publish.sh stdin was the job list: it
+# ate the next job's line ("c" opens its command prompt, "q" quits the encode
+# early with exit 0, so a cut came out short and still counted as done).
 
 read -r SRC_W SRC_H SRC_TRC < <(ffprobe -v error -select_streams v:0 \
   -show_entries stream=width,height,color_transfer -of csv=p=0 "$IN" | tr ',' ' ')
 
 if [[ $AUTOTRIM == 1 && -z $START ]]; then
   # find first/last non-silent audio, pad by 1s (audio-only decode: fast)
-  SIL=$(ffmpeg -i "$IN" -map 0:a:0 -vn -af "silencedetect=noise=-35dB:d=0.6" -f null - 2>&1 | grep -E "silence_(start|end)" || true)
+  SIL=$(ffmpeg -nostdin -i "$IN" -map 0:a:0 -vn -af "silencedetect=noise=-35dB:d=0.6" -f null - 2>&1 | grep -E "silence_(start|end)" || true)
   DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$IN")
   FIRST_END=$(echo "$SIL" | grep silence_end | head -1 | sed -E 's/.*silence_end: ([0-9.]+).*/\1/') || true
   LAST_START=$(echo "$SIL" | grep silence_start | tail -1 | sed -E 's/.*silence_start: ([0-9.]+).*/\1/') || true
@@ -122,7 +132,7 @@ if [[ $CLEAN -eq 1 ]]; then
 elif (( LOWCUT > 0 )); then
   CLEAN_AF="-af highpass=f=${LOWCUT}:poles=2"
 fi
-ffmpeg -y -v error "${TRIM_IN[@]}" -i "$IN" -map 0:a:0 -vn $CLEAN_AF -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
+ffmpeg -nostdin -y -v error "${TRIM_IN[@]}" -i "$IN" -map 0:a:0 -vn $CLEAN_AF -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
 RING=()
 if [[ -n $OUTRO ]]; then
   [[ -f "$HERE/ir-ring.wav" ]] || python3 "$HERE/make_ir.py" --out "$HERE/ir-ring.wav" --t60 4.8
@@ -215,7 +225,7 @@ fi
 # So the gain is computed here and applied as a plain volume, and a limiter
 # with auto-level OFF catches the few peaks that land over -2dBFS. A limiter
 # only ever turns peaks down; it cannot raise the room.
-LOUD=$(ffmpeg -hide_banner -nostats -i "$WORK/wetmix.wav" -af loudnorm=I=-14:TP=-1.5:print_format=json -f null - 2>&1 \
+LOUD=$(ffmpeg -nostdin -hide_banner -nostats -i "$WORK/wetmix.wav" -af loudnorm=I=-14:TP=-1.5:print_format=json -f null - 2>&1 \
   | python3 -c "import sys,json; t=sys.stdin.read(); print(json.loads(t[t.rindex('{'):t.rindex('}')+1])['input_i'])")
 GAIN=$(python3 -c "
 i = float('$LOUD')
@@ -226,7 +236,7 @@ print(0.0 if i < -60 else round(max(-20.0, min(20.0, -14.0 - i)), 2))")
 echo "loudness: ${LOUD} LUFS -> fixed gain ${GAIN} dB"
 FILTER_A="[2:a]volume=${GAIN}dB,alimiter=limit=0.794:attack=5:release=50:level=0:latency=1,${AFADE_IN}afade=t=out:st=$(python3 -c "print($TOTAL-0.6)"):d=0.6[aout]"
 
-ffmpeg -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${EXTRA_IN[@]}" \
+ffmpeg -nostdin -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${EXTRA_IN[@]}" \
   -filter_complex "$FILTER_V;$FILTER_A" \
   -map "[vout]" -map "[aout]" -shortest \
   -c:v libx264 -preset fast -crf "$CRF" \
@@ -236,7 +246,10 @@ ffmpeg -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${EXTRA_I
   "$OUT"
 echo "done: $OUT"
 
-# auto-save to Drive when a service-account key is configured
-if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
-  python3 "$HERE/drive_upload.py" --file "$OUT" ${LEMOINE_DRIVE_SUBFOLDER:+--subfolder "$LEMOINE_DRIVE_SUBFOLDER"} || echo "drive upload failed (kept local)"
+# auto-save to Drive when a service-account key is configured. Exit 3 means
+# the cut rendered but did NOT reach Drive, so nothing upstream reports it as
+# filed (this used to print a warning and exit 0).
+if [[ ${LEMOINE_LOCAL_ONLY:-0} != 1 && ( -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ) ]]; then
+  python3 "$HERE/drive_upload.py" --file "$OUT" ${LEMOINE_DRIVE_SUBFOLDER:+--subfolder "$LEMOINE_DRIVE_SUBFOLDER"} \
+    || { echo "drive upload failed (kept local)"; exit 3; }
 fi

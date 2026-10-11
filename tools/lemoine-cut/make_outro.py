@@ -104,7 +104,7 @@ def charcoal_layer(W, H, alpha_arr):
 def extract_logo(template, work):
     """Grab the clean final logo frame from the brand outro template (intro uses this)."""
     frame = os.path.join(work, "logo.png")
-    subprocess.run(["ffmpeg", "-y", "-v", "error", "-ss", "6.0", "-i", template,
+    subprocess.run(["ffmpeg", "-nostdin", "-y", "-v", "error", "-ss", "6.0", "-i", template,
                     "-frames:v", "1", frame], check=True)
     im = Image.open(frame).convert("RGB")
     a = np.asarray(im).astype(int)
@@ -269,7 +269,7 @@ def build(endcard, outdir, name, keep_frames=False,
 
     out_mov = os.path.join(outdir, f"lemoine-outro-pixel-{name}-{W}x{H}-alpha.mov")
     subprocess.run([
-        "ffmpeg", "-y", "-v", "error", "-framerate", str(FPS),
+        "ffmpeg", "-nostdin", "-y", "-v", "error", "-framerate", str(FPS),
         "-i", os.path.join(frame_dir, "f%04d.png"),
         "-c:v", "prores_ks", "-profile:v", "4444", "-pix_fmt", "yuva444p10le",
         out_mov,

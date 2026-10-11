@@ -8,8 +8,13 @@ the layout is a different one built from the same tokens: flat #191919, a
 bracketed eyebrow in Outfit Light led by a coral dot, a lowercase headline in
 Outfit Bold, a coral period closing it, the lemon top-left.
 
-    python3 make_short_thumb.py --video short.mp4 --at 24.5 \
-        --eyebrow "san diego garden" --line1 "double drone" --line2 "in F#."
+    python3 make_short_thumb.py --video IMG_1606.MOV --at 24.5 \
+        --line1 "nervous system" --line2 "reset" --grain 9 --effect diffusion \
+        --out 2026-10-10_1712_nervous-system-reset-in-d_thumb.jpg
+
+(The eyebrow stays "a minute of stillness", never a place; the headline is
+the video's hook, never the instrument; the coral period is drawn, never
+typed.)
 
 Two things here are not taste:
 
@@ -28,8 +33,11 @@ lower third burned into its first seconds and is 1080 wide, while the source is
 The photo always runs full frame. What changes is how far down the ink stays
 solid before it dissolves into the picture:
 
-  band    ink holds to 20% and is gone by 46%. Type sits on solid ground, and
-          the falloff keeps it from reading as a sticker over a photograph.
+  band    ink holds to 20% and is gone by 58% (Johnny asked for the dark
+          fade to come further down into the image). Type sits on solid
+          ground, and the falloff keeps it from reading as a sticker over a
+          photograph. When he is framed high and 58% would cross his face,
+          --fade 0.42, the same value for the whole set from that session.
   bleed   no solid at all, just a gradient. Keeps every pixel of the image,
           and needs real sky or shadow up top for the type to survive.
 
@@ -85,11 +93,24 @@ TONEMAP = ("zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
            "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv")
 
 
+def to_sdr(video):
+    """The filter that brings this clip to BT.709: the tone-map for HDR (an
+    iPhone's HLG, or PQ), nothing for a clip that is SDR already. zscale
+    cannot linearise a clip whose transfer is untagged or already BT.709 and
+    fails with "no path between colorspaces", so tone-mapping every clip
+    regardless meant an SDR take got its cut but never a thumbnail. Same test
+    as lemoine_cut.sh."""
+    trc = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+                          "-show_entries", "stream=color_transfer", "-of", "csv=p=0", video],
+                         capture_output=True, text=True).stdout.strip()
+    return TONEMAP if trc in ("arib-std-b67", "smpte2084") else "null"
+
+
 def grab(video, at):
-    """One tone-mapped frame from an HLG clip, at full source resolution."""
+    """One frame at full source resolution, tone-mapped if the clip is HDR."""
     out = os.path.join(tempfile.mkdtemp(), "frame.png")
-    subprocess.run(["ffmpeg", "-v", "error", "-ss", str(at), "-i", video,
-                    "-frames:v", "1", "-vf", TONEMAP, out], check=True)
+    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-ss", str(at), "-i", video,
+                    "-frames:v", "1", "-vf", to_sdr(video), out], check=True)
     return Image.open(out).convert("RGB")
 
 
@@ -224,8 +245,8 @@ def contact(video, out, every=2.0, cols=10, tile=150):
     lays the options out and a human makes it.
     """
     d = tempfile.mkdtemp()
-    subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf",
-                    f"{TONEMAP},fps=1/{every},scale={tile}:-1", os.path.join(d, "f_%03d.png")],
+    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-i", video, "-vf",
+                    f"{to_sdr(video)},fps=1/{every},scale={tile}:-1", os.path.join(d, "f_%03d.png")],
                    check=True)
     fs = sorted(f for f in os.listdir(d) if f.startswith("f_"))
     if not fs:

@@ -16,7 +16,7 @@ import re
 import urllib.parse
 import urllib.request
 
-from drive_upload import CUT_FOLDER_ID, DEFAULT_KEY, get_token, upload
+from drive_upload import CUT_FOLDER_ID, DEFAULT_KEY, get_token, replace_in_place, trash_id, upload
 
 INBOX_FOLDER_ID = "12kmLXP1WCXCw7qFOeR2GtjqzYb9uMcpn"
 FOLDER_MIME = "application/vnd.google-apps.folder"
@@ -49,7 +49,7 @@ def children(folder_id, token):
     out, page = [], None
     while True:
         kw = dict(q=f"'{folder_id}' in parents and trashed=false",
-                  fields="nextPageToken,files(id,name,mimeType,size)",
+                  fields="nextPageToken,files(id,name,mimeType,size,createdTime)",
                   pageSize=200, orderBy="name")
         if page:
             kw["pageToken"] = page
@@ -74,20 +74,35 @@ def norm(text):
 
 
 def collect(token):
-    """Walk Cut/<Flute>/ and return one record per finished cut."""
+    """Walk Cut/<Flute>/ and return one record per finished cut.
+
+    A cut's thumbnail (same name, _thumb.jpg in place of _shorts.mp4) is its
+    companion, shown on the cut's row, not a stray: once every short had one,
+    the "Not filed" list was mostly thumbnails and stopped being worth reading.
+    A short without one shows "none", which is the thing to look for."""
     cuts, strays = [], []
     for flute in children(CUT_FOLDER_ID, token):
         if flute["mimeType"] != FOLDER_MIME:
-            strays.append(flute)
+            if flute["name"] != "INDEX.md":
+                strays.append(flute)
             continue
-        for f in children(flute["id"], token):
+        files = children(flute["id"], token)
+        thumbs = {f["name"]: f for f in files if f["name"].endswith("_thumb.jpg")}
+        used = set()
+        for f in files:
+            if f["name"] in thumbs:
+                continue
             m = CUT_RE.match(f["name"])
             if not m:
                 strays.append(f)
                 continue
+            t = thumbs.get(f["name"].rsplit("_", 1)[0] + "_thumb.jpg")
+            if t:
+                used.add(t["name"])
             cuts.append(dict(
-                **m.groupdict(), id=f["id"], name=f["name"],
+                **m.groupdict(), id=f["id"], name=f["name"], thumb=t and t["id"],
                 mb=int(f.get("size") or 0) / 1e6, flute=flute["name"]))
+        strays += [t for n, t in thumbs.items() if n not in used]
     return cuts, strays
 
 
@@ -109,13 +124,18 @@ def render(cuts, strays, uncut):
                       key=lambda c: (c["date"], c["time"] or "", c["platform"]),
                       reverse=True)
         lines += [f"### {flute}  ({len(rows)})", ""]
-        lines += ["| date | take | platform | size | link |",
-                  "|---|---|---|---|---|"]
+        lines += ["| date | title | take | platform | size | link | thumbnail |",
+                  "|---|---|---|---|---|---|---|"]
         for c in rows:
             when = c["date"] + (f" {c['time'][:2]}:{c['time'][2:]}" if c["time"] else "")
             link = f"https://drive.google.com/file/d/{c['id']}/view"
-            lines.append(f"| {when} | {c['take'] or '—'} | {c['platform']} "
-                         f"| {c['mb']:.0f} MB | [open]({link}) |")
+            # Shorts thumbnails began 2026-09-21 and were never back-filled
+            # (Johnny: the template applies going forward), so "none" flags
+            # only the shorts that should have one.
+            thumb = (f"[open](https://drive.google.com/file/d/{c['thumb']}/view)" if c["thumb"]
+                     else ("none" if c["platform"] == "shorts" and c["date"] >= "2026-09-21" else ""))
+            lines.append(f"| {when} | {c['slug'].replace('-', ' ')} | {c['take'] or ''} "
+                         f"| {c['platform']} | {c['mb']:.0f} MB | [open]({link}) | {thumb} |")
         lines.append("")
 
     if strays:
@@ -147,10 +167,18 @@ def main():
           f"{len(cuts)} cuts, {len(uncut)} still to cut, {len(strays)} unfiled")
 
     if not args.dry_run:
-        # replace the previous index rather than piling up copies
-        from drive_upload import trash_exact
-        trash_exact(os.path.basename(args.out), CUT_FOLDER_ID, token)
-        upload(args.out, CUT_FOLDER_ID, token)
+        # Overwrite the index in place, so its link never changes and there is
+        # never a moment with no index (this used to trash it, then upload a
+        # new file: a new link every rebuild, and none at all if the container
+        # died in between). Duplicates left by the old way are trashed.
+        name = os.path.basename(args.out)
+        same = [f for f in children(CUT_FOLDER_ID, token) if f["name"] == name]
+        if same:
+            replace_in_place(same[0]["id"], args.out, token)
+            for extra in same[1:]:
+                trash_id(extra["id"], token)
+        else:
+            upload(args.out, CUT_FOLDER_ID, token)
 
 
 if __name__ == "__main__":

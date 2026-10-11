@@ -36,6 +36,9 @@ FLUTES = [
         "folder": "High Spirits Double F#",
         "key": {"F#", "F"},   # a slug loses the "#", and there is no F natural
         "not_": ["spirit flute"],
+        # Measured: the drone chamber sits at 370.1 Hz, F#4 within half a cent
+        # of A440, with clean partials at 740 and 1110 Hz. An older note had
+        # it at 184 Hz, an octave low; verify against a recording, not notes.
         "note": "the crossbow-shaped traditional double — drone + melody chambers",
     },
     {
@@ -47,7 +50,11 @@ FLUTES = [
     {
         "folder": "High Spirits Nova G",
         "key": {"G"},
-        "note": "Nova double — the only G flute, so every G and Gm lands here",
+        # The quenas are G too, but they are matched by name ("quena",
+        # "jayras") before keys are looked at, so any G title without a quena
+        # word still lands here, including theme-led Jayras titles: those
+        # need LEMOINE_FLUTE.
+        "note": "Nova double; every G and Gm title without a quena word lands here",
     },
     {
         "folder": "Ebonized Walnut A",
@@ -157,20 +164,6 @@ FLUTES = [
         "keyless": ["shakuhachi"],
     },
     {
-        # The SECOND dark quena from the Mexico City market. First cut
-        # 2026-10-11. Same chakana inlay as the Jayras, so probably the same
-        # workshop, but a different instrument: a red-and-black diamond woven
-        # band under a thin blue ring, where the Jayras has two blue-and-white
-        # wave bands. Centred on G like the others, lowest sustained ~383 Hz.
-        # Johnny has not named it yet, so the folder describes it; it has no
-        # title words and is filed only with LEMOINE_FLUTE. If it turns out to
-        # carry the same QUENAS JAYRAS stamp, it still stays separate: two
-        # instruments, two folders.
-        "folder": "Quena Red Band",
-        "note": "second CDMX market quena; red/black diamond band, chakana inlay; G",
-        "lowcut": 200,   # lowest note G4 ~383Hz
-    },
-    {
         # Must sit BEFORE "Quena": keyless rules are tried in order, and the
         # bamboo flute's rule matches the bare word "quena".
         "folder": "Quena Jayras",
@@ -190,11 +183,22 @@ FLUTES = [
         # translates it "the lazy ones", from Aymara "jayra", lazy). That the
         # flute is named after them is a guess, not a finding.
         #
+        # Under warm indoor light the bands do NOT look as they do outdoors:
+        # the brown beaded band reads as a red-and-black diamond weave and the
+        # blue-and-white bands go grey. On 2026-10-10 that misread filed an
+        # indoor Jayras take into a new "Quena Red Band" folder as if it were
+        # the second market quena; Johnny caught it and it was moved back. The
+        # chakana inlay and the pitch (G, lowest ~383 Hz, ~A430) matched all
+        # along. When Johnny names the flute, file it as named; a band colour
+        # seen through a lamp is not grounds to overrule him.
+        #
+        # The OTHER quena from that market is "Black Quena", below: an F#
+        # instrument, not this one.
+        #
         # Titles usually lead with the theme and never say "jayras", so cuts
-        # are filed with LEMOINE_FLUTE="Quena Jayras" on the publish run. The
-        # second dark quena from the same market is a different instrument and
-        # must not be filed here.
+        # are filed with LEMOINE_FLUTE="Quena Jayras" on the publish run.
         "note": "dark wood, chakana inlay, stamped QUENAS JAYRAS; G, ~A430",
+        "sounds_in": {"G"},
         "lowcut": 200,   # lowest note G4 ~385Hz; see LOWCUT below
     },
     {
@@ -214,7 +218,32 @@ FLUTES = [
         # have been the player; two, weeks and a hemisphere apart, landing on the
         # same reference is the instrument.
         "note": "Andean notched flute; measures as G tuned to A432",
+        "sounds_in": {"G"},
         "lowcut": 200,   # lowest sustained note G4 ~383Hz, measured three times
+    },
+    {
+        # Must sit AFTER "Quena": a quena title with no key goes to the bamboo
+        # quena, as it always has. This one is reached by a quena title in F#,
+        # or by LEMOINE_FLUTE="Black Quena".
+        "folder": "Black Quena",
+        "keyless": ["quena"],
+        # The second quena Johnny bought at the Mexico City market with the
+        # Jayras, October 2026: "just a black wood type", no maker's mark.
+        # Two side-by-side clips (2026-10-11), each flute played in turn, gave
+        # note sets that do not overlap. Black: 370, 412, 466, 500, 562, 619,
+        # 679 Hz. Jayras: 387, 428, 477, 504, 622, 690 Hz. The black quena's
+        # home note, held for seven seconds at full breath, is 368-372 Hz:
+        # F#4 at A440 almost exactly. So it is an F# quena, not a flat G one.
+        # The two are ~75 cents apart at the bottom and nearly meet by the top
+        # (C and E within ~10 cents), so they clash played together, low notes
+        # worst. F# titles as heart chakra (Anahata), as the double drone does.
+        #
+        # In the second clip the black played 2-42 s and the Jayras only the
+        # last 5 s. A brightness change at 8 s first looked like the switch; it
+        # was dynamics. Split a comparison clip by its NOTES, not its timbre.
+        "note": "black wood, plain; F#, bottom note ~370Hz",
+        "sounds_in": {"F#", "F"},   # a slug loses the "#"
+        "lowcut": 180,   # an octave under the 368-372Hz home note
     },
 ]
 
@@ -278,13 +307,18 @@ def folder_for(slug, title=None):
     if slug in MAP:
         return MAP[slug]
     hay = f"{slug} {title or ''}".lower().replace("-", " ")
-
-    # a flute with no key is identified by name alone
-    for f in FLUTES:
-        if any(_has(hay, w) for w in f.get("keyless", [])):
-            return f["folder"]
-
     key = key_of(slug, title)
+
+    # A flute with no key is identified by name alone. Where two share the
+    # name (three quenas answer to "quena"), the key in the title decides:
+    # "quena in F#" is the black quena, never the bamboo one in G. A name
+    # that matches but whose key fits none of them is a question, not a
+    # reason to fall through to a keyed flute that was never named.
+    named = [f for f in FLUTES if any(_has(hay, w) for w in f.get("keyless", []))]
+    if named:
+        fits = [f for f in named if not (key and f.get("sounds_in") and key not in f["sounds_in"])]
+        return fits[0]["folder"] if fits else UNSORTED
+
     if not key:
         return UNSORTED
 
@@ -308,7 +342,7 @@ if __name__ == "__main__":
     args = sys.argv[1:]
     if args and args[0] == "--audit":
         for f in FLUTES:
-            k = "/".join(sorted(f.get("key", ()))) or "no key"
+            k = "/".join(sorted(f.get("key", ()) or f.get("sounds_in", ()))) or "no key"
             print(f"  {f['folder']:<26} {k:<8} {f.get('note','')}")
         raise SystemExit
     for a in args:

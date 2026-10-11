@@ -1,7 +1,25 @@
 # lemoine-cut
 
-Pipeline for turning raw flute clips into branded "lemoine cuts":
-trim → brand lower third → hall reverb → loudness-normalized h264.
+Pipeline for turning Johnny's raw flute clips into branded YouTube Shorts:
+per-flute low cut → hall reverb → one fixed loudness gain → brand lower third
+→ h264, plus a branded thumbnail, filed on Drive by flute.
+
+The step-by-step procedure, the standing creative rules and the flute table
+live in `CLAUDE.md` at the repo root. This file describes the tools.
+
+## The daily tools
+
+| Step | Tool | What it guarantees |
+|---|---|---|
+| fetch | `fetch_inbox.py --out <W>/src [--expect N]` | every clip byte-checked against Drive, retried, never a short file under a real name; waits for N clips; names leftovers and duplicate names |
+| identify | `measure.py pitch <files>` | tuning, notes, lowest note in Hz and a suggested low cut; prints both readings when the tuning sits between two note names |
+| cut | `batch_publish.sh <W> <W>/jobs.tsv` | one job at a time, locked per workdir, resumable after a restart; a job is done only when its log ends `PUBLISH_COMPLETE` |
+| check | `measure.py opening <cuts>` | room level before the first note against the playing |
+| thumbnails | `make_short_thumb.py` | the branded 9:16 thumbnail at the fixed 140pt headline |
+| file | `drive_put.py --flute <folder> <files>` | replaces by name in place (links survive), size-checked; safe `--trash`; rebuilds the index |
+| tidy | `drive_tidy_inbox.py` | moves cut originals out of Inbox into `Source/<Flute>/` |
+| catalogue | `drive_index.py` | `Cut/INDEX.md`, rewritten in place so its link never changes |
+| rescue | `drive_migrate.py [--apply]` | refiles only cuts sitting where no flute owns them; dry run by default |
 
 ## Pieces
 
@@ -12,33 +30,37 @@ trim → brand lower third → hall reverb → loudness-normalized h264.
   left-to-right pixel wipe in/out with digital-palette particles (same palette
   as the site's lemon-explosion effect). 5.4s @ 30fps, landscape (1920x1080)
   and vertical (1080x1920). The title always stays on **one line inside the
-  frame**: the box is sized to its text, so a long title used to run it to
-  within ~16px of the right edge against a 64px inset on the left. The type now
-  shrinks a point or two when it has to and is left alone when it doesn't —
-  wrapping or truncating would be worse, since the title names the piece. Below
-  30pt it gives up and warns instead of shipping something unreadable.
+  frame**: the box is sized to its text. The type shrinks when a title is too
+  long, but Johnny's standard is 42pt on every cut, so a shrink is a signal to
+  shorten the title, never something to ship: fit-test titles before cutting
+  and look for `lower third: 42pt -> ` in the log.
 - `make_ir.py` — synthesizes the stereo hall impulse response (T60 ≈ 2.3s,
   25ms pre-delay, faster HF decay) used for the reverb.
 - `reverb.py` — convolution reverb (numpy FFT). The distro ffmpeg's `afir`
   filter is broken (outputs silence), so convolution happens here.
-- `lemoine_cut.sh` — the assembly: optional trim (manual `-s`/`-e` or `-a`
-  auto-trim on leading/trailing silence), lower-third overlay scaled to the
-  footage, reverb wet mix (default −12 dB under dry), `loudnorm` to −14 LUFS,
-  libx264 crf 18 + aac 256k, faststart.
+- `lemoine_cut.sh` — the assembly: HDR tone-map, the flute's own low cut
+  (`-H`, from categories.py), reverb wet mix −9 dB under dry, ONE fixed gain to
+  −14 LUFS then a peak limiter (never `loudnorm` as a processor: it is an
+  automatic gain control and lifted the room before the first note by ~33 dB),
+  lower-third overlay, libx264 crf 19 + aac 256k, faststart. Exits 3 when the
+  render is fine but the Drive upload failed.
 - `Outfit-300.ttf` — Outfit Light (the site's brand font), SIL OFL, from
   Google Fonts.
 
 ## Usage
 
-One command from a Drive link to both platform cuts:
+Batches go through `batch_publish.sh` (see CLAUDE.md). One clip by hand:
 
 ```bash
-./lemoine_publish.sh "https://drive.google.com/file/d/<id>/view" [-g brands|dontblend]
+LEMOINE_FLUTE="Stellar Flute D" ./lemoine_publish.sh src/IMG_1606.MOV -T "nervous system reset in D"
 ```
 
-Produces `<title>-reels.mp4` (intro + lower third + end-card outro) and
-`<title>-shorts.mp4` (clean loop: no intro/outro, raised lower third). The
-title comes from the Drive file name; the file must be link-shared.
+Shorts only by default, each with a thumbnail; `-p reels` or `-p both` only
+when Johnny asks for the Instagram cut. `-T` sets the title; without it the
+title comes from the file name. `LEMOINE_FLUTE` files the cut under that
+flute's folder and applies its low cut; it must name a folder categories.py
+knows, or the run stops. The run's last line is `PUBLISH_COMPLETE` or
+`PUBLISH_INCOMPLETE: <what is missing>`.
 
 Lower-level pieces (`make_lower3.py`, `make_intro.py`, `make_outro.py`,
 `lemoine_cut.sh`) can also be run individually — see their headers.
@@ -54,9 +76,10 @@ Filmed on a balcony over a city, the flute arrives buried in traffic, wind and
 room hiss. `-c` cleans the audio *before* the reverb, so the hall tail is built
 from flute rather than from street:
 
-1. **High-pass at 120 Hz.** These flutes have no fundamental down there — on
-   the Mexico City clip the sub-160 Hz band measured 1–3 dB SNR, i.e. pure
-   rumble — so cutting it is free.
+1. **High-pass at 120 Hz** (or the flute's own low cut, whichever is
+   higher). These flutes have no fundamental down there — on the Mexico City
+   clip the sub-160 Hz band measured 1–3 dB SNR, i.e. pure rumble — so cutting
+   it is free.
 2. **Collapse to mono.** A phone's stereo pair records the flute as correlated
    centre content and diffuse street noise as decorrelated sides. Summing to
    mono centres the flute *and* cancels much of the ambience in one move; the
@@ -101,10 +124,10 @@ ProRes 4444 instead.
 The claude.ai Drive connector can only download up to 10 MB and can't upload
 video-size files at all, so renders can't land in Drive through it. Instead,
 `drive_upload.py` uploads straight to the "Cut" folder via the Drive API with
-a service-account key (one-time setup in its header comment). Once the key is
-in place, finished cuts get pushed to Drive automatically at the end of
-`lemoine_cut.sh`; until then they're committed to the repo's `renders/` and
-sent in chat.
+a service-account key (one-time setup in its header comment). The key is a
+credential and is never committed: the session-start hook restores it from
+the `GDRIVE_SA_JSON_B64` environment variable. Without it cuts render and stay
+local, and every report must say LOCAL ONLY.
 
 ## How things are named and filed
 
@@ -132,8 +155,10 @@ python3 drive_tidy_inbox.py             # do it
 
 A source is matched to its cut by normalising both to the same loose key, so
 `High Spirits — High Kestrel in D (01)` finds the cut it produced even though
-neither name matches the other exactly. Sources are never renamed — Johnny
-named them — and moves only change a parent, so shared links keep working.
+neither name matches the other exactly. An `IMG_####` source can never match
+a cut titled by theme, so those are renamed on Drive to their cut's title
+first (a rename keeps the file's id and link). Moves only change a parent, so
+shared links keep working.
 
 Cuts file **by flute**, not by shoot date — `Cut/Ebonized Walnut A/`,
 `Cut/Shakuhachi/`. There are only so many flutes, and the same instrument comes
@@ -150,14 +175,20 @@ instrument, and so are "Drone Flute Gm", "Drone Flute G" and "Double Nova
 Drone G". Deriving per clip meant each new phrasing silently invented a folder
 that had to be merged back by hand.
 
-A clip is matched against the registry by key first — each flute has one — and
-then by a distinguishing word where a key is shared (F# is both the Spirit
-Flute and the double; D is both the High Kestrel and the Stellar shaker).
+A clip is matched against the registry by key first and then by a
+distinguishing word where a key is shared (F# is the Spirit Flute, the double
+and the black quena; D is the High Kestrel, the Stellar and the sacral flute).
+Three quenas answer to the word "quena", and the key in the title decides
+between them. Most titles lead with a theme and name no flute at all, so in
+practice the flute is passed as `LEMOINE_FLUTE` (the jobs.tsv flute column),
+and the title rules are only the fallback.
 
 **Anything the registry cannot place goes to `Unsorted` and says so at the end
-of the run.** It never invents a folder. A clip in the wrong place is invisible;
-a clip in `Unsorted` is a two-line fix — add the flute to `FLUTES` and re-run
-`drive_migrate.py`, which is idempotent and only moves what disagrees.
+of the run.** It never invents a folder. A cut in the wrong flute folder is
+moved by changing its parent (with its thumbnail and source), never with
+`drive_migrate.py`: that script sees only slugs, so it leaves every folder a
+flute owns alone and only rescues cuts from date folders, `Unsorted` and
+retired folders.
 
 Match words are whole-phrase and word-bounded, learned the hard way: the maker
 is "High Spirits", so a bare `"spirit"` matches every title and would file the
@@ -191,10 +222,9 @@ Cuts are named:
   followed by punctuation or the end of the title; that keeps `in a church`
   lowercase. (Consequence: `in A melancholic` won't capitalise — pass `-T` for
   that one.) Filenames stay fully lowercase.
-- **A flute's folder name ends at the key.** `native drone in G melancholic`
-  files under `Native Drone G`: what follows the key describes the performance,
-  not the instrument. A key written as its own field — `Double Drone, G, summer
-  rain` — is picked up too, so both spellings land in one folder.
+- **No dashes on screen.** An em or en dash, or a spaced hyphen, used as
+  punctuation in a title becomes a comma, in `-T` titles and file-name titles
+  alike. A hyphen inside a word stays.
 - Dates resolve in Pacific time (`America/Los_Angeles`, override with
   `LEMOINE_TZ`); the container's clock is UTC, so without this an evening
   session files itself under tomorrow.
@@ -202,5 +232,7 @@ Cuts are named:
 `drive_index.py` rebuilds `Cut/INDEX.md` — a dated table of every cut with
 direct links, plus a **To cut** list built by diffing `Inbox/` against the
 cuts that already exist, so anything filmed but not yet cut is visible. It
-runs automatically at the end of every `lemoine_publish.sh`; run it by hand
-(`--dry-run` to preview) after moving things around in Drive.
+runs automatically at the end of every `lemoine_publish.sh` and every
+`drive_put.py` that changed something, and rewrites the index in place, so a
+link to it keeps working; run it by hand (`--dry-run` to preview) after moving
+things around in Drive.
