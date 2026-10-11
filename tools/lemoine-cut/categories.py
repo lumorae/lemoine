@@ -157,20 +157,6 @@ FLUTES = [
         "keyless": ["shakuhachi"],
     },
     {
-        # The SECOND dark quena from the Mexico City market. First cut
-        # 2026-10-11. Same chakana inlay as the Jayras, so probably the same
-        # workshop, but a different instrument: a red-and-black diamond woven
-        # band under a thin blue ring, where the Jayras has two blue-and-white
-        # wave bands. Centred on G like the others, lowest sustained ~383 Hz.
-        # Johnny has not named it yet, so the folder describes it; it has no
-        # title words and is filed only with LEMOINE_FLUTE. If it turns out to
-        # carry the same QUENAS JAYRAS stamp, it still stays separate: two
-        # instruments, two folders.
-        "folder": "Quena Red Band",
-        "note": "second CDMX market quena; red/black diamond band, chakana inlay; G",
-        "lowcut": 200,   # lowest note G4 ~383Hz
-    },
-    {
         # Must sit BEFORE "Quena": keyless rules are tried in order, and the
         # bamboo flute's rule matches the bare word "quena".
         "folder": "Quena Jayras",
@@ -189,6 +175,15 @@ FLUTES = [
         # quena player was Gilbert Favre (Los Tiempos, 19 Nov 2016, which also
         # translates it "the lazy ones", from Aymara "jayra", lazy). That the
         # flute is named after them is a guess, not a finding.
+        #
+        # Under warm indoor light the bands do NOT look as they do outdoors:
+        # the brown beaded band reads as a red-and-black diamond weave and the
+        # blue-and-white bands go grey. On 2026-10-10 that misread filed an
+        # indoor Jayras take into a new "Quena Red Band" folder as if it were
+        # the second market quena; Johnny caught it and it was moved back. The
+        # chakana inlay and the pitch (G, lowest ~383 Hz, ~A430) matched all
+        # along. When Johnny names the flute, file it as named; a band colour
+        # seen through a lamp is not grounds to overrule him.
         #
         # Titles usually lead with the theme and never say "jayras", so cuts
         # are filed with LEMOINE_FLUTE="Quena Jayras" on the publish run. The
