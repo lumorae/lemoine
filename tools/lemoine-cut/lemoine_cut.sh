@@ -10,7 +10,7 @@
 #
 #   -s/-e  trim window in seconds (defaults: full clip)
 #   -a     auto-trim: detect leading/trailing silence and cut with 1s padding
-#   -w     reverb wet level in dB relative to dry (default -12)
+#   -w     reverb wet level in dB relative to dry (default -9)
 #   -t     when the lower third appears, seconds into the cut (default 0.8)
 #   -k     keep source resolution (default: deliver at 1080p for speed/size)
 #   -q     x264 crf (default 19)
@@ -26,7 +26,12 @@
 #          385Hz, a drone flute's drone can sit under 200Hz.
 set -euo pipefail
 
-IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-12 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO="" CLEAN=0 NR=14 BW=0 LOWCUT=0
+# WET_DB was -12 until 2026-10-11. Johnny heard the reverb as weak on an
+# outdoor take: outside there is no room adding reflections of its own, and the
+# old automatic loudness stage had been lifting reverb tails by ~4dB in pauses,
+# which the fixed-gain stage (correctly) no longer does. -9 roughly doubles the
+# reverb energy at the same integrated loudness.
+IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-9 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO="" CLEAN=0 NR=14 BW=0 LOWCUT=0
 while getopts "i:o:l:s:e:aw:t:kq:O:I:Cn:BH:" opt; do
   case $opt in
     i) IN=$OPTARG;; o) OUT=$OPTARG;; l) LOWER3=$OPTARG;;

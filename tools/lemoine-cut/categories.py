@@ -80,7 +80,16 @@ FLUTES = [
         # may belong to that flute instead; the indoor take it came from was
         # never identified by sight. Treat the tuning above as unconfirmed
         # until a clip showing this instrument is measured.
-        "note": "Stellar Flutes, not High Spirits; the shaker clips are this flute too",
+        #
+        # 2026-10-11: RESOLVED. Four indoor takes identified by sight as this
+        # flute (plain reddish body with no burned chakra symbols, black block
+        # tie, red/white/grey woven band) all measure best fit A4 445.3-447.1,
+        # centred on D with C, F, G, A: D dorian, lowest sustained ~291 Hz (D4
+        # bent flat). The September reading was this flute after all, and the
+        # sacral chakra flute independently sits near 447 too. Nothing was
+        # misattributed; both D flutes are simply ~30c sharp of concert.
+        "note": "Stellar Flutes, not High Spirits; the shaker clips are this flute too; D dorian ~A447",
+        "lowcut": 140,   # lowest note D4 ~291-296Hz, measured on four takes
     },
     {
         "folder": "Sacral Chakra D",
@@ -111,7 +120,13 @@ FLUTES = [
         # probably misattributed, and nothing here can say which, so both
         # stand until a take of the Stellar is identified visually the way
         # these were.
+        #
+        # 2026-10-11: resolved by four visually identified Stellar takes, which
+        # also measure ~A447 D dorian. Both readings stand; neither was
+        # misattributed. Seen side by side, the sacral flute is the one with
+        # burned chakra medallions; the Stellar's body is plain.
         "note": "third D flute; measures D dorian ~30c sharp, near A=447",
+        "lowcut": 140,   # lowest note D4 ~296Hz, measured on two takes
     },
     {
         "folder": "Spanish Cedar 432Hz",
@@ -140,6 +155,20 @@ FLUTES = [
     {
         "folder": "Shakuhachi",
         "keyless": ["shakuhachi"],
+    },
+    {
+        # The SECOND dark quena from the Mexico City market. First cut
+        # 2026-10-11. Same chakana inlay as the Jayras, so probably the same
+        # workshop, but a different instrument: a red-and-black diamond woven
+        # band under a thin blue ring, where the Jayras has two blue-and-white
+        # wave bands. Centred on G like the others, lowest sustained ~383 Hz.
+        # Johnny has not named it yet, so the folder describes it; it has no
+        # title words and is filed only with LEMOINE_FLUTE. If it turns out to
+        # carry the same QUENAS JAYRAS stamp, it still stays separate: two
+        # instruments, two folders.
+        "folder": "Quena Red Band",
+        "note": "second CDMX market quena; red/black diamond band, chakana inlay; G",
+        "lowcut": 200,   # lowest note G4 ~383Hz
     },
     {
         # Must sit BEFORE "Quena": keyless rules are tried in order, and the
