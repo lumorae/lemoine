@@ -33,8 +33,11 @@ lower third burned into its first seconds and is 1080 wide, while the source is
 The photo always runs full frame. What changes is how far down the ink stays
 solid before it dissolves into the picture:
 
-  band    ink holds to 20% and is gone by 46%. Type sits on solid ground, and
-          the falloff keeps it from reading as a sticker over a photograph.
+  band    ink holds to 20% and is gone by 58% (Johnny asked for the dark
+          fade to come further down into the image). Type sits on solid
+          ground, and the falloff keeps it from reading as a sticker over a
+          photograph. When he is framed high and 58% would cross his face,
+          --fade 0.42, the same value for the whole set from that session.
   bleed   no solid at all, just a gradient. Keeps every pixel of the image,
           and needs real sky or shadow up top for the type to survive.
 

@@ -36,6 +36,9 @@ FLUTES = [
         "folder": "High Spirits Double F#",
         "key": {"F#", "F"},   # a slug loses the "#", and there is no F natural
         "not_": ["spirit flute"],
+        # Measured: the drone chamber sits at 370.1 Hz, F#4 within half a cent
+        # of A440, with clean partials at 740 and 1110 Hz. An older note had
+        # it at 184 Hz, an octave low; verify against a recording, not notes.
         "note": "the crossbow-shaped traditional double — drone + melody chambers",
     },
     {
@@ -47,7 +50,11 @@ FLUTES = [
     {
         "folder": "High Spirits Nova G",
         "key": {"G"},
-        "note": "Nova double — the only G flute, so every G and Gm lands here",
+        # The quenas are G too, but they are matched by name ("quena",
+        # "jayras") before keys are looked at, so any G title without a quena
+        # word still lands here, including theme-led Jayras titles: those
+        # need LEMOINE_FLUTE.
+        "note": "Nova double; every G and Gm title without a quena word lands here",
     },
     {
         "folder": "Ebonized Walnut A",

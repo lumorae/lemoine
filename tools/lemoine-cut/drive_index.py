@@ -74,20 +74,35 @@ def norm(text):
 
 
 def collect(token):
-    """Walk Cut/<Flute>/ and return one record per finished cut."""
+    """Walk Cut/<Flute>/ and return one record per finished cut.
+
+    A cut's thumbnail (same name, _thumb.jpg in place of _shorts.mp4) is its
+    companion, shown on the cut's row, not a stray: once every short had one,
+    the "Not filed" list was mostly thumbnails and stopped being worth reading.
+    A short without one shows "none", which is the thing to look for."""
     cuts, strays = [], []
     for flute in children(CUT_FOLDER_ID, token):
         if flute["mimeType"] != FOLDER_MIME:
-            strays.append(flute)
+            if flute["name"] != "INDEX.md":
+                strays.append(flute)
             continue
-        for f in children(flute["id"], token):
+        files = children(flute["id"], token)
+        thumbs = {f["name"]: f for f in files if f["name"].endswith("_thumb.jpg")}
+        used = set()
+        for f in files:
+            if f["name"] in thumbs:
+                continue
             m = CUT_RE.match(f["name"])
             if not m:
                 strays.append(f)
                 continue
+            t = thumbs.get(f["name"].rsplit("_", 1)[0] + "_thumb.jpg")
+            if t:
+                used.add(t["name"])
             cuts.append(dict(
-                **m.groupdict(), id=f["id"], name=f["name"],
+                **m.groupdict(), id=f["id"], name=f["name"], thumb=t and t["id"],
                 mb=int(f.get("size") or 0) / 1e6, flute=flute["name"]))
+        strays += [t for n, t in thumbs.items() if n not in used]
     return cuts, strays
 
 
@@ -109,13 +124,18 @@ def render(cuts, strays, uncut):
                       key=lambda c: (c["date"], c["time"] or "", c["platform"]),
                       reverse=True)
         lines += [f"### {flute}  ({len(rows)})", ""]
-        lines += ["| date | take | platform | size | link |",
-                  "|---|---|---|---|---|"]
+        lines += ["| date | title | take | platform | size | link | thumbnail |",
+                  "|---|---|---|---|---|---|---|"]
         for c in rows:
             when = c["date"] + (f" {c['time'][:2]}:{c['time'][2:]}" if c["time"] else "")
             link = f"https://drive.google.com/file/d/{c['id']}/view"
-            lines.append(f"| {when} | {c['take'] or '—'} | {c['platform']} "
-                         f"| {c['mb']:.0f} MB | [open]({link}) |")
+            # Shorts thumbnails began 2026-09-21 and were never back-filled
+            # (Johnny: the template applies going forward), so "none" flags
+            # only the shorts that should have one.
+            thumb = (f"[open](https://drive.google.com/file/d/{c['thumb']}/view)" if c["thumb"]
+                     else ("none" if c["platform"] == "shorts" and c["date"] >= "2026-09-21" else ""))
+            lines.append(f"| {when} | {c['slug'].replace('-', ' ')} | {c['take'] or ''} "
+                         f"| {c['platform']} | {c['mb']:.0f} MB | [open]({link}) | {thumb} |")
         lines.append("")
 
     if strays:
