@@ -185,6 +185,13 @@ FLUTES = [
         # along. When Johnny names the flute, file it as named; a band colour
         # seen through a lamp is not grounds to overrule him.
         #
+        # The OTHER quena from that market is "just a black wood type" (Johnny,
+        # 2026-10-11): black, not the Jayras's dark brown. A side-by-side clip
+        # put its bottom note ~376 Hz against the Jayras's ~391 Hz, about 70
+        # cents lower; too short to say whether it is a flat G quena (~A422)
+        # or a quena in F#. It has no FLUTES entry yet: on its first cut, ask
+        # him its name, measure it with measure.py, and give it its own entry.
+        #
         # Titles usually lead with the theme and never say "jayras", so cuts
         # are filed with LEMOINE_FLUTE="Quena Jayras" on the publish run. The
         # second dark quena from the same market is a different instrument and
