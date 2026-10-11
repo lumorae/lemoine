@@ -29,8 +29,14 @@
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
+# LEMOINE_LOCAL_ONLY=1 renders everything and touches Drive not at all: no key
+# restored, no upload, no index. Use it for every test. Unsetting the Drive
+# variables is not enough on its own: on 2026-10-11 one test command missed
+# the unset, restored the key into the test copy of the tools, and a later,
+# properly unset test found that key and uploaded a test cut to Cut/Quena/.
+LOCAL_ONLY=${LEMOINE_LOCAL_ONLY:-0}
 # restore the Drive key from a persistent env var if the file is missing
-if [[ ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
+if [[ $LOCAL_ONLY != 1 && ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
   echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
 fi
 SRC="" TAGLINE="dontblend" TITLE="" PLATFORM="shorts"
@@ -206,7 +212,7 @@ if [[ ! -f $OUTRO ]]; then
 fi
 
 HAVE_KEY=0
-[[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]] && HAVE_KEY=1
+[[ $LOCAL_ONLY != 1 && ( -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ) ]] && HAVE_KEY=1
 MISSING=()   # anything asked for that did not get made or filed
 
 # 5) the requested platform cut(s). lemoine_cut.sh exits 3 when the render is
@@ -278,7 +284,7 @@ if (( HAVE_KEY )) && (( ${#MISSING[@]} == 0 )); then
 elif (( HAVE_KEY )); then
   echo "ready, but NOT everything reached Drive Cut/${LEMOINE_DRIVE_SUBFOLDER}/:"
 else
-  echo "ready (LOCAL ONLY — no gdrive-sa.json, so nothing was uploaded):"
+  echo "ready (LOCAL ONLY — no Drive key, or LEMOINE_LOCAL_ONLY=1, so nothing was uploaded):"
 fi
 if [[ $PLATFORM == reels || $PLATFORM == both ]]; then
   echo "  ${STAMP}_${SLUG}_reels.mp4   (instagram: intro + end-card '$TAGLINE')"

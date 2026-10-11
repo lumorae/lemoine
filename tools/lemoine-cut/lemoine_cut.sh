@@ -46,7 +46,8 @@ done
 
 HERE=$(cd "$(dirname "$0")" && pwd)
 # restore the Drive key from a persistent env var if the file is missing
-if [[ ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
+# (never under LEMOINE_LOCAL_ONLY=1, the switch every test runs with)
+if [[ ${LEMOINE_LOCAL_ONLY:-0} != 1 && ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
   echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
 fi
 IR="$HERE/ir-hall.wav"
@@ -248,7 +249,7 @@ echo "done: $OUT"
 # auto-save to Drive when a service-account key is configured. Exit 3 means
 # the cut rendered but did NOT reach Drive, so nothing upstream reports it as
 # filed (this used to print a warning and exit 0).
-if [[ -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ]]; then
+if [[ ${LEMOINE_LOCAL_ONLY:-0} != 1 && ( -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ) ]]; then
   python3 "$HERE/drive_upload.py" --file "$OUT" ${LEMOINE_DRIVE_SUBFOLDER:+--subfolder "$LEMOINE_DRIVE_SUBFOLDER"} \
     || { echo "drive upload failed (kept local)"; exit 3; }
 fi
