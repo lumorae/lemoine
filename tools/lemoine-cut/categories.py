@@ -45,7 +45,13 @@ FLUTES = [
         "folder": "Spirit Flute F#",
         "key": {"F#", "F"},
         "needs": ["spirit flute"],   # "spirit" alone also matches the maker
-        "note": "the other F#; not the double",
+        # Single chamber, reddish wood, carved spiral/flame marks down the body.
+        # Measured 2026-10-12 on three takes (two September garden cuts and the
+        # October "after a storm" take): best fit A4 436.9-440.8, notes F#, A,
+        # B, C#, E (F# minor pentatonic), lowest sustained 366-369 Hz, F#4.
+        # An older transcript figure of 360.7 Hz was never tied to this flute.
+        "note": "the other F#; not the double; F# minor pentatonic near A440",
+        "lowcut": 180,   # an octave under the 366-369Hz bottom note, three takes
     },
     {
         "folder": "High Spirits Nova G",
