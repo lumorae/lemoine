@@ -58,7 +58,7 @@ TEMPLATES = {
 
 
 MEDIUM_WORDS = {"watercolor", "print", "prints", "art", "wall", "poster", "painting",
-                "illustration", "ink", "original", "giclee", "fine"}
+                "illustration", "ink", "original", "giclee", "fine", "and", "&"}
 
 
 def display_name(etsy_title: str) -> str:

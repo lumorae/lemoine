@@ -39,6 +39,10 @@ POSTS_PER_RUN = int(os.environ.get("FB_POSTS_PER_RUN", "1"))
 GRAPH_VERSION = os.environ.get("FB_GRAPH_VERSION", "v23.0")
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 
+# Fan art of other people's characters stays off Facebook: a trademark
+# report gets the post removed, and repeat reports can restrict the Page.
+SKIP_WORDS = ("lightning", "mater", "pixar", "disney", "cars ")
+
 
 def load_listings() -> list[dict]:
     """One entry per listing; pins.json has three pins per listing."""
@@ -46,6 +50,8 @@ def load_listings() -> list[dict]:
     for pin in json.loads(PINS_FILE.read_text()):
         lid = str(pin["listing_id"])
         if lid in seen or not pin.get("image_url"):
+            continue
+        if any(w in f"{pin['listing_title']} {pin['listing_url']}".lower() for w in SKIP_WORDS):
             continue
         seen[lid] = {
             "listing_id": lid,
