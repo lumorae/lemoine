@@ -65,6 +65,11 @@ def main():
                  "Add them in Graph API Explorer, generate a new token and run this again.")
 
     pages = get("/me/accounts", access_token=long_user, fields="id,name,access_token")["data"]
+    if not pages and os.environ.get("FB_PAGE_ID"):
+        # Pages owned by a business portfolio can be missing from /me/accounts
+        # but still answer when asked for by id.
+        pages = [get(f"/{os.environ['FB_PAGE_ID']}", access_token=long_user,
+                     fields="id,name,access_token")]
     if not pages:
         sys.exit("No Pages came back. In the Facebook login dialog, make sure the Lemoine Page is ticked.")
     matches = [p for p in pages if "lemoine" in p["name"].lower()]
@@ -81,14 +86,17 @@ def main():
                   access_token=f"{app_id}|{app_secret}")["data"].get("expires_at")
     print("Page token expires: never" if not expires else f"Page token expires at {expires}")
 
-    if shutil.which("gh"):
+    # Only use gh if it's logged in, so a missing login can't lose the token.
+    gh_ready = shutil.which("gh") and subprocess.run(
+        ["gh", "auth", "status"], capture_output=True).returncode == 0
+    if gh_ready:
         for name, value in (("FB_PAGE_ID", page["id"]), ("FB_PAGE_TOKEN", page["access_token"])):
             subprocess.run(["gh", "secret", "set", name, "-R", REPO], input=value.encode(), check=True)
         print(f"Saved FB_PAGE_ID and FB_PAGE_TOKEN as secrets on {REPO}.")
     else:
         TOKEN_FILE.write_text(json.dumps({"FB_PAGE_ID": page["id"], "FB_PAGE_TOKEN": page["access_token"]}, indent=2))
         TOKEN_FILE.chmod(0o600)
-        print(f"gh isn't installed, so the values are in {TOKEN_FILE}.")
+        print(f"gh isn't installed or logged in, so the values are in {TOKEN_FILE}.")
         print(f"Add both as secrets at https://github.com/{REPO}/settings/secrets/actions, then delete the file.")
 
 
