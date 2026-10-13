@@ -1,0 +1,124 @@
+"""
+Weekly marketing report: Etsy views and favorites, and how the Lemoine
+Facebook Page did, compared with last week.
+
+Runs Mondays via .github/workflows/weekly-report.yml, which opens the
+result as a GitHub issue (GitHub emails it). Reads etsy-audit/listings.json
+(from pull_etsy.py) and the Page through FB_PAGE_ID / FB_PAGE_TOKEN.
+
+Etsy's public API gives views and favorites, not orders, so sales stay in
+Etsy Stats; the report links there.
+
+Last week's numbers live in report/snapshot.json, carried between runs by
+the Actions cache. The first run has no baseline, so it shows totals only.
+"""
+import json
+import os
+import urllib.error
+import urllib.parse
+import urllib.request
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+ROOT = Path(__file__).parent.parent
+LISTINGS_FILE = ROOT / "etsy-audit" / "listings.json"
+SNAPSHOT_FILE = ROOT / "report" / "snapshot.json"
+REPORT_FILE = ROOT / "report" / "report.md"
+GRAPH = f"https://graph.facebook.com/{os.environ.get('FB_GRAPH_VERSION', 'v23.0')}"
+
+
+def graph(path: str, **params) -> dict:
+    params["access_token"] = os.environ["FB_PAGE_TOKEN"]
+    url = f"{GRAPH}{path}?{urllib.parse.urlencode(params)}"
+    with urllib.request.urlopen(url, timeout=30) as r:
+        return json.load(r)
+
+
+def etsy_numbers() -> dict:
+    listings = json.loads(LISTINGS_FILE.read_text())["results"]
+    return {str(l["listing_id"]): {"title": l["title"], "url": l["url"].split("?")[0],
+                                   "views": l["views"], "favs": l["num_favorers"]}
+            for l in listings}
+
+
+def facebook_numbers() -> dict:
+    page_id = os.environ["FB_PAGE_ID"]
+    page = graph(f"/{page_id}", fields="followers_count")
+    since = int((datetime.now(timezone.utc) - timedelta(days=7)).timestamp())
+    posts = graph(f"/{page_id}/posts", since=since, limit=50,
+                  fields="created_time,message,permalink_url,shares,"
+                         "reactions.summary(true).limit(0),comments.summary(true).limit(0)")["data"]
+    return {
+        "followers": page.get("followers_count"),
+        "posts": [{
+            "when": p["created_time"][:10],
+            "text": (p.get("message") or "").split("\n")[0][:70],
+            "url": p.get("permalink_url", ""),
+            "reactions": p["reactions"]["summary"]["total_count"],
+            "comments": p["comments"]["summary"]["total_count"],
+            "shares": p.get("shares", {}).get("count", 0),
+        } for p in posts],
+    }
+
+
+def delta(now: int, before: int | None) -> str:
+    if before is None:
+        return ""
+    d = now - before
+    return f" ({'+' if d >= 0 else ''}{d})"
+
+
+def main():
+    etsy = etsy_numbers()
+    try:
+        fb = facebook_numbers()
+    except (urllib.error.URLError, KeyError) as e:
+        fb = {"error": str(e)}
+    last = json.loads(SNAPSHOT_FILE.read_text()) if SNAPSHOT_FILE.exists() else {}
+    last_etsy = last.get("etsy", {})
+
+    views = sum(l["views"] for l in etsy.values())
+    favs = sum(l["favs"] for l in etsy.values())
+    last_views = sum(l["views"] for l in last_etsy.values()) if last_etsy else None
+    last_favs = sum(l["favs"] for l in last_etsy.values()) if last_etsy else None
+
+    lines = [f"Week ending {datetime.now(timezone.utc):%b %d, %Y}.", ""]
+
+    lines += ["## Etsy", "",
+              f"- **Views, all listings:** {views:,}{delta(views, last_views)}",
+              f"- **Favorites:** {favs:,}{delta(favs, last_favs)}",
+              f"- **Active listings:** {len(etsy)}", ""]
+    if last_etsy:
+        gains = sorted(((l["views"] - last_etsy.get(lid, {}).get("views", l["views"]), lid)
+                        for lid, l in etsy.items()), reverse=True)[:5]
+        lines += ["**Most new views this week**", ""]
+        lines += [f"{i}. [{etsy[lid]['title'][:60]}]({etsy[lid]['url']}): +{g} views"
+                  for i, (g, lid) in enumerate(gains, 1) if g > 0] or ["No new views recorded."]
+    else:
+        top = sorted(etsy.values(), key=lambda l: -l["views"])[:5]
+        lines += ["**Most viewed, all time** (week-on-week changes start next Monday)", ""]
+        lines += [f"{i}. [{l['title'][:60]}]({l['url']}): {l['views']:,} views"
+                  for i, l in enumerate(top, 1)]
+    lines += ["", "Orders and where shoppers came from (including Facebook) are in "
+              "[Etsy Stats](https://www.etsy.com/your/shops/me/stats).", ""]
+
+    lines += ["## Facebook Page", ""]
+    if "error" in fb:
+        lines += [f"Couldn't read the Page this week: {fb['error']}", ""]
+    else:
+        lines += [f"- **Followers:** {fb['followers']:,}"
+                  f"{delta(fb['followers'], last.get('followers'))}",
+                  f"- **Posts this week:** {len(fb['posts'])}", ""]
+        if fb["posts"]:
+            lines += ["| Date | Post | Reactions | Comments | Shares |", "|---|---|---|---|---|"]
+            lines += [f"| {p['when']} | [{p['text'] or 'post'}]({p['url']}) | {p['reactions']} "
+                      f"| {p['comments']} | {p['shares']} |" for p in fb["posts"]]
+            lines.append("")
+
+    REPORT_FILE.write_text("\n".join(lines))
+    SNAPSHOT_FILE.write_text(json.dumps({"etsy": etsy, "followers": fb.get("followers")}))
+    print("\n".join(lines))
+
+
+if __name__ == "__main__":
+    main()

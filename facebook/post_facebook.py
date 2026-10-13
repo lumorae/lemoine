@@ -44,6 +44,8 @@ DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
 # report gets the post removed, and repeat reports can restrict the Page.
 SKIP_WORDS = ("lightning", "mater", "pixar", "disney", "cars ")
 
+NO_LINK_LINE = "\n\nPrints on Etsy. The shop link is on the Lemoine Page."
+
 
 def load_listings() -> list[dict]:
     """One entry per listing; pins.json has three pins per listing."""
@@ -144,7 +146,16 @@ def main():
             print(f"[dry run] would post {listing['image_url']}\n{caption}\n")
             continue
         try:
-            post_id = post_photo(listing, caption)
+            try:
+                post_id = post_photo(listing, caption)
+            except RuntimeError as e:
+                # Pages without Meta One get a few link posts a month. Once
+                # they're used up, post anyway and point to the Page's shop link.
+                if "link" not in str(e).lower():
+                    raise
+                print(f"  ! link refused, posting without it: {e}")
+                caption = caption.rsplit("\n\nOn Etsy:", 1)[0] + NO_LINK_LINE
+                post_id = post_photo(listing, caption)
         except Exception as e:
             print(f"  ✗ {listing['title'][:70]}: {e}")
             sys.exit(1)

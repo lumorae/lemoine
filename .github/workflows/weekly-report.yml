@@ -1,0 +1,57 @@
+name: Weekly marketing report
+
+# Every Monday: Etsy views and favorites, plus the Lemoine Facebook Page's
+# followers and post engagement, compared with last week. Opens a GitHub
+# issue, which GitHub emails to the repo owner.
+on:
+  schedule:
+    - cron: "0 16 * * 1"   # Mondays 16:00 UTC (9am Pacific in summer)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Pull Etsy listings
+        env:
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+          ETSY_SHARED_SECRET: ${{ secrets.ETSY_SHARED_SECRET }}
+        run: python3 etsy-audit/pull_etsy.py
+
+      - name: Restore last week's numbers
+        uses: actions/cache/restore@v4
+        with:
+          path: report/snapshot.json
+          key: weekly-report-${{ github.run_id }}
+          restore-keys: |
+            weekly-report-
+
+      - name: Build report
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+        run: python3 report/weekly_report.py
+
+      - name: Save this week's numbers
+        uses: actions/cache/save@v4
+        with:
+          path: report/snapshot.json
+          key: weekly-report-${{ github.run_id }}
+
+      - name: Open report issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh issue create \
+            --title "Weekly report: $(date +'%b %d, %Y')" \
+            --body-file report/report.md
