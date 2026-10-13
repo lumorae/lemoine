@@ -1,12 +1,10 @@
 name: Daily Facebook post
 
-# The schedule is commented out until a manual run has posted to the
-# Lemoine Page and the post looks right from a logged-out browser (the
-# Meta app must be switched to Live first, or only Johnny can see it).
-# Then uncomment the schedule block and it posts one listing a day.
+# Posts one Etsy listing to the Lemoine Page four times a week:
+# Tue, Thu, Sat, Sun at 17:00 UTC (10am Pacific in summer, 9am in winter).
 on:
-  # schedule:
-  #   - cron: "0 17 * * *"   # 17:00 UTC = 10:00 Pacific
+  schedule:
+    - cron: "0 17 * * 0,2,4,6"   # Sun, Tue, Thu, Sat
   workflow_dispatch:
     inputs:
       dry_run:

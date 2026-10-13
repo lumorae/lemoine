@@ -14,9 +14,49 @@ facebook/captions.json under the listing id and it is used instead.
 Only Johnny's real details go there, never invented ones.
 """
 import json
+from datetime import date
 from pathlib import Path
 
 CUSTOM_FILE = Path(__file__).parent / "captions.json"
+
+# Nov 1 to Dec 20 is when people shop for gifts, so captions lead with the gift.
+HOLIDAY_START, HOLIDAY_END = (11, 1), (12, 20)
+
+HOLIDAY_TEMPLATES = {
+    "kids": [
+        "A gift for the kid who already knows exactly what they love.\n\n{name}. Hand-painted watercolor and ink, ships rolled.",
+        "Something for their wall that will outlast every toy under the tree.\n\n{name}",
+    ],
+    "space": [
+        "A gift for the dreamer in your life.\n\n{name}. Pen, ink and watercolor, ships rolled.",
+        "For the one who's hard to shop for.\n\n{name}",
+    ],
+    "wine_country": [
+        "For the host who already has every candle.\n\n{name}. Hand-painted watercolor and ink, ships rolled.",
+        "A gift for the friend who talks about Napa like it's home.\n\n{name}",
+    ],
+    "travel_europe": [
+        "A gift for the person still thinking about that trip.\n\n{name}. Hand-painted watercolor and ink, ships rolled.",
+        "Give them the place, not another thing.\n\n{name}",
+    ],
+    "travel_us": [
+        "A gift for the friend who moved away and still misses home.\n\n{name}. Hand-painted watercolor and ink, ships rolled.",
+        "For the one who loves this city.\n\n{name}",
+    ],
+    "wellness": [
+        "A calm gift for the person who takes care of everyone else.\n\n{name}. Botanical watercolor, ships rolled.",
+        "For their quiet corner.\n\n{name}",
+    ],
+    "art_general": [
+        "A gift that's real art, made by hand.\n\n{name}. Watercolor and ink, ships rolled.",
+        "For the wall that's been empty too long.\n\n{name}",
+    ],
+}
+
+
+def holiday_season(today: date | None = None) -> bool:
+    today = today or date.today()
+    return HOLIDAY_START <= (today.month, today.day) <= HOLIDAY_END
 
 TEMPLATES = {
     "kids": [
@@ -88,6 +128,7 @@ def caption_for(listing: dict, times_posted: int, custom: dict) -> str:
     if own:
         variants = own if isinstance(own, list) else [own]
     else:
-        variants = TEMPLATES.get(listing["category"], TEMPLATES["art_general"])
+        bank = HOLIDAY_TEMPLATES if holiday_season() else TEMPLATES
+        variants = bank.get(listing["category"], bank["art_general"])
     body = variants[times_posted % len(variants)].format(name=display_name(listing["title"]))
     return f"{body}\n\nOn Etsy: {listing['url']}"
