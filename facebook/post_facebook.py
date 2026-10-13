@@ -34,10 +34,15 @@ from captions import caption_for, load_custom
 ROOT = Path(__file__).parent.parent
 PINS_FILE = ROOT / "etsy-audit" / "pins.json"
 STATE_FILE = ROOT / "facebook" / "posted.json"
+SEED_FILE = ROOT / "facebook" / "posted_seed.json"
 
 POSTS_PER_RUN = int(os.environ.get("FB_POSTS_PER_RUN", "1"))
 GRAPH_VERSION = os.environ.get("FB_GRAPH_VERSION", "v23.0")
 DRY_RUN = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
+
+# Fan art of other people's characters stays off Facebook: a trademark
+# report gets the post removed, and repeat reports can restrict the Page.
+SKIP_WORDS = ("lightning", "mater", "pixar", "disney", "cars ")
 
 
 def load_listings() -> list[dict]:
@@ -46,6 +51,8 @@ def load_listings() -> list[dict]:
     for pin in json.loads(PINS_FILE.read_text()):
         lid = str(pin["listing_id"])
         if lid in seen or not pin.get("image_url"):
+            continue
+        if any(w in f"{pin['listing_title']} {pin['listing_url']}".lower() for w in SKIP_WORDS):
             continue
         seen[lid] = {
             "listing_id": lid,
@@ -61,6 +68,10 @@ def load_listings() -> list[dict]:
 def load_state() -> dict:
     if STATE_FILE.exists():
         return json.loads(STATE_FILE.read_text())
+    # No cached state yet (first run on a branch): start from the posts
+    # already made by hand, so they don't go out again.
+    if SEED_FILE.exists():
+        return json.loads(SEED_FILE.read_text())
     return {"listings": {}}
 
 

@@ -6,6 +6,8 @@ Etsy v3 auth requires x-api-key: <keystring>:<shared_secret>.
 import json
 import os
 import sys
+import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -21,12 +23,20 @@ auth_header = f"{api_key}:{shared_secret}"
 
 
 def etsy_get(path: str) -> dict:
+    """GET from Etsy, paced under its per-second limit, retrying on 429."""
     req = urllib.request.Request(
         f"https://api.etsy.com/v3/application{path}",
         headers={"x-api-key": auth_header},
     )
-    with urllib.request.urlopen(req, timeout=30) as r:
-        return json.load(r)
+    for attempt in range(5):
+        time.sleep(0.25)
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                return json.load(r)
+        except urllib.error.HTTPError as e:
+            if e.code != 429 or attempt == 4:
+                raise
+            time.sleep(int(e.headers.get("Retry-After") or 2 ** attempt))
 
 
 shop = etsy_get(f"/shops?shop_name={SHOP_NAME}")
