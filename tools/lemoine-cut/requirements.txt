@@ -1,0 +1,12 @@
+# Everything lemoine-cut needs from PyPI.
+#
+# The apt side (ffmpeg) is installed by .claude/hooks/session-start.sh, which
+# also installs this file. Kept here so the dependency list is readable and
+# editable on its own rather than buried in a shell script.
+#
+# Pinned loosely: these are stable, widely-packaged libraries and the pipeline
+# uses only their long-settled APIs.
+numpy>=1.24
+scipy>=1.10
+soundfile>=0.12
+Pillow>=10.0

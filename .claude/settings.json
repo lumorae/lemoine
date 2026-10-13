@@ -1,0 +1,37 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start.sh"
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(ffmpeg:*)",
+      "Bash(ffprobe:*)",
+      "Bash(python3 tools/lemoine-cut/:*)",
+      "Bash(bash tools/lemoine-cut/:*)",
+      "Bash(curl -sSL --cacert /root/.ccr/ca-bundle.crt:*)",
+      "Bash(apt-get install -y -qq ffmpeg)",
+      "Bash(pip install -q -r tools/lemoine-cut/requirements.txt)",
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git fetch:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(ls:*)",
+      "Bash(du:*)",
+      "Bash(df:*)",
+      "Bash(stat:*)",
+      "Bash(file:*)"
+    ]
+  }
+}

@@ -1,0 +1,255 @@
+#!/usr/bin/env bash
+# lemoine_cut.sh — cut a raw clip into a branded "lemoine cut":
+#   optional trim, HDR→SDR tone-map, brand lower-third overlay (alpha .mov),
+#   hall reverb, loudness normalize, h264 + aac, faststart, BT.709 tagged.
+#
+# Usage:
+#   ./lemoine_cut.sh -i input.mov -o output.mp4 -l lower3-alpha.mov \
+#       [-s start_sec] [-e end_sec] [-a] [-w wet_db] [-t lower3_start_sec] \
+#       [-k] [-q crf]
+#
+#   -s/-e  trim window in seconds (defaults: full clip)
+#   -a     auto-trim: detect leading/trailing silence and cut with 1s padding
+#   -w     reverb wet level in dB relative to dry (default -9)
+#   -t     when the lower third appears, seconds into the cut (default 0.8)
+#   -k     keep source resolution (default: deliver at 1080p for speed/size)
+#   -q     x264 crf (default 19)
+#   -O     pixel-explosion outro overlay (.mov with alpha); plays after the
+#          footage on a frozen last frame while the last note rings out
+#   -I     pixel-explosion intro overlay (.mov with alpha); plays at t=0
+#   -C     clean a noisy location recording: high-pass rumble, collapse to mono
+#          (centres the flute, rejects diffuse street noise), spectral denoise
+#   -n     denoise strength in dB for -C (default 14; 10 gentle, 18 aggressive)
+#   -B     black and white footage; brand overlays stay in colour
+#   -H     low cut in Hz, below the flute's lowest note (0 = none). Set per
+#          flute in categories.py, never globally: a quena bottoms out near
+#          385Hz, a drone flute's drone can sit under 200Hz.
+set -euo pipefail
+
+# WET_DB was -12 until 2026-10-11. Johnny heard the reverb as weak on an
+# outdoor take: outside there is no room adding reflections of its own, and the
+# old automatic loudness stage had been lifting reverb tails by ~4dB in pauses,
+# which the fixed-gain stage (correctly) no longer does. -9 roughly doubles the
+# reverb energy at the same integrated loudness.
+IN="" OUT="" LOWER3="" START="" END="" AUTOTRIM=0 WET_DB=-9 L3_AT="" KEEP_RES=0 CRF=19 OUTRO="" INTRO="" CLEAN=0 NR=14 BW=0 LOWCUT=0
+while getopts "i:o:l:s:e:aw:t:kq:O:I:Cn:BH:" opt; do
+  case $opt in
+    i) IN=$OPTARG;; o) OUT=$OPTARG;; l) LOWER3=$OPTARG;;
+    s) START=$OPTARG;; e) END=$OPTARG;; a) AUTOTRIM=1;;
+    w) WET_DB=$OPTARG;; t) L3_AT=$OPTARG;; k) KEEP_RES=1;; q) CRF=$OPTARG;;
+    O) OUTRO=$OPTARG;; I) INTRO=$OPTARG;;
+    C) CLEAN=1;; n) NR=$OPTARG;; B) BW=1;; H) LOWCUT=$OPTARG;;
+    *) exit 2;;
+  esac
+done
+[[ -n $IN && -n $OUT && -n $LOWER3 ]] || { echo "need -i -o -l" >&2; exit 2; }
+
+HERE=$(cd "$(dirname "$0")" && pwd)
+# restore the Drive key from a persistent env var if the file is missing
+# (never under LEMOINE_LOCAL_ONLY=1, the switch every test runs with)
+if [[ ${LEMOINE_LOCAL_ONLY:-0} != 1 && ! -f "$HERE/gdrive-sa.json" && -n ${GDRIVE_SA_JSON_B64:-} ]]; then
+  echo "$GDRIVE_SA_JSON_B64" | base64 -d > "$HERE/gdrive-sa.json" 2>/dev/null || true
+fi
+IR="$HERE/ir-hall.wav"
+[[ -f $IR ]] || python3 "$HERE/make_ir.py" --out "$IR"
+# Scratch lives under LEMOINE_TMP when batch_publish.sh sets it (inside the
+# day's workdir, cleared at the start of every batch): a container kill skips
+# the EXIT trap, and a dry.wav + wetmix.wav left in /tmp per kill adds up.
+mkdir -p "${LEMOINE_TMP:-${TMPDIR:-/tmp}}"
+WORK=$(mktemp -d -p "${LEMOINE_TMP:-${TMPDIR:-/tmp}}")
+trap 'rm -rf "$WORK"' EXIT
+
+# Every ffmpeg here runs with -nostdin. ffmpeg otherwise reads keystrokes from
+# stdin while it encodes, and under batch_publish.sh stdin was the job list: it
+# ate the next job's line ("c" opens its command prompt, "q" quits the encode
+# early with exit 0, so a cut came out short and still counted as done).
+
+read -r SRC_W SRC_H SRC_TRC < <(ffprobe -v error -select_streams v:0 \
+  -show_entries stream=width,height,color_transfer -of csv=p=0 "$IN" | tr ',' ' ')
+
+if [[ $AUTOTRIM == 1 && -z $START ]]; then
+  # find first/last non-silent audio, pad by 1s (audio-only decode: fast)
+  SIL=$(ffmpeg -nostdin -i "$IN" -map 0:a:0 -vn -af "silencedetect=noise=-35dB:d=0.6" -f null - 2>&1 | grep -E "silence_(start|end)" || true)
+  DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$IN")
+  FIRST_END=$(echo "$SIL" | grep silence_end | head -1 | sed -E 's/.*silence_end: ([0-9.]+).*/\1/') || true
+  LAST_START=$(echo "$SIL" | grep silence_start | tail -1 | sed -E 's/.*silence_start: ([0-9.]+).*/\1/') || true
+  FIRST_SIL_START=$(echo "$SIL" | grep silence_start | head -1 | sed -E 's/.*silence_start: ([0-9.]+).*/\1/') || true
+  START=0; END=$DUR
+  # only trim head if the clip actually starts silent
+  if [[ -n ${FIRST_SIL_START:-} ]] && python3 -c "exit(0 if float('$FIRST_SIL_START') < 0.5 else 1)"; then
+    [[ -n ${FIRST_END:-} ]] && START=$(python3 -c "print(max(0, float('$FIRST_END') - 1.0))")
+  fi
+  # trim the tail ONLY when the clip actually ENDS in silence — i.e. the last
+  # silence region never closed (more starts than ends). A quiet passage in the
+  # middle that resumes into playing must never be mistaken for the end.
+  NSTART=$(echo "$SIL" | grep -c silence_start || true)
+  NEND=$(echo "$SIL" | grep -c silence_end || true)
+  if [[ ${NSTART:-0} -gt ${NEND:-0} && -n ${LAST_START:-} ]]; then
+    END=$(python3 -c "print(min(float('$DUR'), float('$LAST_START') + 1.0))")
+  fi
+  echo "auto-trim: $START -> $END (of $DUR)"
+fi
+
+TRIM_IN=()
+[[ -n $START ]] && TRIM_IN+=(-ss "$START")
+[[ -n $END ]] && { E=$END; S=${START:-0}; TRIM_IN+=(-t "$(python3 -c "print(float('$E')-float('$S'))")"); }
+
+CLIP_DUR=$(python3 -c "
+s = float('${START:-0}' or 0)
+e = '${END:-}'
+print((float(e) if e else $(ffprobe -v error -show_entries format=duration -of csv=p=0 "$IN")) - s)")
+OUTRO_DUR=0
+[[ -n $OUTRO ]] && OUTRO_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUTRO")
+INTRO_DUR=0
+[[ -n $INTRO ]] && INTRO_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$INTRO")
+# lower third by default appears just as the intro finishes dissolving
+[[ -z $L3_AT ]] && L3_AT=$(python3 -c "print(max(0.8, $INTRO_DUR - 2.5))")
+
+# 1) extract trimmed audio (a:0 — iPhone spatial track is undecodable), reverb
+#    padded by the outro length; with an outro the final note rings out over it
+#
+#    -C cleans up a noisy location recording before any reverb is added, so the
+#    hall tail is built from flute and not from traffic:
+#      highpass  city rumble and handling live below ~120Hz, where these flutes
+#                have no fundamental — on the Mexico City clip that band measured
+#                1-3dB SNR, i.e. essentially pure noise
+#      mono      a phone's stereo pair captures the flute as correlated centre
+#                content and diffuse street noise as decorrelated sides, so
+#                collapsing to mono both centres the flute and drops the
+#                ambience; the reverb downstream restores the stereo image
+#      afftdn    spectral denoise for the broadband remainder
+#      treble    gives back the air the denoiser takes off the top
+#
+#    -H is the flute's own low cut, applied with or without -C. It goes in
+#    here, before the reverb, so the hall is never fed traffic rumble. On the
+#    2026-10-07 Mexico City rooftop takes over half the noise before the first
+#    note sat under 150Hz; a 200Hz cut on the quena dropped it ~5dB while the
+#    playing moved by 0.2dB.
+CLEAN_AF=""
+if [[ $CLEAN -eq 1 ]]; then
+  HP=$(( LOWCUT > 120 ? LOWCUT : 120 ))
+  CLEAN_AF="-af highpass=f=${HP}:poles=2,pan=stereo|c0=0.5*c0+0.5*c1|c1=0.5*c0+0.5*c1,afftdn=nr=${NR}:nf=-45:tn=1,treble=g=2:f=6000:width_type=q:w=0.7"
+elif (( LOWCUT > 0 )); then
+  CLEAN_AF="-af highpass=f=${LOWCUT}:poles=2"
+fi
+ffmpeg -nostdin -y -v error "${TRIM_IN[@]}" -i "$IN" -map 0:a:0 -vn $CLEAN_AF -ac 2 -ar 48000 -c:a pcm_s16le "$WORK/dry.wav"
+RING=()
+if [[ -n $OUTRO ]]; then
+  [[ -f "$HERE/ir-ring.wav" ]] || python3 "$HERE/make_ir.py" --out "$HERE/ir-ring.wav" --t60 4.8
+  RING=(--ring-ir "$HERE/ir-ring.wav")
+fi
+python3 "$HERE/reverb.py" --in "$WORK/dry.wav" --ir "$IR" --out "$WORK/wetmix.wav" --wet-db "$WET_DB" --pad-sec "$OUTRO_DUR" "${RING[@]}"
+
+# 2) video chain: optional downscale, HDR→SDR tone-map, overlay in RGB so the
+#    brand colors pass through exactly once into BT.709
+if [[ $KEEP_RES == 1 ]]; then
+  OUT_W=$SRC_W; OUT_H=$SRC_H
+elif (( SRC_H >= SRC_W )); then
+  OUT_W=1080; OUT_H=1920
+else
+  OUT_W=1920; OUT_H=1080
+fi
+(( SRC_W < OUT_W )) && { OUT_W=$SRC_W; OUT_H=$SRC_H; }
+
+case "$SRC_TRC" in
+  arib-std-b67|smpte2084)
+    echo "tone-mapping HDR ($SRC_TRC) -> BT.709 SDR"
+    TOSDR="zscale=w=${OUT_W}:h=${OUT_H}:f=lanczos:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=rgba"
+    ;;
+  *)
+    TOSDR="scale=${OUT_W}:${OUT_H}:flags=lanczos,format=rgba"
+    ;;
+esac
+
+# -B desaturates the FOOTAGE only, and does it here — before any overlay is
+# composited — so the lower third, intro and end-card keep the brand coral and
+# cream on top of a monochrome frame. Rec.709 luma weights, matching the BT.709
+# the footage has just been tone-mapped into; alpha is left alone.
+BW_F=""
+if [[ $BW -eq 1 ]]; then
+  BW_F=",colorchannelmixer=rr=0.2126:rg=0.7152:rb=0.0722\
+:gr=0.2126:gg=0.7152:gb=0.0722\
+:br=0.2126:bg=0.7152:bb=0.0722"
+fi
+
+# build the RGB compositing chain: footage (+freeze), lower3, outro, intro
+EXTRA_IN=()
+IDX=3
+if [[ -n $OUTRO ]]; then
+  FV="[0:v:0]${TOSDR}${BW_F},tpad=stop_mode=clone:stop_duration=${OUTRO_DUR}[sdr];"
+else
+  FV="[0:v:0]${TOSDR}${BW_F}[sdr];"
+fi
+FV+="[1:v]format=rgba,setpts=PTS+${L3_AT}/TB[l3];\
+[l3][sdr]scale2ref=w=iw:h=ih[l3s][base];\
+[base][l3s]overlay=x=0:y=0:eof_action=pass:format=auto[mid]"
+CUR="mid"
+if [[ -n $OUTRO ]]; then
+  FV+=";[${IDX}:v]format=rgba,setpts=PTS+${CLIP_DUR}/TB[og];\
+[og][${CUR}]scale2ref=w=iw:h=ih[ogs][c${IDX}];\
+[c${IDX}][ogs]overlay=x=0:y=0:eof_action=pass:format=auto[o${IDX}]"
+  CUR="o${IDX}"; EXTRA_IN+=(-i "$OUTRO"); IDX=$((IDX+1))
+fi
+if [[ -n $INTRO ]]; then
+  FV+=";[${IDX}:v]format=rgba[ig];\
+[ig][${CUR}]scale2ref=w=iw:h=ih[igs][c${IDX}];\
+[c${IDX}][igs]overlay=x=0:y=0:eof_action=pass:format=auto[o${IDX}]"
+  CUR="o${IDX}"; EXTRA_IN+=(-i "$INTRO"); IDX=$((IDX+1))
+fi
+FILTER_V="$FV;[${CUR}]zscale=m=bt709:r=tv,format=yuv420p[vout]"
+
+TOTAL=$(python3 -c "print($CLIP_DUR + $OUTRO_DUR)")
+# audio stays silent over the intro card, fading in as the footage reveals
+# (reveal timing read from make_intro.py so the two can never drift apart)
+AFADE_IN="afade=t=in:st=0:d=0.6:curve=qsin,"
+if [[ -n $INTRO ]]; then
+  read -r REV_ST REV_EN < <(python3 -c "
+import sys; sys.path.insert(0, '$HERE')
+import make_intro
+print(make_intro.DISSOLVE[0], make_intro.DISSOLVE[1])")
+  AFADE_IN="afade=t=in:st=${REV_ST}:d=$(python3 -c "print(max(0.8, $REV_EN - $REV_ST - 0.3))"):curve=qsin,"
+fi
+# Loudness: ONE fixed gain for the whole clip, never a gain that moves.
+#
+# This used to be single-pass loudnorm, which is an automatic gain control: it
+# turns quiet passages UP. Before Johnny plays there is nothing in the clip but
+# room, so it raised that room by ~33dB — measured on the 2026-10-04 Nova, the
+# opening went from -50dBFS in the source to -16dBFS in the short, as loud as
+# the flute, then dropped away the moment the first note arrived. Same pumping
+# in every pause between phrases. When he starts playing varies clip to clip,
+# so a timed fade could never fix it; a constant gain does, for any start.
+#
+# loudnorm's own two-pass "linear" mode is not used on purpose: when the gain
+# would push a peak over its ceiling it silently falls back to the dynamic
+# mode, which would bring this bug back on exactly the clips with a loud note.
+# So the gain is computed here and applied as a plain volume, and a limiter
+# with auto-level OFF catches the few peaks that land over -2dBFS. A limiter
+# only ever turns peaks down; it cannot raise the room.
+LOUD=$(ffmpeg -nostdin -hide_banner -nostats -i "$WORK/wetmix.wav" -af loudnorm=I=-14:TP=-1.5:print_format=json -f null - 2>&1 \
+  | python3 -c "import sys,json; t=sys.stdin.read(); print(json.loads(t[t.rindex('{'):t.rindex('}')+1])['input_i'])")
+GAIN=$(python3 -c "
+i = float('$LOUD')
+# silent or near-silent input reads -inf / -70: leave it alone rather than
+# amplify nothing into noise; cap the boost so a very quiet take is lifted
+# sensibly, not by 40dB of hiss
+print(0.0 if i < -60 else round(max(-20.0, min(20.0, -14.0 - i)), 2))")
+echo "loudness: ${LOUD} LUFS -> fixed gain ${GAIN} dB"
+FILTER_A="[2:a]volume=${GAIN}dB,alimiter=limit=0.794:attack=5:release=50:level=0:latency=1,${AFADE_IN}afade=t=out:st=$(python3 -c "print($TOTAL-0.6)"):d=0.6[aout]"
+
+ffmpeg -nostdin -y "${TRIM_IN[@]}" -i "$IN" -i "$LOWER3" -i "$WORK/wetmix.wav" "${EXTRA_IN[@]}" \
+  -filter_complex "$FILTER_V;$FILTER_A" \
+  -map "[vout]" -map "[aout]" -shortest \
+  -c:v libx264 -preset fast -crf "$CRF" \
+  -colorspace bt709 -color_primaries bt709 -color_trc bt709 \
+  -c:a aac -b:a 256k -ar 48000 \
+  -movflags +faststart \
+  "$OUT"
+echo "done: $OUT"
+
+# auto-save to Drive when a service-account key is configured. Exit 3 means
+# the cut rendered but did NOT reach Drive, so nothing upstream reports it as
+# filed (this used to print a warning and exit 0).
+if [[ ${LEMOINE_LOCAL_ONLY:-0} != 1 && ( -f "$HERE/gdrive-sa.json" || -n ${GDRIVE_SA_JSON:-} ) ]]; then
+  python3 "$HERE/drive_upload.py" --file "$OUT" ${LEMOINE_DRIVE_SUBFOLDER:+--subfolder "$LEMOINE_DRIVE_SUBFOLDER"} \
+    || { echo "drive upload failed (kept local)"; exit 3; }
+fi
