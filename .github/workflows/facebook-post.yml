@@ -1,0 +1,68 @@
+name: Daily Facebook post
+
+# The schedule is commented out until a manual run has posted to the
+# Lemoine Page and the post looks right from a logged-out browser (the
+# Meta app must be switched to Live first, or only Johnny can see it).
+# Then uncomment the schedule block and it posts one listing a day.
+on:
+  # schedule:
+  #   - cron: "0 17 * * *"   # 17:00 UTC = 10:00 Pacific
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only, post nothing"
+        type: boolean
+        default: true
+      posts_per_run:
+        description: "How many listings to post this run"
+        required: false
+        default: "1"
+
+permissions:
+  contents: read
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Refresh Etsy listings
+        env:
+          ETSY_API_KEY: ${{ secrets.ETSY_API_KEY }}
+          ETSY_SHARED_SECRET: ${{ secrets.ETSY_SHARED_SECRET }}
+        run: |
+          python3 etsy-audit/pull_etsy.py
+          python3 etsy-audit/generate_pins.py
+
+      - name: Restore posting state
+        uses: actions/cache/restore@v4
+        with:
+          path: facebook/posted.json
+          key: facebook-posted-${{ github.run_id }}
+          restore-keys: |
+            facebook-posted-
+
+      - name: Preview the next week
+        if: ${{ inputs.dry_run }}
+        run: python3 facebook/post_facebook.py --preview 7
+
+      - name: Post to Facebook
+        if: ${{ !inputs.dry_run }}
+        env:
+          FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}
+          FB_PAGE_TOKEN: ${{ secrets.FB_PAGE_TOKEN }}
+          FB_POSTS_PER_RUN: ${{ inputs.posts_per_run || '1' }}
+        run: python3 facebook/post_facebook.py
+
+      # Save even if a post failed, so the ones that went out aren't repeated.
+      - name: Save posting state
+        if: ${{ always() && !inputs.dry_run && hashFiles('facebook/posted.json') != '' }}
+        uses: actions/cache/save@v4
+        with:
+          path: facebook/posted.json
+          key: facebook-posted-${{ github.run_id }}

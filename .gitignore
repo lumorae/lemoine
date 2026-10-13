@@ -20,3 +20,11 @@
 
 # regenerated and uploaded to Drive by drive_index.py
 /INDEX.md
+
+# Etsy, Pinterest and Facebook pipelines: pulled data, tokens and posting state
+etsy-audit/*.json
+etsy-audit/*.md
+pinterest/tokens.json
+pinterest/posted.json
+facebook/tokens.json
+facebook/posted.json
