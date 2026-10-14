@@ -92,6 +92,37 @@ def steady_pitches(x, sr):
     return f[keep], idx[keep]
 
 
+def has_fundamental(x, sr, starts, f, max_frames=120):
+    """Is there real energy AT f, or only at 2f and above?
+
+    A double flute plays two notes at once. A drone with a melody note a
+    fifth above it (F# under C#, a 2:3 ratio) makes a waveform that repeats
+    every 1/(f/2) s, and an autocorrelation tracker reads that shared period
+    as a note an octave under the drone: the Double F#'s takes read
+    "lowest 182-184 Hz" with nothing at 185 Hz at all (37-40 dB under the
+    366 Hz drone). A real note always has its own fundamental; a flute's is
+    its strongest partial. So a candidate whose fundamental sits 15 dB or
+    more under its octave is a composite period, not a note.
+    """
+    win, n = int(0.12 * sr), 1 << 14
+    step = max(1, len(starts) // max_frames)
+    acc = None
+    for s0 in starts[::step]:
+        seg = x[s0:s0 + win]
+        if len(seg) < win:
+            continue
+        spec = np.abs(np.fft.rfft(seg * np.hanning(win), n))
+        acc = spec if acc is None else acc + spec
+    if acc is None:
+        return True
+    fr = np.fft.rfftfreq(n, 1 / sr)
+
+    def peak(c):
+        b = (fr > c * 0.97) & (fr < c * 1.03)
+        return 20 * np.log10(acc[b].max() + 1e-12)
+    return peak(f) > peak(2 * f) - 15
+
+
 def fit(st, lo, hi):
     return min((float(np.abs(((1200 * np.log2(st / r) + 50) % 100) - 50).mean()), float(r))
                for r in np.arange(lo, hi, 0.1))
@@ -139,6 +170,10 @@ def pitch(path):
                 and support[k] < 0.25 * support.get(k + 12, 0))
 
     real = sorted(k for k, n in support.items() if n >= 0.02 * len(m) and not octave_error(k))
+    # and a note must have its own fundamental (see has_fundamental): the
+    # shared period of two voices a fifth apart is not a note
+    hop = int(0.02 * sr)
+    real = [k for k in real if has_fundamental(x, sr, at[m == k] * hop, float(np.median(st[m == k])))]
     low = float(np.median(st[m == real[0]])) if real else float(np.percentile(st, 2))
     lm = 69 + 12 * np.log2(low / 440.0)
     print(f"{path}")
