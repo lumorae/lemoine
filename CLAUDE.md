@@ -116,8 +116,8 @@ Folder = `LEMOINE_FLUTE` = the jobs.tsv flute column. Exactly these; an unknown 
 
 | Folder | Key, chakra | Recognise by | Measured | Low cut | A title alone routes here when it has |
 |---|---|---|---|---|---|
-| High Spirits Double F# | F#, heart | crossbow-shaped double, drone + melody chambers | drone 370.1 Hz, F#4 at A440 | none | F#, and not "spirit flute" |
-| Spirit Flute F# | F#, heart | single chamber, the other F# | not confirmed | none | F# and "spirit flute" |
+| High Spirits Double F# | F#, heart | crossbow-shaped double, drone + melody chambers joined by a cross-bar | drone 366-370 Hz, F#4 (three takes) | 180 | F#, and not "spirit flute" |
+| Spirit Flute F# | F#, heart | single chamber, reddish, carved spiral/flame marks | F# minor pentatonic near A440; lowest 366-369 Hz (three takes) | 180 | F# and "spirit flute" |
 | High Spirits Nova G | G (Gm), throat | pale, striped double | not measured | none | G, and no quena word |
 | Ebonized Walnut A | A, third eye | the only A flute | not measured | none | A |
 | High Kestrel D | D, sacral | High Spirits; carved bird | not measured | none | D and "kestrel" |
@@ -173,6 +173,7 @@ Folder = `LEMOINE_FLUTE` = the jobs.tsv flute column. Exactly these; an unknown 
 - **Two publishes at once** deleted each other's frames. One runner per workdir (it is locked).
 - **Downloads arrive short** through the proxy (three of six on 09-27). Only `fetch_inbox.py`.
 - **A pitch reading can be a semitone off** when a flute sits far from 440 (the Jayras is about 57 cents flat). `measure.py` prints both readings; decide by eye.
+- **A double flute's two voices make a phantom low note.** Drone plus a melody note a fifth above repeat together an octave under the drone, which is where the old "184 Hz drone" came from. `measure.py` now drops any "note" with no energy at its own fundamental.
 - **A "dash" in a title** shows on screen. The publish script now turns dashes into commas.
 - **Unmerged work vanishes.** On 10-04 a fresh container came up without three weeks of fixes (it would have cut reels with no thumbnail); the session noticed. Merge yourself, the same session.
 - **Isolated tests reached Drive** twice (`fixed.mp4` on 10-04, a lock test on 10-11). `LEMOINE_LOCAL_ONLY=1`.
