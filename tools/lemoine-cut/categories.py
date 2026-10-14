@@ -39,7 +39,18 @@ FLUTES = [
         # Measured: the drone chamber sits at 370.1 Hz, F#4 within half a cent
         # of A440, with clean partials at 740 and 1110 Hz. An older note had
         # it at 184 Hz, an octave low; verify against a recording, not notes.
+        #
+        # 2026-10-14: two San Diego garden takes agree. The drone peaks at
+        # 366 Hz in both, and the spectrum at 185 Hz sits 37-40 dB under it:
+        # there is no F#3. measure.py still reported "lowest 182-184 Hz",
+        # because the drone and a C# melody note a fifth above it repeat
+        # together every 1/185 s and the pitch tracker reads that shared
+        # period as a note. That is where the old 184 Hz came from too. With
+        # three takes putting the lowest real sound at 366-370 Hz, the low cut
+        # below sits an octave under the drone and only removes the ~95 Hz
+        # garden rumble those takes carry.
         "note": "the crossbow-shaped traditional double — drone + melody chambers",
+        "lowcut": 180,   # an octave under the 366-370Hz drone; three takes
     },
     {
         "folder": "Spirit Flute F#",
