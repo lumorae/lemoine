@@ -36,6 +36,14 @@ jobs:
           restore-keys: |
             weekly-report-
 
+      - name: Restore Facebook posting history
+        uses: actions/cache/restore@v4
+        with:
+          path: facebook/posted.json
+          key: facebook-posted-${{ github.run_id }}
+          restore-keys: |
+            facebook-posted-
+
       - name: Build report
         env:
           FB_PAGE_ID: ${{ secrets.FB_PAGE_ID }}

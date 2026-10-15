@@ -24,6 +24,8 @@ ROOT = Path(__file__).parent.parent
 LISTINGS_FILE = ROOT / "etsy-audit" / "listings.json"
 SNAPSHOT_FILE = ROOT / "report" / "snapshot.json"
 REPORT_FILE = ROOT / "report" / "report.md"
+POSTED_FILE = ROOT / "facebook" / "posted.json"
+POSTED_SEED = ROOT / "facebook" / "posted_seed.json"
 GRAPH = f"https://graph.facebook.com/{os.environ.get('FB_GRAPH_VERSION', 'v23.0')}"
 
 
@@ -46,23 +48,33 @@ def etsy_numbers() -> dict:
 
 
 def facebook_numbers() -> dict:
-    page_id = os.environ["FB_PAGE_ID"]
-    page = graph(f"/{page_id}", fields="followers_count")
-    since = int((datetime.now(timezone.utc) - timedelta(days=7)).timestamp())
-    posts = graph(f"/{page_id}/posts", since=since, limit=50,
-                  fields="created_time,message,permalink_url,shares,"
-                         "reactions.summary(true).limit(0),comments.summary(true).limit(0)")["data"]
-    return {
-        "followers": page.get("followers_count"),
-        "posts": [{
+    """Followers, plus engagement on this week's posts.
+
+    Listing every Page post needs pages_read_user_content, which the app
+    doesn't have, so it looks up the posts the auto-poster recorded in
+    facebook/posted.json (or the seed file before the first run).
+    """
+    page = graph(f"/{os.environ['FB_PAGE_ID']}", fields="followers_count")
+    state_file = POSTED_FILE if POSTED_FILE.exists() else POSTED_SEED
+    state = json.loads(state_file.read_text()) if state_file.exists() else {"listings": {}}
+    post_ids = [pid for s in state["listings"].values() for pid in s.get("post_ids", [])]
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    posts = []
+    for pid in post_ids:
+        p = graph(f"/{pid}", fields="created_time,message,permalink_url,shares,"
+                  "reactions.summary(true).limit(0),comments.summary(true).limit(0)")
+        if p["created_time"] < week_ago[:19]:
+            continue
+        posts.append({
             "when": p["created_time"][:10],
             "text": (p.get("message") or "").split("\n")[0][:70],
             "url": p.get("permalink_url", ""),
             "reactions": p["reactions"]["summary"]["total_count"],
             "comments": p["comments"]["summary"]["total_count"],
             "shares": p.get("shares", {}).get("count", 0),
-        } for p in posts],
-    }
+        })
+    return {"followers": page.get("followers_count"),
+            "posts": sorted(posts, key=lambda p: p["when"])}
 
 
 def delta(now: int, before: int | None) -> str:
@@ -112,7 +124,7 @@ def main():
     else:
         lines += [f"- **Followers:** {fb['followers']:,}"
                   f"{delta(fb['followers'], last.get('followers'))}",
-                  f"- **Posts this week:** {len(fb['posts'])}", ""]
+                  f"- **Auto-posts this week:** {len(fb['posts'])} (Reels and posts made by hand aren't counted)", ""]
         if fb["posts"]:
             lines += ["| Date | Post | Reactions | Comments | Shares |", "|---|---|---|---|---|"]
             lines += [f"| {p['when']} | [{p['text'] or 'post'}]({p['url']}) | {p['reactions']} "
