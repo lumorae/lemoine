@@ -24,14 +24,20 @@ ROOT = Path(__file__).parent.parent
 LISTINGS_FILE = ROOT / "etsy-audit" / "listings.json"
 SNAPSHOT_FILE = ROOT / "report" / "snapshot.json"
 REPORT_FILE = ROOT / "report" / "report.md"
+POSTED_FILE = ROOT / "facebook" / "posted.json"
+POSTED_SEED = ROOT / "facebook" / "posted_seed.json"
 GRAPH = f"https://graph.facebook.com/{os.environ.get('FB_GRAPH_VERSION', 'v23.0')}"
 
 
 def graph(path: str, **params) -> dict:
     params["access_token"] = os.environ["FB_PAGE_TOKEN"]
     url = f"{GRAPH}{path}?{urllib.parse.urlencode(params)}"
-    with urllib.request.urlopen(url, timeout=30) as r:
-        return json.load(r)
+    try:
+        with urllib.request.urlopen(url, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        message = json.loads(e.read() or b"{}").get("error", {}).get("message", "")
+        raise RuntimeError(f"{path}: HTTP {e.code} {message}") from None
 
 
 def etsy_numbers() -> dict:
@@ -41,24 +47,53 @@ def etsy_numbers() -> dict:
             for l in listings}
 
 
+# Richest first. Reactions and comments need pages_read_user_content, which
+# the app may not have; fall back to what the Page token can read.
+POST_FIELDS = [
+    "created_time,message,permalink_url,shares,"
+    "reactions.summary(true).limit(0),comments.summary(true).limit(0)",
+    "created_time,message,permalink_url,shares,reactions.summary(true).limit(0)",
+    "created_time,message,permalink_url,shares",
+    "created_time,permalink_url",
+]
+
+
+def read_post(pid: str) -> dict:
+    for fields in POST_FIELDS:
+        try:
+            return graph(f"/{pid}", fields=fields)
+        except RuntimeError as e:
+            print(f"  {fields.split(',')[-1]}: {e}")
+    raise RuntimeError(f"couldn't read post {pid}")
+
+
 def facebook_numbers() -> dict:
-    page_id = os.environ["FB_PAGE_ID"]
-    page = graph(f"/{page_id}", fields="followers_count")
-    since = int((datetime.now(timezone.utc) - timedelta(days=7)).timestamp())
-    posts = graph(f"/{page_id}/posts", since=since, limit=50,
-                  fields="created_time,message,permalink_url,shares,"
-                         "reactions.summary(true).limit(0),comments.summary(true).limit(0)")["data"]
-    return {
-        "followers": page.get("followers_count"),
-        "posts": [{
+    """Followers, plus engagement on this week's posts.
+
+    Listing every Page post needs pages_read_user_content, which the app
+    doesn't have, so it looks up the posts the auto-poster recorded in
+    facebook/posted.json (or the seed file before the first run).
+    """
+    page = graph(f"/{os.environ['FB_PAGE_ID']}", fields="followers_count")
+    state_file = POSTED_FILE if POSTED_FILE.exists() else POSTED_SEED
+    state = json.loads(state_file.read_text()) if state_file.exists() else {"listings": {}}
+    post_ids = [pid for s in state["listings"].values() for pid in s.get("post_ids", [])]
+    week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+    posts = []
+    for pid in post_ids:
+        p = read_post(pid)
+        if p["created_time"] < week_ago[:19]:
+            continue
+        posts.append({
             "when": p["created_time"][:10],
             "text": (p.get("message") or "").split("\n")[0][:70],
             "url": p.get("permalink_url", ""),
-            "reactions": p["reactions"]["summary"]["total_count"],
-            "comments": p["comments"]["summary"]["total_count"],
+            "reactions": p.get("reactions", {}).get("summary", {}).get("total_count", "–"),
+            "comments": p.get("comments", {}).get("summary", {}).get("total_count", "–"),
             "shares": p.get("shares", {}).get("count", 0),
-        } for p in posts],
-    }
+        })
+    return {"followers": page.get("followers_count"),
+            "posts": sorted(posts, key=lambda p: p["when"])}
 
 
 def delta(now: int, before: int | None) -> str:
@@ -72,7 +107,7 @@ def main():
     etsy = etsy_numbers()
     try:
         fb = facebook_numbers()
-    except (urllib.error.URLError, KeyError) as e:
+    except (urllib.error.URLError, KeyError, RuntimeError) as e:
         fb = {"error": str(e)}
     last = json.loads(SNAPSHOT_FILE.read_text()) if SNAPSHOT_FILE.exists() else {}
     last_etsy = last.get("etsy", {})
@@ -108,7 +143,7 @@ def main():
     else:
         lines += [f"- **Followers:** {fb['followers']:,}"
                   f"{delta(fb['followers'], last.get('followers'))}",
-                  f"- **Posts this week:** {len(fb['posts'])}", ""]
+                  f"- **Auto-posts this week:** {len(fb['posts'])} (Reels and posts made by hand aren't counted)", ""]
         if fb["posts"]:
             lines += ["| Date | Post | Reactions | Comments | Shares |", "|---|---|---|---|---|"]
             lines += [f"| {p['when']} | [{p['text'] or 'post'}]({p['url']}) | {p['reactions']} "
