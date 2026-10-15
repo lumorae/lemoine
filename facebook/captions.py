@@ -42,6 +42,8 @@ HOLIDAY_TEMPLATES = {
     "travel_us": [
         "A gift for the friend who moved away and still misses home.\n\n{name}. Hand-painted watercolor and ink, ships rolled.",
         "For the one who loves this city.\n\n{name}",
+        "A gift for someone's first apartment in a new city.\n\n{name}. Watercolor and ink, ships rolled.",
+        "Wrap up the city they call home.\n\n{name}",
     ],
     "wellness": [
         "A calm gift for the person who takes care of everyone else.\n\n{name}. Botanical watercolor, ships rolled.",
@@ -83,6 +85,9 @@ TEMPLATES = {
         "{name}. Watercolor and ink, for anyone who loves this city or misses it.",
         "For the friend who moved away and still talks about home.\n\n{name}, hand-painted, ships rolled.",
         "City pride, painted by hand.\n\n{name}",
+        "Every city has a block you'd know anywhere. This is one of mine.\n\n{name}. Watercolor and ink.",
+        "Painted street by street, window by window.\n\n{name}, ships rolled.",
+        "{name}. For the hallway, the home office, or the first apartment in a new city.",
     ],
     "wellness": [
         "{name}. Botanical watercolor for the quiet corner of the house.",
@@ -98,7 +103,7 @@ TEMPLATES = {
 
 
 MEDIUM_WORDS = {"watercolor", "print", "prints", "art", "wall", "poster", "painting",
-                "illustration", "ink", "original", "giclee", "fine", "and", "&"}
+                "illustration", "ink", "original", "giclee", "fine", "and", "&", "pen"}
 
 
 def display_name(etsy_title: str) -> str:
@@ -122,13 +127,28 @@ def load_custom() -> dict:
     return {}
 
 
-def caption_for(listing: dict, times_posted: int, custom: dict) -> str:
-    """Caption for this listing's next post. Ends with the Etsy link."""
+def variants_for(listing: dict, custom: dict) -> list[str]:
     own = custom.get(str(listing["listing_id"]))
     if own:
-        variants = own if isinstance(own, list) else [own]
-    else:
-        bank = HOLIDAY_TEMPLATES if holiday_season() else TEMPLATES
-        variants = bank.get(listing["category"], bank["art_general"])
-    body = variants[times_posted % len(variants)].format(name=display_name(listing["title"]))
-    return f"{body}\n\nOn Etsy: {listing['url']}"
+        return own if isinstance(own, list) else [own]
+    bank = HOLIDAY_TEMPLATES if holiday_season() else TEMPLATES
+    return bank.get(listing["category"], bank["art_general"])
+
+
+def caption_for(listing: dict, times_posted: int, custom: dict,
+                recent: list[str] = ()) -> tuple[str, str]:
+    """Caption for this listing's next post, ending with the Etsy link,
+    plus the template it came from.
+
+    `recent` is the templates of recent posts, oldest first. Those are
+    skipped, so two pieces from the same category don't go out with the
+    same wording; if every variant was used recently, the one used longest
+    ago wins.
+    """
+    variants = variants_for(listing, custom)
+    start = times_posted % len(variants)
+    order = variants[start:] + variants[:start]
+    last_use = {t: i for i, t in enumerate(recent)}
+    template = min(order, key=lambda t: last_use.get(t, -1))
+    body = template.format(name=display_name(listing["title"]))
+    return f"{body}\n\nOn Etsy: {listing['url']}", template
