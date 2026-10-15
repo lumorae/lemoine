@@ -47,6 +47,26 @@ def etsy_numbers() -> dict:
             for l in listings}
 
 
+# Richest first. Reactions and comments need pages_read_user_content, which
+# the app may not have; fall back to what the Page token can read.
+POST_FIELDS = [
+    "created_time,message,permalink_url,shares,"
+    "reactions.summary(true).limit(0),comments.summary(true).limit(0)",
+    "created_time,message,permalink_url,shares,reactions.summary(true).limit(0)",
+    "created_time,message,permalink_url,shares",
+    "created_time,permalink_url",
+]
+
+
+def read_post(pid: str) -> dict:
+    for fields in POST_FIELDS:
+        try:
+            return graph(f"/{pid}", fields=fields)
+        except RuntimeError as e:
+            print(f"  {fields.split(',')[-1]}: {e}")
+    raise RuntimeError(f"couldn't read post {pid}")
+
+
 def facebook_numbers() -> dict:
     """Followers, plus engagement on this week's posts.
 
@@ -61,16 +81,15 @@ def facebook_numbers() -> dict:
     week_ago = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
     posts = []
     for pid in post_ids:
-        p = graph(f"/{pid}", fields="created_time,message,permalink_url,shares,"
-                  "reactions.summary(true).limit(0),comments.summary(true).limit(0)")
+        p = read_post(pid)
         if p["created_time"] < week_ago[:19]:
             continue
         posts.append({
             "when": p["created_time"][:10],
             "text": (p.get("message") or "").split("\n")[0][:70],
             "url": p.get("permalink_url", ""),
-            "reactions": p["reactions"]["summary"]["total_count"],
-            "comments": p["comments"]["summary"]["total_count"],
+            "reactions": p.get("reactions", {}).get("summary", {}).get("total_count", "–"),
+            "comments": p.get("comments", {}).get("summary", {}).get("total_count", "–"),
             "shares": p.get("shares", {}).get("count", 0),
         })
     return {"followers": page.get("followers_count"),
