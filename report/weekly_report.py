@@ -30,8 +30,12 @@ GRAPH = f"https://graph.facebook.com/{os.environ.get('FB_GRAPH_VERSION', 'v23.0'
 def graph(path: str, **params) -> dict:
     params["access_token"] = os.environ["FB_PAGE_TOKEN"]
     url = f"{GRAPH}{path}?{urllib.parse.urlencode(params)}"
-    with urllib.request.urlopen(url, timeout=30) as r:
-        return json.load(r)
+    try:
+        with urllib.request.urlopen(url, timeout=30) as r:
+            return json.load(r)
+    except urllib.error.HTTPError as e:
+        message = json.loads(e.read() or b"{}").get("error", {}).get("message", "")
+        raise RuntimeError(f"{path}: HTTP {e.code} {message}") from None
 
 
 def etsy_numbers() -> dict:
@@ -72,7 +76,7 @@ def main():
     etsy = etsy_numbers()
     try:
         fb = facebook_numbers()
-    except (urllib.error.URLError, KeyError) as e:
+    except (urllib.error.URLError, KeyError, RuntimeError) as e:
         fb = {"error": str(e)}
     last = json.loads(SNAPSHOT_FILE.read_text()) if SNAPSHOT_FILE.exists() else {}
     last_etsy = last.get("etsy", {})
