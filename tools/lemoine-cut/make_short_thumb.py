@@ -9,7 +9,7 @@ bracketed eyebrow in Outfit Light led by a coral dot, a lowercase headline in
 Outfit Bold, a coral period closing it, the lemon top-left.
 
     python3 make_short_thumb.py --video IMG_1606.MOV --at 24.5 \
-        --line1 "nervous system" --line2 "reset" --grain 9 --effect diffusion \
+        --line1 "nervous system" --line2 "reset" --grain 9 \
         --out 2026-10-10_1712_nervous-system-reset-in-d_thumb.jpg
 
 (The eyebrow stays "a minute of stillness", never a place; the headline is
@@ -99,10 +99,19 @@ def to_sdr(video):
     cannot linearise a clip whose transfer is untagged or already BT.709 and
     fails with "no path between colorspaces", so tone-mapping every clip
     regardless meant an SDR take got its cut but never a thumbnail. Same test
-    as lemoine_cut.sh."""
-    trc = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
+    as lemoine_cut.sh, and the SAME conversion, so the thumbnail's photo has
+    exactly the video's colour.
+
+    ffprobe prints an iPhone clip's transfer as "arib-std-b67," with a
+    trailing comma. From 2026-10-11 to 10-18 this compared the whole string,
+    never recognised HDR, and handed the HLG frame over unconverted: grey,
+    washed-out skin on every thumbnail ("I look like a ghost"). The videos
+    were fine; lemoine_cut.sh splits on the comma.
+    """
+    out = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0",
                           "-show_entries", "stream=color_transfer", "-of", "csv=p=0", video],
-                         capture_output=True, text=True).stdout.strip()
+                         capture_output=True, text=True).stdout
+    trc = out.strip().split(",")[0].strip()
     return TONEMAP if trc in ("arib-std-b67", "smpte2084") else "null"
 
 
@@ -522,7 +531,13 @@ if __name__ == "__main__":
                     help="fraction of the height held fully ink (overrides the preset)")
     ap.add_argument("--fade", type=float, default=None,
                     help="fraction by which the ink has faded to nothing")
-    ap.add_argument("--grade", type=float, default=1.0, help="film grade, 0 = off")
+    # Off by default: the photo is the video's own frame, in the video's own
+    # colour. Johnny, 2026-10-18: "What's wrong with the thumbnail of the
+    # actual video itself? Don't make me look paler!" The film grade lifted
+    # the blacks and took out saturation; the diffusion effect veiled sunlit
+    # skin. Both made him paler than his video. Don't turn them back on by
+    # default.
+    ap.add_argument("--grade", type=float, default=0.0, help="film grade, 0 = off (the default)")
     ap.add_argument("--grain", type=float, default=7.0, help="grain sigma, 0 = off")
     ap.add_argument("--effect", choices=list(EFFECTS), default="none")
     ap.add_argument("--subject-y", type=float, default=0.30,

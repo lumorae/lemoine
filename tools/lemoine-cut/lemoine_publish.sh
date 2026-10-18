@@ -248,7 +248,9 @@ if [[ $PLATFORM == shorts || $PLATFORM == both ]]; then
   THUMB="${STAMP}_${SLUG}_thumb.jpg"
   # A colour thumbnail on a black-and-white cut is a mismatch the viewer sees
   # before they see anything else, so -bw carries through to the still.
-  THUMB_FX=diffusion
+  # No film effect on colour: the thumbnail keeps the video's own colour
+  # (Johnny: "Don't make me look paler!"). Only -bw changes it, to mono.
+  THUMB_FX=none
   [[ ${#BW_ARGS[@]} -gt 0 ]] && THUMB_FX=mono
   AT=${THUMB_AT:-$(python3 -c "
 import subprocess,sys
