@@ -74,6 +74,28 @@ FLUTES = [
         "note": "Nova double; every G and Gm title without a quena word lands here",
     },
     {
+        "folder": "Tulum Bamboo Double C",
+        "key": {"C"},
+        # A gift from Johnny's friend Albert, who found it in Tulum (2026-10).
+        # One long bamboo tube with the mouthpiece in the MIDDLE: two flutes
+        # joined at the centre, held sideways like a transverse flute, one
+        # hand on each half. Two leather-wrapped blocks with red/brown cord
+        # ties, cane bindings, a burned cursive maker's mark near one end that
+        # nobody has read for certain yet (it looks like "La ..hi").
+        #
+        # Measured 2026-10-19 on its first take (San Diego garden): one half
+        # holds a drone on C5, ~533 Hz, sounding in 87% of quarter-second
+        # slices; the other moves over it through G4 (~398 Hz), A4, B4, C5, D5,
+        # with D#5 now and then. Named against A447 every note lands within a
+        # few cents, so like the D flutes it sits ~30 cents sharp of concert.
+        # measure.py alone reads it badly (two voices at once): it gave a
+        # semitone-ambiguous fit and "lowest 176 Hz", which was handling and
+        # wind in the first seconds, before he played. The only C flute, so
+        # any title in C files here.
+        "note": "bamboo, centre-blown double from Tulum; C drone ~A447 under G-D melody",
+        "lowcut": 170,   # under the melody's lowest note (G4 ~398, an F4 ~355 now and then)
+    },
+    {
         "folder": "Ebonized Walnut A",
         "key": {"A"},
         "note": "the only A flute",
