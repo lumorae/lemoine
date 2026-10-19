@@ -77,11 +77,14 @@ FLUTES = [
         "folder": "Tulum Bamboo Double C",
         "key": {"C"},
         # A gift from Johnny's friend Albert, who found it in Tulum (2026-10).
+        # Made by Omar La Rosa Sánchez, "La Rosa de Bambú" (Instagram
+        # @larosadebambu: "Flautas del mundo, bambú y madera", Urubamba, Peru);
+        # Johnny identified him, and the burned cursive mark near one end is
+        # his signature, "La Rosa". So it was bought in Tulum but made in Peru.
         # One long bamboo tube with the mouthpiece in the MIDDLE: two flutes
         # joined at the centre, held sideways like a transverse flute, one
         # hand on each half. Two leather-wrapped blocks with red/brown cord
-        # ties, cane bindings, a burned cursive maker's mark near one end that
-        # nobody has read for certain yet (it looks like "La ..hi").
+        # ties, cane bindings.
         #
         # Measured 2026-10-19 on its first take (San Diego garden): one half
         # holds a drone on C5, ~533 Hz, sounding in 87% of quarter-second
@@ -92,7 +95,7 @@ FLUTES = [
         # semitone-ambiguous fit and "lowest 176 Hz", which was handling and
         # wind in the first seconds, before he played. The only C flute, so
         # any title in C files here.
-        "note": "bamboo, centre-blown double from Tulum; C drone ~A447 under G-D melody",
+        "note": "bamboo centre-blown double by Omar La Rosa (Peru), from Tulum; C drone ~A447",
         "lowcut": 170,   # under the melody's lowest note (G4 ~398, an F4 ~355 now and then)
     },
     {

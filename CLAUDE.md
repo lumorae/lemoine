@@ -119,7 +119,7 @@ Folder = `LEMOINE_FLUTE` = the jobs.tsv flute column. Exactly these; an unknown 
 | High Spirits Double F# | F#, heart | crossbow-shaped double, drone + melody chambers joined by a cross-bar | drone 366-370 Hz, F#4 (three takes) | 180 | F#, and not "spirit flute" |
 | Spirit Flute F# | F#, heart | single chamber, reddish, carved spiral/flame marks | F# minor pentatonic near A440; lowest 366-369 Hz (three takes) | 180 | F# and "spirit flute" |
 | High Spirits Nova G | G (Gm), throat | pale, striped double | not measured | none | G, and no quena word |
-| Tulum Bamboo Double C | C, root | bamboo, mouthpiece in the middle, played sideways with a hand on each half; two leather-wrapped blocks with red/brown cord ties, burned cursive maker's mark; a gift from his friend Albert, from Tulum | C5 drone ~533 Hz under a G4-D5 melody, about A447 (one take) | 170 | C |
+| Tulum Bamboo Double C | C, root | bamboo, mouthpiece in the middle, played sideways with a hand on each half; two leather-wrapped blocks with red/brown cord ties, burned cursive "La Rosa" mark. Made by Omar La Rosa Sánchez (La Rosa de Bambú, @larosadebambu, Urubamba, Peru); a gift from his friend Albert, who found it in Tulum | C5 drone ~533 Hz under a G4-D5 melody, about A447 (one take) | 170 | C |
 | Ebonized Walnut A | A, third eye | the only A flute | not measured | none | A |
 | High Kestrel D | D, sacral | High Spirits; carved bird | not measured | none | D and "kestrel" |
 | Stellar Flute D | D, sacral | Stellar Flutes; plain reddish body, no burned symbols, black block tie, red/white/grey woven band; also the shaker clips | D dorian, about A445-447; lowest about 291-296 Hz | 140 | D and "stellar" or "shaker" |
