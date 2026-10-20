@@ -11,7 +11,7 @@ posted, using the next caption variant, so the Page never runs dry.
 
 Required env vars:
   FB_PAGE_ID
-  FB_PAGE_TOKEN     long-lived Page token from get_page_token.py
+  FB_PAGE_TOKEN     Lemoine Poster system user token (or a Page token)
 
 Optional:
   FB_POSTS_PER_RUN  default 1
@@ -30,6 +30,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from captions import TEMPLATES, caption_for, load_custom
+from page_token import page_token
 
 ROOT = Path(__file__).parent.parent
 PINS_FILE = ROOT / "etsy-audit" / "pins.json"
@@ -134,7 +135,7 @@ def post_photo(listing: dict, caption: str) -> str:
     body = urllib.parse.urlencode({
         "url": listing["image_url"],
         "caption": caption,
-        "access_token": os.environ["FB_PAGE_TOKEN"],
+        "access_token": page_token(),
     }).encode()
     req = urllib.request.Request(
         f"https://graph.facebook.com/{GRAPH_VERSION}/{os.environ['FB_PAGE_ID']}/photos",
@@ -147,9 +148,9 @@ def post_photo(listing: dict, caption: str) -> str:
     except urllib.error.HTTPError as e:
         detail = e.read().decode()
         if '"code":190' in detail.replace(" ", ""):
-            detail += ("\nThe Page token is no longer valid (a password change or a"
-                       " removed permission does this). Run facebook/get_page_token.py"
-                       " again to issue a new one.")
+            detail += ("\nThe token was revoked. In Business settings (Lemoine portfolio"
+                       " 293871694596587) > System users > Lemoine Poster > Generate token,"
+                       " then save it with: gh secret set FB_PAGE_TOKEN -R lumorae/lemoine")
         raise RuntimeError(f"HTTP {e.code}: {detail}") from None
     return result.get("post_id") or result["id"]
 
