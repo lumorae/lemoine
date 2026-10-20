@@ -135,8 +135,17 @@ def variants_for(listing: dict, custom: dict) -> list[str]:
     return bank.get(listing["category"], bank["art_general"])
 
 
+# The link line rotates too, so posts don't all end the same way.
+LINK_LINES = [
+    "On Etsy: {url}",
+    "Prints here: {url}",
+    "Find it on Etsy: {url}",
+    "Shop the print: {url}",
+]
+
+
 def caption_for(listing: dict, times_posted: int, custom: dict,
-                recent: list[str] = ()) -> tuple[str, str]:
+                recent: list[str] = (), post_number: int = 0) -> tuple[str, str]:
     """Caption for this listing's next post, ending with the Etsy link,
     plus the template it came from.
 
@@ -151,4 +160,5 @@ def caption_for(listing: dict, times_posted: int, custom: dict,
     last_use = {t: i for i, t in enumerate(recent)}
     template = min(order, key=lambda t: last_use.get(t, -1))
     body = template.format(name=display_name(listing["title"]))
-    return f"{body}\n\nOn Etsy: {listing['url']}", template
+    link = LINK_LINES[post_number % len(LINK_LINES)].format(url=listing["url"])
+    return f"{body}\n\n{link}", template

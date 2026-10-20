@@ -172,8 +172,9 @@ def main():
     def pick(st: dict) -> tuple[dict, str, str]:
         listing = next_listing(listings, st, recent)
         count = st["listings"].get(listing["listing_id"], {}).get("count", 0)
+        posts_so_far = sum(s.get("count", 0) for s in st["listings"].values())
         caption, template = caption_for(listing, count, custom,
-                                        [r["template"] for r in recent])
+                                        [r["template"] for r in recent], posts_so_far)
         return listing, caption, template
 
     if preview:
@@ -201,7 +202,7 @@ def main():
                 if "link" not in str(e).lower():
                     raise
                 print(f"  ! link refused, posting without it: {e}")
-                caption = caption.rsplit("\n\nOn Etsy:", 1)[0] + NO_LINK_LINE
+                caption = caption.rsplit("\n\n", 1)[0] + NO_LINK_LINE
                 post_id = post_photo(listing, caption)
         except Exception as e:
             print(f"  ✗ {listing['title'][:70]}: {e}")
