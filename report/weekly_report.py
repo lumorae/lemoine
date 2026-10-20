@@ -14,11 +14,15 @@ the Actions cache. The first run has no baseline, so it shows totals only.
 """
 import json
 import os
+import sys
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent.parent / "facebook"))
+from page_token import page_token  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
 LISTINGS_FILE = ROOT / "etsy-audit" / "listings.json"
@@ -30,7 +34,7 @@ GRAPH = f"https://graph.facebook.com/{os.environ.get('FB_GRAPH_VERSION', 'v23.0'
 
 
 def graph(path: str, **params) -> dict:
-    params["access_token"] = os.environ["FB_PAGE_TOKEN"]
+    params["access_token"] = page_token()
     url = f"{GRAPH}{path}?{urllib.parse.urlencode(params)}"
     try:
         with urllib.request.urlopen(url, timeout=30) as r:
