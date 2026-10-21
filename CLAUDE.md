@@ -15,6 +15,7 @@ Johnny Lemoine films himself playing flutes on his phone and uploads the clips t
 - Don't let naming or research hold up a cut. Cut first, research after.
 - A flute you can't identify: a wrong guess is worse than an obvious question. Ask him one short question, or file to Unsorted and say so. Never guess a folder.
 - When he names the flute, file it as named, even when your eyes say otherwise (see the Red Band trap).
+- **Which flute: ask with a tap list, every time.** His idea (2026-10-21): after you fetch and measure, send one AskUserQuestion per clip so he can toggle the right flute, then cut. See step 2.
 - Report outcomes plainly and briefly. If you were wrong, say so in one line. When he says a video is a dud, believe him and look for the cause.
 - Never say something can't be done on platform grounds without checking. If this session can't, say "not from this session" and name the route that works. (He was wrongly told he couldn't upload Shorts thumbnails, and that Studio scheduling was impossible.)
 
@@ -30,6 +31,7 @@ Run from `/home/user/lemoine`. `T=tools/lemoine-cut`, `W=/home/user/work/dMMDD` 
 
 1. **Fetch.** `python3 $T/fetch_inbox.py --out $W/src`, adding `--expect N` when he says N videos (he often asks while his phone is still uploading). Exit 2 = fewer than N arrived, exit 1 = a file never arrived whole, exit 3 = Inbox empty. It names LEFTOVER clips (in Inbox over 12 hours), which count toward N. Safe to re-run.
 2. **Identify every flute by sight AND pitch.** `python3 $T/measure.py pitch $W/src/*.MOV`, then look at frames against the Instruments table (maker's mark, wood, bindings). Assign each clip by eye; never assume an even split (six clips once assumed three and three were four and two). When the tuning sits between two note names it prints both readings; pick by eye and the table. The lowest note in Hz is always trustworthy.
+   **Then ask him with a tap list before cutting, every time** (his request, 2026-10-21). One AskUserQuestion call, one question per clip (at most 4 per call; more clips, more calls). Header: the clip name (`IMG_1737`). Options: the 2-4 flutes that fit the measured key, your best match first with "(Recommended)" after its folder name; each description gives the cue you saw and the measured note ("woven band, no medallion; D4 296 Hz"). If only one flute fits the key, add the nearest lookalike as the second option. Don't add an "Other" option; the tool adds one. Cut with what he taps. If he taps Other with a flute that has no folder, add its FLUTES entry first. While he answers, nothing else waits on it: fetch and measure come first, titles and fit-tests can follow.
 3. **Noise.** `-c` only for genuinely noisy locations (a balcony over a city). Two numbers decide it: sub-160 Hz SNR of 1-3 dB is pure rumble (`-c` helps), about 15 dB means the instrument is down there; and a big mid/side gap means the take is already centred, so mono buys nothing. Shakuhachi takes (15-18 dB, 24 dB) were cut without it, Mexico City balcony takes (1-3 dB, 9 dB) needed it. `-n 10/14/18` = gentle/default/aggressive.
 4. **Titles.** One distinct title per video (see Titles). Lowercase except the key letter. Use his exact words when he gives a title or a lead.
 5. **Fit every title at 42pt** before cutting. Any number under 42 means shorten it:
@@ -151,7 +153,7 @@ Folder = `LEMOINE_FLUTE` = the jobs.tsv flute column. Exactly these; an unknown 
 
 ## Git and merging
 
-1. Branch only from a fetched main, and only when your current branch has nothing unmerged: `git fetch -q origin`, check `git rev-list --count origin/main..HEAD` is 0, then `git checkout -q -B <your claude/ branch> origin/main`. `checkout -B` resets the branch and drops any unmerged commits on it; merge those first. (After PR #7 a branch was cut from a stale origin/main.)
+1. Branch only from a fetched main, and only when your current branch has nothing unmerged: `git fetch -q origin`, check `git rev-list --count origin/main..HEAD` is 0, then `git checkout -q -B <your claude/ branch> origin/main && git push -q origin <your claude/ branch>`. The push keeps the remote branch level with main; without it the stop hook reports main's own commits (other sessions' merges) as "unpushed". `checkout -B` resets the branch and drops any unmerged commits on it; merge those first. (After PR #7 a branch was cut from a stale origin/main.)
 2. Commit and push early. The container restarts without warning and takes uncommitted work with it.
 3. Never switch branches or edit pipeline files while a publish run is going: it would swap scripts under the running job.
 4. Test pipeline changes with `LEMOINE_LOCAL_ONLY=1` in a copy of the tools (see the procedure).
@@ -164,6 +166,7 @@ Folder = `LEMOINE_FLUTE` = the jobs.tsv flute column. Exactly these; an unknown 
 
 - **The Red Band misfile (2026-10-10).** A lamp changed the Jayras's band colours, a take was filed into an invented "Quena Red Band" folder, and he had to ask where it went. File as he names it.
 - **Theme-led titles route by key alone.** Jayras titles go to the Nova (G) or the bamboo Quena ("quena"); F# titles go to the Double; D titles go to Unsorted, and any "chakra" pulls a Stellar or Kestrel take into Sacral Chakra D; any "432" goes to the Spanish Cedar whatever the key. The flute column fixes all of these.
+- **"D sacral" was the chakra, not the flute (2026-10-21).** He asked to "cut the short from today. D sacral"; it was filed to Sacral Chakra D, though the frames showed the Stellar's woven band and no medallion. He meant a D flute and the sacral theme; it was the Stellar, and the cut was moved. Words like "sacral" or "heart chakra flute" can be the theme. The tap list in step 2 settles it.
 - **A hand-capitalised title** ("Stellar Flute in D") reads the F of "Flute" as the key and files to the Double. Lowercase except the key.
 - **make_lower3.py shrinks long titles silently** (to as low as 30pt, warning only on stderr). Fit-test at 42pt first.
 - **Hand thumbnails vs the run's own upload.** The run uploads its automatic thumbnail at the end; a hand render put before the run finishes gets overtaken. `drive_put.py` only after the run has exited.
