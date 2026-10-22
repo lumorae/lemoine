@@ -71,6 +71,13 @@ FLUTES = [
         # "jayras") before keys are looked at, so any G title without a quena
         # word still lands here, including theme-led Jayras titles: those
         # need LEMOINE_FLUTE.
+        #
+        # 2026-10-22, first measurement on record (San Diego garden): the
+        # drone sits on G4, ~385 Hz (41% of quarter-second slices, its octave
+        # 775 Hz in 66%), under a G minor pentatonic melody: G, Bb, C, D, F.
+        # Reference about A432-435. Pale body with two bores side by side and
+        # a burned feather mark. One take, so no low cut yet; a second take
+        # that agrees on the 385 Hz drone sets one an octave under it.
         "note": "Nova double; every G and Gm title without a quena word lands here",
     },
     {
